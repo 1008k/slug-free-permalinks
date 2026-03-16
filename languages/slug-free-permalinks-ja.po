@@ -1,0 +1,41 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Slug-Free Permalinks 1.4.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-16 00:00+0000\n"
+"PO-Revision-Date: 2026-03-16 00:00+0000\n"
+"Last-Translator: happas\n"
+"Language-Team: Japanese\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Domain: slug-free-permalinks\n"
+
+msgid "Slug-Free Permalinks"
+msgstr "Slug-Free Permalinks"
+
+msgid "Use ID based permalinks for selected post types and taxonomies without managing slugs."
+msgstr "選択した投稿タイプとタクソノミーを、slug 管理なしの ID ベース permalink に切り替えます。"
+
+msgid "Settings"
+msgstr "設定"
+
+msgid "Checked post types and taxonomies will use the selected ID based permalink format. Clear all checks to disable. Rewrite rules are flushed automatically when settings change."
+msgstr "チェックした投稿タイプとタクソノミーで、選択した ID ベース permalink 形式を使用します。すべてのチェックを外すと無効になります。設定変更時には rewrite ルールが自動でフラッシュされます。"
+
+msgid "Permalink format"
+msgstr "Permalink 形式"
+
+msgid "Target post types"
+msgstr "対象の投稿タイプ"
+
+msgid "Target taxonomies"
+msgstr "対象のタクソノミー"
+
+msgid "Redirect legacy permalinks"
+msgstr "旧 permalink をリダイレクト"
+
+msgid "Redirect old slug based URLs to the current ID based permalink when WordPress can resolve the request."
+msgstr "WordPress がリクエストを解決できる場合、旧 slug ベース URL を現在の ID ベース permalink へリダイレクトします。"

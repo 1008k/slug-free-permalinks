@@ -3,8 +3,8 @@
 Plugin Name: Slug-Free Permalinks
 Description: Use ID based permalinks for selected post types and taxonomies without managing slugs.
 Version: 1.4.0
-Requires at least: 6.6
-Requires PHP: 8.1
+Requires at least: 5.8
+Requires PHP: 7.4
 Author: happas
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -28,6 +28,7 @@ final class PTID_Permalink_Plugin
     public static function bootstrap(): void
     {
         $instance = new self();
+        add_action('plugins_loaded', array($instance, 'load_textdomain'));
         add_action('init', array($instance, 'register_rewrite_rules'));
         add_filter('post_link', array($instance, 'filter_permalink'), 10, 2);
         add_filter('post_type_link', array($instance, 'filter_permalink'), 10, 2);
@@ -57,6 +58,15 @@ final class PTID_Permalink_Plugin
     public static function deactivate(): void
     {
         flush_rewrite_rules();
+    }
+
+    public function load_textdomain(): void
+    {
+        load_plugin_textdomain(
+            'slug-free-permalinks',
+            false,
+            dirname(plugin_basename(__FILE__)) . '/languages'
+        );
     }
 
     public function filter_permalink(string $post_link, WP_Post $post): string
@@ -517,8 +527,12 @@ final class PTID_Permalink_Plugin
 
     private function get_current_request_url(): string
     {
-        $request_uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash((string) $_SERVER['REQUEST_URI']) : '';
-        $host = isset($_SERVER['HTTP_HOST']) ? wp_unslash((string) $_SERVER['HTTP_HOST']) : '';
+        $request_uri = isset($_SERVER['REQUEST_URI'])
+            ? sanitize_text_field(wp_unslash((string) $_SERVER['REQUEST_URI']))
+            : '';
+        $host = isset($_SERVER['HTTP_HOST'])
+            ? sanitize_text_field(wp_unslash((string) $_SERVER['HTTP_HOST']))
+            : '';
 
         if ($request_uri === '' || $host === '') {
             return '';

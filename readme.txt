@@ -1,9 +1,9 @@
 === Slug-Free Permalinks ===
 Contributors: happas
 Tags: permalinks, slugs, custom post types, taxonomy, urls
-Requires at least: 6.6
-Tested up to: 6.8
-Requires PHP: 8.1
+Requires at least: 5.8
+Tested up to: 6.9
+Requires PHP: 7.4
 Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -30,6 +30,10 @@ Features:
 * Flush rewrite rules automatically when settings change
 
 This plugin is focused on permalink structure only. It does not add content features or front-end UI.
+
+Known limitations:
+
+* If a post type slug and taxonomy slug are identical, their ID based rewrite patterns can conflict.
 
 == Installation ==
 
