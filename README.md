@@ -1,6 +1,6 @@
 # Slug-Free Permalinks
 
-Japanese: [docs/README-ja.md](docs/README-ja.md)
+Japanese: [README-ja.md](README-ja.md)
 
 Slug-Free Permalinks is a WordPress plugin that switches selected post types and taxonomies to ID-based permalinks without using slugs.
 
@@ -25,6 +25,12 @@ These minimum versions are based on the PHP syntax and WordPress APIs used by th
 2. Activate the plugin from the WordPress `Plugins` screen.
 3. Go to `Settings > Slug-Free Permalinks`.
 4. Choose the permalink format and the target post types or taxonomies.
+
+## Distribution
+
+- Source files live in the repository root.
+- Build the distributable plugin into `dist/slug-free-permalinks` with `node scripts/build-dist.mjs`.
+- Run Plugin Check against `dist/slug-free-permalinks` when preparing a release.
 
 ## Notes
 

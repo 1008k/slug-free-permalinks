@@ -1,6 +1,6 @@
 # Slug-Free Permalinks
 
-English: [../README.md](../README.md)
+English: [README.md](README.md)
 
 WordPress の投稿タイプとタクソノミーを、slug を使わない ID ベース permalink に切り替えるプラグインです。
 
