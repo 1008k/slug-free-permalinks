@@ -41,10 +41,30 @@ function runChecked(filePath, args) {
   }
 }
 
+function runCapture(filePath, args) {
+  const result = spawnSync(filePath, args, {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'inherit'],
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  if (result.status !== 0) {
+    throw new Error(
+      `Command failed with exit code ${result.status}: ${filePath} ${args.join(' ')}`
+    );
+  }
+
+  return result.stdout.trim();
+}
+
 const version = getPluginVersion();
 const tagName = version;
 const zipFilePath = path.join(distRootDir, `slug-free-permalinks-${version}.zip`);
 const ghPath = resolveGhPath();
+const targetCommitish = runCapture('git', ['rev-parse', 'HEAD']);
 
 runChecked(ghPath, ['auth', 'status']);
 
@@ -66,5 +86,5 @@ runChecked(ghPath, [
   tagName,
   '--generate-notes',
   '--target',
-  'HEAD',
+  targetCommitish,
 ]);
