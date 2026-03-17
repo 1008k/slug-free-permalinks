@@ -31,6 +31,8 @@ Features:
 
 This plugin is focused on permalink structure only. It does not add content features or front-end UI.
 
+Development repository: https://github.com/1008k/slug-free-permalinks
+
 Known limitations:
 
 * If a post type slug and taxonomy slug are identical, their ID based rewrite patterns can conflict.
@@ -51,13 +53,32 @@ Known limitations:
 
 No. Only the post types and taxonomies you check in the settings screen are affected.
 
-= Does it redirect old slug URLs? =
+= Does it redirect every old slug URL? =
 
-Only if you enable `Redirect legacy permalinks`. The redirect is intentionally lightweight and only runs when WordPress can already resolve the request to a post or term.
+No. Slug-Free Permalinks avoids aggressive 404 slug guessing.
+Redirects only run when WordPress can already resolve the request.
+
+This keeps the plugin lightweight and predictable.
+
+= Why not attempt slug lookups for every 404? =
+
+Performing slug lookups on every 404 can introduce unnecessary database queries and unpredictable behavior.
+
+The plugin prioritizes performance and compatibility with WordPress routing.
+
+= Does it support pages? =
+
+No. Pages are intentionally excluded to avoid conflicts with typical WordPress page permalink structures.
 
 = Does it support taxonomies too? =
 
 Yes. Public taxonomies with UI support can be switched to the same ID based format.
+
+= Can a post type and taxonomy share the same slug? =
+
+This is not recommended.
+
+If a custom post type and a taxonomy share the same slug, WordPress rewrite rules may conflict.
 
 == Changelog ==
 

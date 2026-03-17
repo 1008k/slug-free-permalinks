@@ -12,6 +12,38 @@ Slug-Free Permalinks is a WordPress plugin that switches selected post types and
 - Optionally redirect legacy slug URLs to the current ID-based permalink
 - Flush rewrite rules automatically when settings change
 
+## FAQ
+
+**Does the plugin work with pages?**
+
+No. Pages are intentionally excluded to avoid conflicts with common WordPress page structures and existing permalink configurations.
+
+The plugin focuses on posts, custom post types, and taxonomies where ID-based permalinks are more predictable.
+
+---
+
+**Does it redirect every old slug URL?**
+
+No. Slug-Free Permalinks intentionally avoids aggressive 404-based slug guessing.
+
+Redirects only run when WordPress can already resolve the legacy request. This design keeps redirects lightweight, predictable, and compatible with standard WordPress routing.
+
+---
+
+**Why doesn't the plugin attempt slug lookups on every 404?**
+
+Performing slug lookups for every 404 request can introduce unnecessary database queries, especially on large sites or when bots crawl invalid URLs.
+
+Slug-Free Permalinks prioritizes performance and reliability over aggressive URL guessing.
+
+---
+
+**Can a post type and taxonomy share the same slug?**
+
+This is not recommended.
+
+If a custom post type and a taxonomy share the same slug, WordPress rewrite rules may conflict. Using distinct slugs for post types and taxonomies avoids ambiguity.
+
 ## Requirements
 
 - WordPress 5.8 or later
@@ -30,6 +62,8 @@ These minimum versions are based on the PHP syntax and WordPress APIs used by th
 
 - Source files live in the repository root.
 - Build the distributable plugin into `dist/slug-free-permalinks` with `node scripts/build-dist.mjs`.
+- Build the versioned release ZIP with `node scripts/build-dist.mjs --zip`.
+- Create a GitHub release with `node scripts/create-github-release.mjs`.
 - Run Plugin Check against `dist/slug-free-permalinks` when preparing a release.
 
 ## Notes
