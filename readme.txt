@@ -4,7 +4,7 @@ Tags: permalinks, slugs, custom post types, taxonomy, urls
 Requires at least: 5.8
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.4.0
+Stable tag: 1.4.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -81,6 +81,16 @@ This is not recommended.
 If a custom post type and a taxonomy share the same slug, WordPress rewrite rules may conflict.
 
 == Changelog ==
+
+= 1.4.2 =
+
+* Add a guarded Japanese l10n PHP translation file for Plugin Check compatibility
+* Update distribution package for the latest Plugin Check fixes
+
+= 1.4.1 =
+
+* Remove unnecessary manual translation loading to satisfy current Plugin Check guidance
+* Refine FAQ and release packaging workflow
 
 = 1.4.0 =
 

@@ -2,7 +2,7 @@
 /*
 Plugin Name: Slug-Free Permalinks
 Description: Use ID based permalinks for selected post types and taxonomies without managing slugs.
-Version: 1.4.0
+Version: 1.4.2
 Requires at least: 5.8
 Requires PHP: 7.4
 Author: happas
@@ -28,7 +28,6 @@ final class PTID_Permalink_Plugin
     public static function bootstrap(): void
     {
         $instance = new self();
-        add_action('plugins_loaded', array($instance, 'load_textdomain'));
         add_action('init', array($instance, 'register_rewrite_rules'));
         add_filter('post_link', array($instance, 'filter_permalink'), 10, 2);
         add_filter('post_type_link', array($instance, 'filter_permalink'), 10, 2);
@@ -58,15 +57,6 @@ final class PTID_Permalink_Plugin
     public static function deactivate(): void
     {
         flush_rewrite_rules();
-    }
-
-    public function load_textdomain(): void
-    {
-        load_plugin_textdomain(
-            'slug-free-permalinks',
-            false,
-            dirname(plugin_basename(__FILE__)) . '/languages'
-        );
     }
 
     public function filter_permalink(string $post_link, WP_Post $post): string
