@@ -73,7 +73,12 @@ final class PTID_Permalink_Plugin
             return $post_link;
         }
 
-        return home_url(user_trailingslashit($this->build_id_path($post->post_type, $post->ID)));
+        return $this->build_content_permalink(
+            $post_link,
+            $post->post_type,
+            $post->ID,
+            $this->get_polylang_home_url_for_post($post->ID)
+        );
     }
 
     public function filter_term_link(string $term_link, WP_Term $term, string $taxonomy): string
@@ -86,7 +91,12 @@ final class PTID_Permalink_Plugin
             return $term_link;
         }
 
-        return home_url(user_trailingslashit($this->build_id_path($taxonomy, $term->term_id)));
+        return $this->build_content_permalink(
+            $term_link,
+            $taxonomy,
+            $term->term_id,
+            $this->get_polylang_home_url_for_term($term->term_id)
+        );
     }
 
     public function register_rewrite_rules(): void
@@ -503,9 +513,63 @@ final class PTID_Permalink_Plugin
         return $slug . '/' . $id;
     }
 
+    private function build_content_permalink(string $existing_url, string $slug, int $id, string $language_home_url = ''): string
+    {
+        $relative_id_path = user_trailingslashit($this->build_id_path($slug, $id));
+
+        if ($language_home_url !== '') {
+            $language_url = $this->join_url_path($language_home_url, $relative_id_path);
+            if ($language_url !== '') {
+                return $language_url;
+            }
+        }
+
+        $updated_url = $this->replace_url_path_suffix($existing_url, $slug, $relative_id_path);
+
+        if ($updated_url !== '') {
+            return $updated_url;
+        }
+
+        return home_url($relative_id_path);
+    }
+
     private function has_enabled_targets(array $settings): bool
     {
         return $settings['post_types'] !== array() || $settings['taxonomies'] !== array();
+    }
+
+    private function get_polylang_home_url_for_post(int $post_id): string
+    {
+        if (! function_exists('pll_get_post_language') || ! function_exists('pll_home_url')) {
+            return '';
+        }
+
+        $language = pll_get_post_language($post_id, 'slug');
+
+        if (! is_string($language) || $language === '') {
+            return '';
+        }
+
+        $home_url = pll_home_url($language);
+
+        return is_string($home_url) ? $home_url : '';
+    }
+
+    private function get_polylang_home_url_for_term(int $term_id): string
+    {
+        if (! function_exists('pll_get_term_language') || ! function_exists('pll_home_url')) {
+            return '';
+        }
+
+        $language = pll_get_term_language($term_id, 'slug');
+
+        if (! is_string($language) || $language === '') {
+            return '';
+        }
+
+        $home_url = pll_home_url($language);
+
+        return is_string($home_url) ? $home_url : '';
     }
 
     private function should_redirect_legacy_requests(): bool
@@ -568,6 +632,100 @@ final class PTID_Permalink_Plugin
         return add_query_arg($query_args, $target_url);
     }
 
+    private function replace_url_path_suffix(string $url, string $slug, string $relative_id_path): string
+    {
+        $parts = wp_parse_url($url);
+
+        if (! is_array($parts) || empty($parts['host'])) {
+            return '';
+        }
+
+        $path = isset($parts['path']) ? (string) $parts['path'] : '';
+
+        if ($path === '') {
+            return '';
+        }
+
+        $parts['path'] = $this->replace_path_suffix($path, $slug, $relative_id_path);
+
+        return $this->build_url_from_parts($parts);
+    }
+
+    private function replace_path_suffix(string $path, string $slug, string $relative_id_path): string
+    {
+        $segments = array_values(array_filter(explode('/', trim($path, '/')), 'strlen'));
+        $prefix_segments = $this->extract_prefix_segments($segments, $slug);
+        $id_segments = array_values(array_filter(explode('/', trim($relative_id_path, '/')), 'strlen'));
+        $new_segments = array_merge($prefix_segments, $id_segments);
+
+        if ($new_segments === array()) {
+            return '/';
+        }
+
+        return '/' . ltrim(user_trailingslashit(implode('/', $new_segments)), '/');
+    }
+
+    private function extract_prefix_segments(array $segments, string $slug): array
+    {
+        $slug_index = false;
+
+        for ($index = count($segments) - 1; $index >= 0; $index--) {
+            if ($segments[$index] === $slug) {
+                $slug_index = $index;
+                break;
+            }
+        }
+
+        if ($slug_index !== false) {
+            return array_slice($segments, 0, (int) $slug_index);
+        }
+
+        if (count($segments) <= 1) {
+            return array();
+        }
+
+        return array_slice($segments, 0, -1);
+    }
+
+    private function join_url_path(string $base_url, string $relative_path): string
+    {
+        $parts = wp_parse_url($base_url);
+
+        if (! is_array($parts) || empty($parts['host'])) {
+            return '';
+        }
+
+        $base_path = isset($parts['path']) ? trim((string) $parts['path'], '/') : '';
+        $new_path = trim($relative_path, '/');
+
+        if ($base_path !== '') {
+            $new_path = $base_path . '/' . $new_path;
+        }
+
+        $parts['path'] = '/' . ltrim(user_trailingslashit($new_path), '/');
+
+        return $this->build_url_from_parts($parts);
+    }
+
+    private function build_url_from_parts(array $parts): string
+    {
+        if (empty($parts['host'])) {
+            return '';
+        }
+
+        $scheme = isset($parts['scheme']) ? $parts['scheme'] . '://' : (is_ssl() ? 'https://' : 'http://');
+        $user = isset($parts['user']) ? (string) $parts['user'] : '';
+        $pass = isset($parts['pass']) ? ':' . (string) $parts['pass'] : '';
+        $auth = $user !== '' ? $user . $pass . '@' : '';
+        $host = (string) $parts['host'];
+        $port = isset($parts['port']) ? ':' . (string) $parts['port'] : '';
+        $path = isset($parts['path']) ? (string) $parts['path'] : '';
+        $query = isset($parts['query']) && $parts['query'] !== '' ? '?' . (string) $parts['query'] : '';
+        $fragment = isset($parts['fragment']) && $parts['fragment'] !== '' ? '#' . (string) $parts['fragment'] : '';
+
+        return $scheme . $auth . $host . $port . $path . $query . $fragment;
+    }
+
     private function register_rewrite_rules_for(string $structure, array $post_types, array $taxonomies, bool $enabled): void
     {
         if (! $enabled) {
@@ -575,11 +733,12 @@ final class PTID_Permalink_Plugin
         }
 
         $separator = $structure === 'hyphen' ? '-' : '/';
+        $prefix_pattern = '^(?:[^/]+/)*';
 
         if ($post_types !== array()) {
             $pattern = implode('|', array_map('preg_quote', $post_types));
             add_rewrite_rule(
-                '^(' . $pattern . ')' . $separator . '([0-9]+)/?$',
+                $prefix_pattern . '(' . $pattern . ')' . $separator . '([0-9]+)/?$',
                 'index.php?post_type=$matches[1]&p=$matches[2]',
                 'top'
             );
@@ -588,7 +747,7 @@ final class PTID_Permalink_Plugin
         if ($taxonomies !== array()) {
             $pattern = implode('|', array_map('preg_quote', $taxonomies));
             add_rewrite_rule(
-                '^(' . $pattern . ')' . $separator . '([0-9]+)/?$',
+                $prefix_pattern . '(' . $pattern . ')' . $separator . '([0-9]+)/?$',
                 'index.php?ptid_taxonomy=$matches[1]&ptid_term_id=$matches[2]',
                 'top'
             );

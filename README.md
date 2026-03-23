@@ -10,6 +10,7 @@ Slug-Free Permalinks is a WordPress plugin that switches selected post types and
 - Select individual public taxonomies with UI support
 - Choose `/post/123/` or `/post-123/`
 - Optionally redirect legacy slug URLs to the current ID-based permalink
+- Preserve language or path prefixes already added by permalink plugins such as Polylang
 - Flush rewrite rules automatically when settings change
 
 ## FAQ
@@ -43,6 +44,14 @@ Slug-Free Permalinks prioritizes performance and reliability over aggressive URL
 This is not recommended.
 
 If a custom post type and a taxonomy share the same slug, WordPress rewrite rules may conflict. Using distinct slugs for post types and taxonomies avoids ambiguity.
+
+---
+
+**Does it work with Polylang or language-directory URLs such as `/en/`?**
+
+Yes, the plugin preserves prefixed permalink bases when another plugin already adds them to post or term links.
+
+ID-based routes also accept prefixed paths such as `/en/post/123/` or `/en/category/45/`.
 
 ## Requirements
 

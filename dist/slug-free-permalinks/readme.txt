@@ -27,6 +27,7 @@ Features:
 * Select individual public taxonomies
 * Choose slash or hyphen based ID permalink format
 * Optionally redirect legacy slug URLs to the current ID based permalink when WordPress can resolve the request
+* Preserve prefixed permalink bases such as `/en/` when another plugin adds them
 * Flush rewrite rules automatically when settings change
 
 This plugin is focused on permalink structure only. It does not add content features or front-end UI.
@@ -79,6 +80,12 @@ Yes. Public taxonomies with UI support can be switched to the same ID based form
 This is not recommended.
 
 If a custom post type and a taxonomy share the same slug, WordPress rewrite rules may conflict.
+
+= Does it work with Polylang or language-directory URLs such as `/en/`? =
+
+Yes. The plugin preserves prefixed permalink bases when another plugin already adds them to post or term links.
+
+ID based routes also accept prefixed paths such as `/en/post/123/` and `/en/category/45/`.
 
 == Changelog ==
 
