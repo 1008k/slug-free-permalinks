@@ -1,10 +1,10 @@
 === Slug-Free Permalinks ===
-Contributors: happas
+Contributors: cck23
 Tags: permalinks, slugs, custom post types, taxonomy, urls
 Requires at least: 5.8
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.4.2
+Stable tag: 1.4.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -88,6 +88,11 @@ Yes. The plugin preserves prefixed permalink bases when another plugin already a
 ID based routes also accept prefixed paths such as `/en/post/123/` and `/en/category/45/`.
 
 == Changelog ==
+
+= 1.4.3 =
+
+* Preserve Polylang and language-directory permalink prefixes for ID-based URLs
+* Accept prefixed ID routes such as `/en/post/123/` and `/en/category/45/`
 
 = 1.4.2 =
 

@@ -2,7 +2,7 @@
 /*
 Plugin Name: Slug-Free Permalinks
 Description: Use ID based permalinks for selected post types and taxonomies without managing slugs.
-Version: 1.4.2
+Version: 1.4.3
 Requires at least: 5.8
 Requires PHP: 7.4
 Author: happas
