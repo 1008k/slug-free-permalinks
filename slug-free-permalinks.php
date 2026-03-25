@@ -2,7 +2,7 @@
 /*
 Plugin Name: Slug-Free Permalinks
 Description: Use ID based permalinks for selected post types and taxonomies without managing slugs.
-Version: 1.4.3
+Version: 1.4.4
 Requires at least: 5.8
 Requires PHP: 7.4
 Author: happas
@@ -524,12 +524,6 @@ final class PTID_Permalink_Plugin
             }
         }
 
-        $updated_url = $this->replace_url_path_suffix($existing_url, $slug, $relative_id_path);
-
-        if ($updated_url !== '') {
-            return $updated_url;
-        }
-
         return home_url($relative_id_path);
     }
 
@@ -630,61 +624,6 @@ final class PTID_Permalink_Plugin
         }
 
         return add_query_arg($query_args, $target_url);
-    }
-
-    private function replace_url_path_suffix(string $url, string $slug, string $relative_id_path): string
-    {
-        $parts = wp_parse_url($url);
-
-        if (! is_array($parts) || empty($parts['host'])) {
-            return '';
-        }
-
-        $path = isset($parts['path']) ? (string) $parts['path'] : '';
-
-        if ($path === '') {
-            return '';
-        }
-
-        $parts['path'] = $this->replace_path_suffix($path, $slug, $relative_id_path);
-
-        return $this->build_url_from_parts($parts);
-    }
-
-    private function replace_path_suffix(string $path, string $slug, string $relative_id_path): string
-    {
-        $segments = array_values(array_filter(explode('/', trim($path, '/')), 'strlen'));
-        $prefix_segments = $this->extract_prefix_segments($segments, $slug);
-        $id_segments = array_values(array_filter(explode('/', trim($relative_id_path, '/')), 'strlen'));
-        $new_segments = array_merge($prefix_segments, $id_segments);
-
-        if ($new_segments === array()) {
-            return '/';
-        }
-
-        return '/' . ltrim(user_trailingslashit(implode('/', $new_segments)), '/');
-    }
-
-    private function extract_prefix_segments(array $segments, string $slug): array
-    {
-        $slug_index = false;
-
-        for ($index = count($segments) - 1; $index >= 0; $index--) {
-            if ($segments[$index] === $slug) {
-                $slug_index = $index;
-                break;
-            }
-        }
-
-        if ($slug_index !== false) {
-            return array_slice($segments, 0, (int) $slug_index);
-        }
-
-        if (count($segments) <= 1) {
-            return array();
-        }
-
-        return array_slice($segments, 0, -1);
     }
 
     private function join_url_path(string $base_url, string $relative_path): string

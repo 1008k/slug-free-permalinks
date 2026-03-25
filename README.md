@@ -49,9 +49,9 @@ If a custom post type and a taxonomy share the same slug, WordPress rewrite rule
 
 **Does it work with Polylang or language-directory URLs such as `/en/`?**
 
-Yes, the plugin preserves prefixed permalink bases when another plugin already adds them to post or term links.
+Yes. The canonical ID-based permalink stays rooted at the site home, and language-directory plugins can add their own prefix on top of that.
 
-ID-based routes also accept prefixed paths such as `/en/post/123/` or `/en/category/45/`.
+For example, the plugin keeps using `/post/123/` as the base shape, while Polylang style setups can expose `/en/post/123/` or `/en/category/45/`.
 
 ## Requirements
 
@@ -70,6 +70,7 @@ These minimum versions are based on the PHP syntax and WordPress APIs used by th
 ## Distribution
 
 - Source files live in the repository root.
+- `dist/` is a local build output and is not tracked in Git.
 - Build the distributable plugin into `dist/slug-free-permalinks` with `node scripts/build-dist.mjs`.
 - Build the versioned release ZIP with `node scripts/build-dist.mjs --zip`.
 - Create a GitHub release with `node scripts/create-github-release.mjs`.

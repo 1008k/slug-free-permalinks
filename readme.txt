@@ -4,7 +4,7 @@ Tags: permalinks, slugs, custom post types, taxonomy, urls
 Requires at least: 5.8
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.4.3
+Stable tag: 1.4.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,8 @@ Features:
 This plugin is focused on permalink structure only. It does not add content features or front-end UI.
 
 Development repository: https://github.com/1008k/slug-free-permalinks
+
+The `dist/` directory is treated as local build output and is not tracked in Git. Build the distributable plugin locally before running Plugin Check, creating release ZIPs, or deploying.
 
 Known limitations:
 
@@ -83,11 +85,16 @@ If a custom post type and a taxonomy share the same slug, WordPress rewrite rule
 
 = Does it work with Polylang or language-directory URLs such as `/en/`? =
 
-Yes. The plugin preserves prefixed permalink bases when another plugin already adds them to post or term links.
+Yes. The canonical ID based permalink stays rooted at the site home, and language-directory plugins can add their own prefix on top of that.
 
-ID based routes also accept prefixed paths such as `/en/post/123/` and `/en/category/45/`.
+For example, the plugin keeps using `/post/123/` as the base shape, while Polylang style setups can expose `/en/post/123/` and `/en/category/45/`.
 
 == Changelog ==
+
+= 1.4.4 =
+
+* Keep canonical ID permalinks consistent with or without Polylang
+* Continue supporting language-directory prefixes such as `/en/`
 
 = 1.4.3 =
 
