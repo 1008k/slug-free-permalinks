@@ -1,0 +1,12 @@
+/.git
+/.github
+/.wordpress-org
+/dist
+/node_modules
+/scripts
+
+AGENTS.md
+.distignore
+.gitignore
+README-ja.md
+README.md

@@ -73,13 +73,25 @@ These minimum versions are based on the PHP syntax and WordPress APIs used by th
 - `dist/` is a local build output and is not tracked in Git.
 - Build the distributable plugin into `dist/slug-free-permalinks` with `node scripts/build-dist.mjs`.
 - Build the versioned release ZIP with `node scripts/build-dist.mjs --zip`.
-- Create a GitHub release with `node scripts/create-github-release.mjs`.
+- GitHub Actions runs Plugin Check against `dist/slug-free-permalinks` on pull requests, on pushes to `main`, and again before WordPress.org deployment.
+- Push a Git tag such as `1.4.4` to trigger automatic WordPress.org deployment from GitHub Actions.
+- The deploy workflow only accepts tags in `X.Y.Z` format.
+- The workflow validates that the Git tag, `Version:` in `slug-free-permalinks.php`, and `Stable tag:` in `readme.txt` all match exactly.
+- `scripts/create-github-release.mjs` creates a GitHub Release using the same version tag convention.
 - Run Plugin Check against `dist/slug-free-permalinks` when preparing a release.
+
+## WordPress.org Assets
+
+- Add optional WordPress.org assets in `.wordpress-org/`.
+- Common filenames are `icon-128x128.png`, `icon-256x256.png`, `banner-772x250.png`, `banner-1544x500.png`, and `screenshot-1.png`.
+- The deploy workflow syncs `.wordpress-org/` to the WordPress.org `assets/` directory when those files exist.
 
 ## Notes
 
 - If a post type slug and taxonomy slug are identical, their ID-based rewrite rules can conflict.
 - WordPress.org distribution metadata is maintained in `readme.txt`.
+- WordPress.org deployment uses the built artifact in `dist/slug-free-permalinks`, not the repository root.
+- WordPress.org icons, banners, and screenshots are optional and can be added later in a `.wordpress-org/` directory.
 
 ## License
 

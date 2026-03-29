@@ -1,0 +1,41 @@
+name: Plugin Check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: plugin-check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plugin-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build distributable
+        run: node scripts/build-dist.mjs
+
+      - name: Verify distributable
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist/slug-free-permalinks/slug-free-permalinks.php
+          test -f dist/slug-free-permalinks/readme.txt
+
+      - name: Run Plugin Check
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: dist/slug-free-permalinks
