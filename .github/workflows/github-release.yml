@@ -1,0 +1,77 @@
+name: Create GitHub Release
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+concurrency:
+  group: github-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG_NAME="${GITHUB_REF_NAME}"
+          VERSION="$TAG_NAME"
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Expected a semantic version tag such as 1.4.5, got: $VERSION" >&2
+            exit 1
+          fi
+
+          PLUGIN_VERSION="$(sed -n 's/^Version:[[:space:]]*//p' slug-free-permalinks.php | head -n1 | tr -d '\r')"
+          STABLE_TAG="$(sed -n 's/^Stable tag:[[:space:]]*//Ip' readme.txt | head -n1 | tr -d '\r')"
+
+          if [[ "$PLUGIN_VERSION" != "$VERSION" ]]; then
+            echo "Plugin Version ($PLUGIN_VERSION) does not match tag version ($VERSION)." >&2
+            exit 1
+          fi
+
+          if [[ "$STABLE_TAG" != "$VERSION" ]]; then
+            echo "Stable tag ($STABLE_TAG) does not match tag version ($VERSION)." >&2
+            exit 1
+          fi
+
+      - name: Build release ZIP
+        run: node scripts/build-dist.mjs --zip
+
+      - name: Publish GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${GITHUB_REF_NAME}"
+          ZIP_PATH="dist/slug-free-permalinks-${VERSION}.zip"
+          NOTES_FILE="$(mktemp)"
+
+          cat > "$NOTES_FILE" <<EOF
+          ## Changelog
+
+          - Improve internal permalink handling consistency.
+          EOF
+
+          gh release create "$VERSION" "$ZIP_PATH" \
+            --title "$VERSION" \
+            --notes-file "$NOTES_FILE"

@@ -19,6 +19,7 @@ Thanks for contributing to Slug-Free Permalinks.
 
 - GitHub is the source of truth for development.
 - Push a semantic version tag such as `1.4.5` to trigger WordPress.org deployment.
+- The same tag also triggers automatic GitHub Release creation.
 - The deploy workflow validates that the Git tag, `Version:` in `slug-free-permalinks.php`, and `Stable tag:` in `readme.txt` match exactly.
 - GitHub Actions runs Plugin Check against `dist/slug-free-permalinks` on pull requests and pushes to `main`.
 - `scripts/create-github-release.mjs` uses the same version tag convention for GitHub Releases.
