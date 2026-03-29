@@ -1,4 +1,4 @@
-=== Slug-Free Permalinks ===
+=== Slug-Free Permalinks - Simple ID-Based URLs ===
 Contributors: cck23
 Tags: permalinks, slugs, custom post types, taxonomy, urls
 Requires at least: 5.8
