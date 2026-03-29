@@ -16,6 +16,10 @@ This plugin is aimed at sites where:
 
 Slug-Free Permalinks switches selected post types and taxonomies to stable ID-based URLs, so permalink management stays simple and less dependent on titles or language-specific slugs.
 
+It is a better fit for new sites, structured-content setups, or projects that are still deciding their permalink policy.
+
+If a site already has a large volume of published content and established slug-based URLs, review the migration impact carefully before enabling it. Existing inbound links, search traffic, social shares, and editorial workflow assumptions may all be affected.
+
 ## Features
 
 - Select individual public post types with UI support

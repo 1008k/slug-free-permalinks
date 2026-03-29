@@ -36,6 +36,10 @@ Development repository: https://github.com/1008k/slug-free-permalinks
 
 The `dist/` directory is treated as local build output and is not tracked in Git. Build the distributable plugin locally before running Plugin Check, creating release ZIPs, or deploying.
 
+This plugin is best suited to new sites, sites still defining their permalink policy, or structured-content use cases where slug management is unnecessary.
+
+If your site already has a large number of published posts and established slug based URLs, review the impact carefully before enabling it. Check existing inbound links, search traffic, social shares, and editorial workflow assumptions.
+
 Known limitations:
 
 * If a post type slug and taxonomy slug are identical, their ID based rewrite patterns can conflict.
