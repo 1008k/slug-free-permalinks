@@ -34,8 +34,6 @@ This plugin is focused on permalink structure only. It does not add content feat
 
 Development repository: https://github.com/1008k/slug-free-permalinks
 
-The `dist/` directory is treated as local build output and is not tracked in Git. Build the distributable plugin locally before running Plugin Check, creating release ZIPs, or deploying.
-
 This plugin is best suited to new sites, sites still defining their permalink policy, or structured-content use cases where slug management is unnecessary.
 
 If your site already has a large number of published posts and established slug based URLs, review the impact carefully before enabling it. Check existing inbound links, search traffic, social shares, and editorial workflow assumptions.
@@ -104,7 +102,7 @@ For example, the plugin keeps using `/post/123/` as the base shape, while Polyla
 
 = 1.4.5 =
 
-* Refactor internal settings sanitization and Polylang home URL helpers without changing plugin behavior
+* Improve internal permalink handling consistency
 
 = 1.4.4 =
 
