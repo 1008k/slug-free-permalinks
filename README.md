@@ -4,6 +4,18 @@ Japanese: [README-ja.md](README-ja.md)
 
 Slug-Free Permalinks is a WordPress plugin that switches selected post types and taxonomies to ID-based permalinks without using slugs.
 
+## Why This Plugin Exists
+
+WordPress slugs are useful, but in day-to-day operation they can become unnecessary overhead.
+
+This plugin is aimed at sites where:
+
+- editors do not want to think about slugs every time they publish posts or add categories and tags
+- multibyte characters can make URLs long and hard to read when they are encoded
+- changing a title later should not leave the URL and the content title out of sync
+
+Slug-Free Permalinks switches selected post types and taxonomies to stable ID-based URLs, so permalink management stays simple and less dependent on titles or language-specific slugs.
+
 ## Features
 
 - Select individual public post types with UI support
