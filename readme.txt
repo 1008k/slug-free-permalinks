@@ -4,7 +4,7 @@ Tags: permalinks, slugs, custom post types, taxonomy, urls
 Requires at least: 5.8
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.4.4
+Stable tag: 1.4.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -89,7 +89,16 @@ Yes. The canonical ID based permalink stays rooted at the site home, and languag
 
 For example, the plugin keeps using `/post/123/` as the base shape, while Polylang style setups can expose `/en/post/123/` and `/en/category/45/`.
 
+== Screenshots ==
+
+1. Settings screen for choosing the ID permalink format, target post types, target taxonomies, and optional legacy redirect behavior.
+
 == Changelog ==
+
+= 1.4.5 =
+
+* Refactor internal settings sanitization and Polylang home URL helpers without changing plugin behavior
+* Add WordPress.org plugin icons and settings screen screenshot assets
 
 = 1.4.4 =
 

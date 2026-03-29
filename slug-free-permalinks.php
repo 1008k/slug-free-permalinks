@@ -2,7 +2,7 @@
 /*
 Plugin Name: Slug-Free Permalinks
 Description: Use ID based permalinks for selected post types and taxonomies without managing slugs.
-Version: 1.4.4
+Version: 1.4.5
 Requires at least: 5.8
 Requires PHP: 7.4
 Author: happas
@@ -182,33 +182,17 @@ final class PTID_Permalink_Plugin
     public function sanitize_settings($input): array
     {
         $previous = $this->get_settings();
-        $post_types = array();
-        $taxonomies = array();
-
-        if (! empty($input['post_types']) && is_array($input['post_types'])) {
-            $allowed = array_keys($this->get_available_post_types());
-            foreach ($input['post_types'] as $post_type) {
-                $post_type = sanitize_key($post_type);
-                if (in_array($post_type, $allowed, true)) {
-                    $post_types[] = $post_type;
-                }
-            }
-        }
-
-        if (! empty($input['taxonomies']) && is_array($input['taxonomies'])) {
-            $allowed = array_keys($this->get_available_taxonomies());
-            foreach ($input['taxonomies'] as $taxonomy) {
-                $taxonomy = sanitize_key($taxonomy);
-                if (in_array($taxonomy, $allowed, true)) {
-                    $taxonomies[] = $taxonomy;
-                }
-            }
-        }
 
         $settings = array(
             'structure' => $this->sanitize_structure($input['structure'] ?? ''),
-            'post_types' => array_values(array_unique($post_types)),
-            'taxonomies' => array_values(array_unique($taxonomies)),
+            'post_types' => $this->sanitize_enabled_items(
+                $input['post_types'] ?? array(),
+                array_keys($this->get_available_post_types())
+            ),
+            'taxonomies' => $this->sanitize_enabled_items(
+                $input['taxonomies'] ?? array(),
+                array_keys($this->get_available_taxonomies())
+            ),
             'redirect_legacy' => ! empty($input['redirect_legacy']),
         );
 
@@ -420,9 +404,7 @@ final class PTID_Permalink_Plugin
         }
 
         $settings = $this->get_settings();
-        $this->enabled_post_types_cache = array_values(
-            array_filter(array_map('sanitize_key', (array) $settings['post_types']))
-        );
+        $this->enabled_post_types_cache = $this->sanitize_enabled_items($settings['post_types'] ?? array());
 
         return $this->enabled_post_types_cache;
     }
@@ -434,9 +416,7 @@ final class PTID_Permalink_Plugin
         }
 
         $settings = $this->get_settings();
-        $this->enabled_taxonomies_cache = array_values(
-            array_filter(array_map('sanitize_key', (array) $settings['taxonomies']))
-        );
+        $this->enabled_taxonomies_cache = $this->sanitize_enabled_items($settings['taxonomies'] ?? array());
 
         return $this->enabled_taxonomies_cache;
     }
@@ -494,12 +474,8 @@ final class PTID_Permalink_Plugin
 
         return array(
             'structure' => $this->sanitize_structure($settings['structure'] ?? $defaults['structure']),
-            'post_types' => array_values(
-                array_filter(array_map('sanitize_key', (array) ($settings['post_types'] ?? $defaults['post_types'])))
-            ),
-            'taxonomies' => array_values(
-                array_filter(array_map('sanitize_key', (array) ($settings['taxonomies'] ?? $defaults['taxonomies'])))
-            ),
+            'post_types' => $this->sanitize_enabled_items($settings['post_types'] ?? $defaults['post_types']),
+            'taxonomies' => $this->sanitize_enabled_items($settings['taxonomies'] ?? $defaults['taxonomies']),
             'redirect_legacy' => ! empty($settings['redirect_legacy']),
         );
     }
@@ -534,36 +510,12 @@ final class PTID_Permalink_Plugin
 
     private function get_polylang_home_url_for_post(int $post_id): string
     {
-        if (! function_exists('pll_get_post_language') || ! function_exists('pll_home_url')) {
-            return '';
-        }
-
-        $language = pll_get_post_language($post_id, 'slug');
-
-        if (! is_string($language) || $language === '') {
-            return '';
-        }
-
-        $home_url = pll_home_url($language);
-
-        return is_string($home_url) ? $home_url : '';
+        return $this->get_polylang_home_url('pll_get_post_language', $post_id);
     }
 
     private function get_polylang_home_url_for_term(int $term_id): string
     {
-        if (! function_exists('pll_get_term_language') || ! function_exists('pll_home_url')) {
-            return '';
-        }
-
-        $language = pll_get_term_language($term_id, 'slug');
-
-        if (! is_string($language) || $language === '') {
-            return '';
-        }
-
-        $home_url = pll_home_url($language);
-
-        return is_string($home_url) ? $home_url : '';
+        return $this->get_polylang_home_url('pll_get_term_language', $term_id);
     }
 
     private function should_redirect_legacy_requests(): bool
@@ -663,6 +615,48 @@ final class PTID_Permalink_Plugin
         $fragment = isset($parts['fragment']) && $parts['fragment'] !== '' ? '#' . (string) $parts['fragment'] : '';
 
         return $scheme . $auth . $host . $port . $path . $query . $fragment;
+    }
+
+    private function sanitize_enabled_items($items, array $allowed = array()): array
+    {
+        if (! is_array($items)) {
+            return array();
+        }
+
+        $allowed_lookup = $allowed === array() ? array() : array_fill_keys($allowed, true);
+        $sanitized = array();
+
+        foreach ($items as $item) {
+            $item = sanitize_key($item);
+            if ($item === '') {
+                continue;
+            }
+
+            if ($allowed_lookup !== array() && ! isset($allowed_lookup[$item])) {
+                continue;
+            }
+
+            $sanitized[] = $item;
+        }
+
+        return array_values(array_unique($sanitized));
+    }
+
+    private function get_polylang_home_url(string $language_callback, int $object_id): string
+    {
+        if (! function_exists($language_callback) || ! function_exists('pll_home_url')) {
+            return '';
+        }
+
+        $language = $language_callback($object_id, 'slug');
+
+        if (! is_string($language) || $language === '') {
+            return '';
+        }
+
+        $home_url = pll_home_url($language);
+
+        return is_string($home_url) ? $home_url : '';
     }
 
     private function register_rewrite_rules_for(string $structure, array $post_types, array $taxonomies, bool $enabled): void
