@@ -74,10 +74,13 @@ These minimum versions are based on the PHP syntax and WordPress APIs used by th
 
 ## Installation
 
-1. Download this repository as a ZIP, or place it as `slug-free-permalinks` under `/wp-content/plugins/`.
-2. Activate the plugin from the WordPress `Plugins` screen.
-3. Go to `Settings > Slug-Free Permalinks`.
-4. Choose the permalink format and the target post types or taxonomies.
+1. In the WordPress admin screen, go to `Plugins > Add New`.
+2. Search for `Slug-Free Permalinks`.
+3. Click `Install Now`, then activate the plugin.
+4. Go to `Settings > Slug-Free Permalinks`.
+5. Choose the permalink format and the target post types or taxonomies.
+
+For manual installation, upload the `slug-free-permalinks` folder to `/wp-content/plugins/` and activate it from the `Plugins` screen.
 
 ## Distribution
 
@@ -85,7 +88,7 @@ These minimum versions are based on the PHP syntax and WordPress APIs used by th
 - `dist/` is a local build output and is not tracked in Git.
 - Build the distributable plugin into `dist/slug-free-permalinks` with `node scripts/build-dist.mjs`.
 - Build the versioned release ZIP with `node scripts/build-dist.mjs --zip`.
-- GitHub Actions runs Plugin Check against `dist/slug-free-permalinks` on pull requests, on pushes to `main`, and again before WordPress.org deployment.
+- GitHub Actions runs Plugin Check against `dist/slug-free-permalinks` on pull requests and on pushes to `main`.
 - Push a Git tag such as `1.4.4` to trigger automatic WordPress.org deployment from GitHub Actions.
 - The deploy workflow only accepts tags in `X.Y.Z` format.
 - The workflow validates that the Git tag, `Version:` in `slug-free-permalinks.php`, and `Stable tag:` in `readme.txt` all match exactly.

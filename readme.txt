@@ -42,13 +42,16 @@ Known limitations:
 
 == Installation ==
 
-1. Upload the plugin folder to `/wp-content/plugins/`, or install it through the WordPress plugins screen.
-2. Activate the plugin through the `Plugins` screen in WordPress.
-3. Go to `Settings > Slug-Free Permalinks`.
-4. Choose a permalink format.
-5. Check the post types and taxonomies you want to convert to ID based permalinks.
-6. Optionally enable legacy permalink redirects.
-7. Save changes.
+1. In the WordPress admin screen, go to `Plugins > Add New`.
+2. Search for `Slug-Free Permalinks`.
+3. Click `Install Now`, then activate the plugin.
+4. Go to `Settings > Slug-Free Permalinks`.
+5. Choose a permalink format.
+6. Check the post types and taxonomies you want to convert to ID based permalinks.
+7. Optionally enable legacy permalink redirects.
+8. Save changes.
+
+If you prefer manual installation, upload the plugin folder to `/wp-content/plugins/` and activate it from the `Plugins` screen.
 
 == Frequently Asked Questions ==
 
