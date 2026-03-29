@@ -98,7 +98,6 @@ For example, the plugin keeps using `/post/123/` as the base shape, while Polyla
 = 1.4.5 =
 
 * Refactor internal settings sanitization and Polylang home URL helpers without changing plugin behavior
-* Add WordPress.org plugin icons and settings screen screenshot assets
 
 = 1.4.4 =
 
