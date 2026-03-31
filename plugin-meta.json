@@ -1,0 +1,18 @@
+{
+  "pluginName": "Slug-Free Permalinks - Simple ID-Based URLs",
+  "projectName": "Slug-Free Permalinks",
+  "slug": "slug-free-permalinks",
+  "version": "1.4.6",
+  "requiresAtLeast": "5.8",
+  "testedUpTo": "7.0",
+  "requiresPhp": "7.4",
+  "pluginUri": "https://happas.jp/en/slug-free-permalinks/",
+  "pluginPageEnglish": "https://happas.jp/en/slug-free-permalinks/",
+  "pluginPageJapanese": "https://happas.jp/slug-free-permalinks/",
+  "author": "Kodo",
+  "authorUri": "https://happas.jp/en/",
+  "license": "GPL-2.0-or-later",
+  "licenseUri": "https://www.gnu.org/licenses/gpl-2.0.html",
+  "wporgContributor": "cck23",
+  "lastTranslator": "Kodo"
+}

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { loadMetadata, syncMetadata } from './sync-meta.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,17 +22,11 @@ const filesToCopy = [
 const directoriesToCopy = ['languages'];
 
 export function getPluginVersion() {
-  const pluginContents = fs.readFileSync(pluginMainFile, 'utf8');
-  const versionMatch = pluginContents.match(/^Version:\s*(.+)$/m);
-
-  if (!versionMatch) {
-    throw new Error(`Could not find Version header in ${pluginMainFile}`);
-  }
-
-  return versionMatch[1].trim();
+  return loadMetadata().version;
 }
 
 export function buildDist() {
+  syncMetadata();
   fs.rmSync(distDir, { recursive: true, force: true });
   fs.mkdirSync(distDir, { recursive: true });
 

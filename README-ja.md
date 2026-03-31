@@ -2,6 +2,8 @@
 
 English: [README.md](README.md)
 
+公式ページ: [English](https://happas.jp/en/slug-free-permalinks/) | [Japanese](https://happas.jp/slug-free-permalinks/)
+
 WordPress の投稿タイプとタクソノミーを、slug を使わない ID ベース permalink に切り替えるプラグインです。
 
 ## なぜこのプラグインが必要か

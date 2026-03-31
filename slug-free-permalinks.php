@@ -6,7 +6,8 @@ Description: Use ID based permalinks for selected post types and taxonomies with
 Version: 1.4.6
 Requires at least: 5.8
 Requires PHP: 7.4
-Author: happas
+Author: Kodo
+Author URI: https://happas.jp/en/
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: slug-free-permalinks

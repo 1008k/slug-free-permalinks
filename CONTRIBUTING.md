@@ -11,6 +11,8 @@ Thanks for contributing to Slug-Free Permalinks.
 
 ## Local Build
 
+- Keep shared release metadata in `plugin-meta.json`.
+- Synchronize metadata into the plugin header, readmes, and translation metadata with `node scripts/sync-meta.mjs`.
 - Build the distributable plugin with `node scripts/build-dist.mjs`.
 - Build the distributable plugin and versioned ZIP with `node scripts/build-dist.mjs --zip`.
 - Run Plugin Check against `dist/slug-free-permalinks`, not the repository root.

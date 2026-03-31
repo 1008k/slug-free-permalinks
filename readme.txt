@@ -8,11 +8,11 @@ Stable tag: 1.4.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Use ID based permalinks for selected post types and taxonomies without managing slugs.
+Use ID-based permalinks for selected post types and taxonomies without managing slugs.
 
 == Description ==
 
-Slug-Free Permalinks lets you switch selected post types and taxonomies to simple ID based permalink formats.
+Slug-Free Permalinks lets you switch selected post types and taxonomies to simple ID-based permalink formats.
 
 You can choose between:
 
@@ -26,7 +26,7 @@ Features:
 * Select individual public post types
 * Select individual public taxonomies
 * Choose slash or hyphen based ID permalink format
-* Optionally redirect legacy slug URLs to the current ID based permalink when WordPress can resolve the request
+* Optionally redirect legacy slug URLs to the current ID-based permalink when WordPress can resolve the request
 * Preserve prefixed permalink bases such as `/en/` when another plugin adds them
 * Flush rewrite rules automatically when settings change
 
@@ -43,7 +43,7 @@ If your site already has a large number of published posts and established slug 
 
 Known limitations:
 
-* If a post type slug and taxonomy slug are identical, their ID based rewrite patterns can conflict.
+* If a post type slug and taxonomy slug are identical, their ID-based rewrite patterns can conflict.
 
 == Installation ==
 
@@ -52,7 +52,7 @@ Known limitations:
 3. Click `Install Now`, then activate the plugin.
 4. Go to `Settings > Slug-Free Permalinks`.
 5. Choose a permalink format.
-6. Check the post types and taxonomies you want to convert to ID based permalinks.
+6. Check the post types and taxonomies you want to convert to ID-based permalinks.
 7. Optionally enable legacy permalink redirects.
 8. Save changes.
 
@@ -83,7 +83,7 @@ No. Pages are intentionally excluded to avoid conflicts with typical WordPress p
 
 = Does it support taxonomies too? =
 
-Yes. Public taxonomies with UI support can be switched to the same ID based format.
+Yes. Public taxonomies with UI support can be switched to the same ID-based format.
 
 = Can a post type and taxonomy share the same slug? =
 
@@ -93,7 +93,7 @@ If a custom post type and a taxonomy share the same slug, WordPress rewrite rule
 
 = Does it work with Polylang or language-directory URLs such as `/en/`? =
 
-Yes. The canonical ID based permalink stays rooted at the site home, and language-directory plugins can add their own prefix on top of that.
+Yes. The canonical ID-based permalink stays rooted at the site home, and language-directory plugins can add their own prefix on top of that.
 
 For example, the plugin keeps using `/post/123/` as the base shape, while Polylang style setups can expose `/en/post/123/` and `/en/category/45/`.
 
@@ -139,7 +139,7 @@ For example, the plugin keeps using `/post/123/` as the base shape, while Polyla
 
 = 1.3.4 =
 
-* Add optional redirect from legacy slug URLs to the current ID based permalink
+* Add optional redirect from legacy slug URLs to the current ID-based permalink
 
 = 1.3.3 =
 
