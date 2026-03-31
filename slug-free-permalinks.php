@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Slug-Free Permalinks - Simple ID-Based URLs
+Plugin Name: Slug-Free Permalinks
 Plugin URI: https://happas.jp/en/slug-free-permalinks/
 Description: Use ID based permalinks for selected post types and taxonomies without managing slugs.
 Version: 1.4.6
