@@ -2,9 +2,9 @@
 Contributors: cck23
 Tags: permalinks, slugs, custom post types, taxonomy, urls
 Requires at least: 5.8
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.4.5
+Stable tag: 1.4.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -31,6 +31,9 @@ Features:
 * Flush rewrite rules automatically when settings change
 
 This plugin is focused on permalink structure only. It does not add content features or front-end UI.
+
+Plugin page (English): https://happas.jp/en/slug-free-permalinks/
+Plugin page (Japanese): https://happas.jp/slug-free-permalinks/
 
 Development repository: https://github.com/1008k/slug-free-permalinks
 
@@ -99,6 +102,10 @@ For example, the plugin keeps using `/post/123/` as the base shape, while Polyla
 1. Settings screen for choosing the ID permalink format, target post types, target taxonomies, and optional legacy redirect behavior.
 
 == Changelog ==
+
+= 1.4.6 =
+
+* Confirm compatibility with WordPress 7.0
 
 = 1.4.5 =
 
