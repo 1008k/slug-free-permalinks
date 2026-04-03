@@ -17,25 +17,25 @@ msgid "Slug-Free Permalinks"
 msgstr "Slug-Free Permalinks"
 
 msgid "Use ID based permalinks for selected post types and taxonomies without managing slugs."
-msgstr "選択した投稿タイプとタクソノミーを、slug 管理なしの ID ベース permalink に切り替えます。"
+msgstr "選択した投稿タイプとタクソノミーで、スラッグを使わないIDベースのパーマリンクを利用できます。"
 
 msgid "Settings"
 msgstr "設定"
 
 msgid "Checked post types and taxonomies will use the selected ID based permalink format. Clear all checks to disable. Rewrite rules are flushed automatically when settings change."
-msgstr "チェックした投稿タイプとタクソノミーで、選択した ID ベース permalink 形式を使用します。すべてのチェックを外すと無効になります。設定変更時には rewrite ルールが自動でフラッシュされます。"
+msgstr "チェックした投稿タイプとタクソノミーには、選択したIDベースのパーマリンク形式が適用されます。すべてのチェックを外すと無効になります。設定変更時にはリライトルールが自動的にフラッシュされます。"
 
 msgid "Permalink format"
-msgstr "Permalink 形式"
+msgstr "パーマリンク形式"
 
 msgid "Target post types"
-msgstr "対象の投稿タイプ"
+msgstr "対象投稿タイプ"
 
 msgid "Target taxonomies"
-msgstr "対象のタクソノミー"
+msgstr "対象タクソノミー"
 
 msgid "Redirect legacy permalinks"
-msgstr "旧 permalink をリダイレクト"
+msgstr "旧パーマリンクをリダイレクト"
 
 msgid "Redirect old slug based URLs to the current ID based permalink when WordPress can resolve the request."
-msgstr "WordPress がリクエストを解決できる場合、旧 slug ベース URL を現在の ID ベース permalink へリダイレクトします。"
+msgstr "WordPressがリクエストを解決できる場合、古いスラッグベースURLを現在のIDベースのパーマリンクへリダイレクトします。"
