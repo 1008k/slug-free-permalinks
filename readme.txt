@@ -4,7 +4,7 @@ Tags: permalinks, slugs, custom post types, taxonomy, urls
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.4.6
+Stable tag: 1.4.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -102,6 +102,10 @@ For example, the plugin keeps using `/post/123/` as the base shape, while Polyla
 1. Settings screen for choosing the ID permalink format, target post types, target taxonomies, and optional legacy redirect behavior.
 
 == Changelog ==
+
+= 1.4.7 =
+
+* Fix sitemap and indexing compatibility so permalink integrations receive canonical ID-based URLs consistently
 
 = 1.4.6 =
 

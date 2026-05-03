@@ -3,7 +3,7 @@
 Plugin Name: Slug-Free Permalinks
 Plugin URI: https://happas.jp/en/slug-free-permalinks/
 Description: Use ID based permalinks for selected post types and taxonomies without managing slugs.
-Version: 1.4.6
+Version: 1.4.7
 Requires at least: 5.8
 Requires PHP: 7.4
 Author: Kodo
@@ -61,31 +61,37 @@ final class PTID_Permalink_Plugin
         flush_rewrite_rules();
     }
 
-    public function filter_permalink(string $post_link, WP_Post $post): string
+    public function filter_permalink(string $post_link, $post): string
     {
-        if (is_admin() || ! $this->is_feature_enabled()) {
+        if (! $this->is_feature_enabled()) {
             return $post_link;
         }
 
-        if (! in_array($post->post_status, array('publish', 'private'), true)) {
+        $post_context = $this->get_post_permalink_context($post);
+
+        if ($post_context === null) {
             return $post_link;
         }
 
-        if (! in_array($post->post_type, $this->get_enabled_post_types(), true)) {
+        if (! in_array($post_context['post_status'], array('publish', 'private'), true)) {
+            return $post_link;
+        }
+
+        if (! in_array($post_context['post_type'], $this->get_enabled_post_types(), true)) {
             return $post_link;
         }
 
         return $this->build_content_permalink(
             $post_link,
-            $post->post_type,
-            $post->ID,
-            $this->get_polylang_home_url_for_post($post->ID)
+            $post_context['post_type'],
+            $post_context['ID'],
+            $this->get_polylang_home_url_for_post($post_context['ID'])
         );
     }
 
     public function filter_term_link(string $term_link, WP_Term $term, string $taxonomy): string
     {
-        if (is_admin() || ! $this->is_feature_enabled()) {
+        if (! $this->is_feature_enabled()) {
             return $term_link;
         }
 
@@ -479,6 +485,27 @@ final class PTID_Permalink_Plugin
             'post_types' => $this->sanitize_enabled_items($settings['post_types'] ?? $defaults['post_types']),
             'taxonomies' => $this->sanitize_enabled_items($settings['taxonomies'] ?? $defaults['taxonomies']),
             'redirect_legacy' => ! empty($settings['redirect_legacy']),
+        );
+    }
+
+    private function get_post_permalink_context($post): ?array
+    {
+        if (! is_object($post)) {
+            return null;
+        }
+
+        $post_id = absint($post->ID ?? 0);
+        $post_type = isset($post->post_type) ? sanitize_key((string) $post->post_type) : '';
+        $post_status = isset($post->post_status) ? sanitize_key((string) $post->post_status) : '';
+
+        if ($post_id < 1 || $post_type === '' || $post_status === '') {
+            return null;
+        }
+
+        return array(
+            'ID' => $post_id,
+            'post_type' => $post_type,
+            'post_status' => $post_status,
         );
     }
 

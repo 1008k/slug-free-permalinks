@@ -2,7 +2,7 @@
   "pluginName": "Slug-Free Permalinks",
   "projectName": "Slug-Free Permalinks",
   "slug": "slug-free-permalinks",
-  "version": "1.4.6",
+  "version": "1.4.7",
   "requiresAtLeast": "5.8",
   "testedUpTo": "7.0",
   "requiresPhp": "7.4",
