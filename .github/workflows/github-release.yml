@@ -65,12 +65,25 @@ jobs:
           VERSION="${GITHUB_REF_NAME}"
           ZIP_PATH="dist/slug-free-permalinks-${VERSION}.zip"
           NOTES_FILE="$(mktemp)"
+          CHANGELOG_LINES="$(
+            awk -v version="$VERSION" '
+              $0 == "= " version " =" { in_section=1; next }
+              in_section && /^= / { exit }
+              in_section { print }
+            ' readme.txt \
+            | sed '/^[[:space:]]*$/d'
+          )"
 
-          cat > "$NOTES_FILE" <<EOF
-          ## Changelog
+          if [[ -z "$CHANGELOG_LINES" ]]; then
+            echo "Could not extract changelog entries for $VERSION from readme.txt" >&2
+            exit 1
+          fi
 
-          - Improve internal permalink handling consistency.
-          EOF
+          {
+            echo "## Changelog"
+            echo
+            echo "$CHANGELOG_LINES"
+          } > "$NOTES_FILE"
 
           gh release create "$VERSION" "$ZIP_PATH" \
             --title "$VERSION" \
