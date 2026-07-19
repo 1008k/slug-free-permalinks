@@ -17,6 +17,13 @@ Thanks for contributing to Slug-Free Permalinks.
 - Build the distributable plugin and versioned ZIP with `node scripts/build-dist.mjs --zip`.
 - Run Plugin Check against `dist/slug-free-permalinks`, not the repository root.
 
+## Studio Smoke Test
+
+- The Studio smoke test builds the shipping artifact, installs it into an isolated Studio site, and checks ID-based post and taxonomy links, rewrite-rule registration, and settings normalization behavior.
+- Create a dedicated Studio site before running it. Studio 1.15 supports PHP 8.2 or newer; the test does not replace PHP 7.4 compatibility checks.
+- Run `powershell -ExecutionPolicy Bypass -File scripts/run-studio-smoke.ps1 -SitePath <Studio site path>`.
+- If the WordPress Studio CLI is not the `studio` command on your PATH, also pass `-StudioCommand <path to studio.bat>`.
+
 ## Release Workflow
 
 - GitHub is the source of truth for development.
