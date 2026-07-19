@@ -38,6 +38,7 @@ final class PTID_Permalink_Plugin
         add_action('parse_request', array($instance, 'resolve_term_request'));
         add_action('template_redirect', array($instance, 'redirect_legacy_permalink'));
         add_action('admin_init', array($instance, 'register_settings'));
+        add_action('admin_init', array($instance, 'normalize_stored_settings'));
         add_action('admin_menu', array($instance, 'register_settings_page'));
         add_filter(
             'plugin_action_links_' . plugin_basename(__FILE__),
@@ -163,6 +164,21 @@ final class PTID_Permalink_Plugin
             self::OPTION_NAME,
             array($this, 'sanitize_settings')
         );
+    }
+
+    public function normalize_stored_settings(): void
+    {
+        $settings = get_option(self::OPTION_NAME, array());
+
+        if (! is_array($settings)) {
+            return;
+        }
+
+        $normalized = $this->normalize_settings($settings);
+
+        if ($settings !== $normalized) {
+            update_option(self::OPTION_NAME, $normalized);
+        }
     }
 
     public function register_settings_page(): void
@@ -392,10 +408,6 @@ final class PTID_Permalink_Plugin
 
         $settings = get_option(self::OPTION_NAME, array());
         $normalized = $this->normalize_settings(is_array($settings) ? $settings : array());
-
-        if (is_array($settings) && $settings !== $normalized) {
-            update_option(self::OPTION_NAME, $normalized);
-        }
 
         return $this->prime_settings_cache($normalized);
     }
