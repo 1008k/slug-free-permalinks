@@ -74,6 +74,7 @@ For example, the plugin keeps using `/post/123/` as the base shape, while Polyla
 ## Requirements
 
 - WordPress 5.8 or later
+- Tested through WordPress 7.0
 - PHP 7.4 or later
 
 These minimum versions are based on the PHP syntax and WordPress APIs used by the plugin.

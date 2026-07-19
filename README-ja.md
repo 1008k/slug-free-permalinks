@@ -74,6 +74,7 @@ Slug-Free Permalinksはパフォーマンスと予測可能な挙動を優先し
 ## 動作要件
 
 - WordPress 5.8 以上
+- WordPress 7.0 まで動作確認済み
 - PHP 7.4 以上
 
 この下限はコードで利用しているPHP構文とWordPress APIに基づいています。
