@@ -1,6 +1,6 @@
 param(
     [string]$StudioCommand = '',
-    [string]$SitePath = 'C:\Users\chiba\Studio\slug-free-permalinks-tests'
+    [string]$SitePath = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,6 +11,10 @@ if ($StudioCommand -eq '') {
 
 if (-not (Test-Path -LiteralPath $StudioCommand)) {
     throw "WordPress Studio CLI was not found: $StudioCommand"
+}
+
+if ($SitePath -eq '') {
+    throw 'Pass -SitePath with the path to a dedicated WordPress Studio test site.'
 }
 
 if (-not (Test-Path -LiteralPath $SitePath)) {
