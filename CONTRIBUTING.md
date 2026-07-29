@@ -17,6 +17,13 @@ Thanks for contributing to Slug-Free Permalinks.
 - Build the distributable plugin and versioned ZIP with `node scripts/build-dist.mjs --zip`.
 - Run Plugin Check against `dist/slug-free-permalinks`, not the repository root.
 
+## Coding Standards
+
+- Install the development tools with `composer install`.
+- Check PHP files with `composer check`.
+- Apply automatically fixable formatting changes with `composer fix`, then review the diff and run `composer check` again.
+- GitHub Actions runs the same check on pull requests and pushes to `main`.
+
 ## Studio Smoke Test
 
 - The Studio smoke test builds the shipping artifact, installs it into an isolated Studio site, and checks ID-based post and taxonomy links, rewrite-rule registration, and settings normalization behavior.

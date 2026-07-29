@@ -5,3 +5,4 @@ Thumbs.db
 .serena/
 AGENTS.md
 dist/
+vendor/

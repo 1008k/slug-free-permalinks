@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<ruleset name="Slug-Free Permalinks">
+    <description>WordPress Coding Standards for Slug-Free Permalinks.</description>
+
+    <arg name="basepath" value="."/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+    <arg name="extensions" value="php"/>
+
+    <file>.</file>
+
+    <exclude-pattern>vendor/*</exclude-pattern>
+    <exclude-pattern>dist/*</exclude-pattern>
+    <exclude-pattern>languages/*.l10n.php</exclude-pattern>
+
+    <config name="minimum_supported_wp_version" value="5.8"/>
+
+    <rule ref="WordPress"/>
+
+    <!-- The WordPress plugin bootstrap filename is fixed by the plugin slug. -->
+    <rule ref="WordPress.Files.FileName.InvalidClassFileName">
+        <exclude-pattern>slug-free-permalinks.php</exclude-pattern>
+    </rule>
+
+    <!-- The CLI-only Studio smoke test writes diagnostics directly to STDERR. -->
+    <rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_fwrite">
+        <exclude-pattern>tests/studio/smoke.php</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.PHP.DevelopmentFunctions.error_log_var_export">
+        <exclude-pattern>tests/studio/smoke.php</exclude-pattern>
+    </rule>
+</ruleset>

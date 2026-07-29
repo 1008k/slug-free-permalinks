@@ -34,6 +34,12 @@ function replaceRequired(contents, pattern, replacement, fileLabel) {
   return contents.replace(pattern, replacement);
 }
 
+function replacePluginHeader(contents, fieldName, value, fileLabel) {
+  const pattern = new RegExp(`^([ \\t]*\\*[ \\t]*)?${fieldName}:\\s*.+$`, 'm');
+
+  return replaceRequired(contents, pattern, `$1${fieldName}: ${value}`, fileLabel);
+}
+
 export function loadMetadata() {
   return JSON.parse(readText(metadataPath));
 }
@@ -43,60 +49,25 @@ export function syncMetadata() {
   const projectIdVersion = `${metadata.projectName} ${metadata.version}`;
 
   let pluginContents = readText(pluginMainFile);
-  pluginContents = replaceRequired(
+  pluginContents = replacePluginHeader(pluginContents, 'Plugin Name', metadata.pluginName, 'plugin header name');
+  pluginContents = replacePluginHeader(pluginContents, 'Plugin URI', metadata.pluginUri, 'plugin header URI');
+  pluginContents = replacePluginHeader(pluginContents, 'Version', metadata.version, 'plugin header version');
+  pluginContents = replacePluginHeader(
     pluginContents,
-    /^Plugin Name:\s*.+$/m,
-    `Plugin Name: ${metadata.pluginName}`,
-    'plugin header name'
-  );
-  pluginContents = replaceRequired(
-    pluginContents,
-    /^Plugin URI:\s*.+$/m,
-    `Plugin URI: ${metadata.pluginUri}`,
-    'plugin header URI'
-  );
-  pluginContents = replaceRequired(
-    pluginContents,
-    /^Version:\s*.+$/m,
-    `Version: ${metadata.version}`,
-    'plugin header version'
-  );
-  pluginContents = replaceRequired(
-    pluginContents,
-    /^Requires at least:\s*.+$/m,
-    `Requires at least: ${metadata.requiresAtLeast}`,
+    'Requires at least',
+    metadata.requiresAtLeast,
     'plugin header minimum WordPress version'
   );
-  pluginContents = replaceRequired(
+  pluginContents = replacePluginHeader(
     pluginContents,
-    /^Requires PHP:\s*.+$/m,
-    `Requires PHP: ${metadata.requiresPhp}`,
+    'Requires PHP',
+    metadata.requiresPhp,
     'plugin header minimum PHP version'
   );
-  pluginContents = replaceRequired(
-    pluginContents,
-    /^Author:\s*.+$/m,
-    `Author: ${metadata.author}`,
-    'plugin header author'
-  );
-  pluginContents = replaceRequired(
-    pluginContents,
-    /^Author URI:\s*.+$/m,
-    `Author URI: ${metadata.authorUri}`,
-    'plugin header author URI'
-  );
-  pluginContents = replaceRequired(
-    pluginContents,
-    /^License:\s*.+$/m,
-    `License: ${metadata.license}`,
-    'plugin header license'
-  );
-  pluginContents = replaceRequired(
-    pluginContents,
-    /^License URI:\s*.+$/m,
-    `License URI: ${metadata.licenseUri}`,
-    'plugin header license URI'
-  );
+  pluginContents = replacePluginHeader(pluginContents, 'Author', metadata.author, 'plugin header author');
+  pluginContents = replacePluginHeader(pluginContents, 'Author URI', metadata.authorUri, 'plugin header author URI');
+  pluginContents = replacePluginHeader(pluginContents, 'License', metadata.license, 'plugin header license');
+  pluginContents = replacePluginHeader(pluginContents, 'License URI', metadata.licenseUri, 'plugin header license URI');
   writeText(pluginMainFile, pluginContents);
 
   let wporgReadmeContents = readText(wporgReadmeFile);

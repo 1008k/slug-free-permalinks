@@ -1,0 +1,22 @@
+{
+    "name": "1008k/slug-free-permalinks",
+    "description": "WordPress plugin that provides ID-based post and taxonomy permalinks without permastruct slugs.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require-dev": {
+        "wp-coding-standards/wpcs": "^3.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        },
+        "platform": {
+            "php": "7.4.33"
+        },
+        "sort-packages": true
+    },
+    "scripts": {
+        "check": "@php ./vendor/squizlabs/php_codesniffer/bin/phpcs",
+        "fix": "@php ./vendor/squizlabs/php_codesniffer/bin/phpcbf"
+    }
+}
