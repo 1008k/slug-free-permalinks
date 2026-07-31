@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - '*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semantic version to deploy
+        required: true
+        type: string
 
 concurrency:
   group: deploy-wordpress-org-${{ github.ref }}
@@ -14,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      RELEASE_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
 
     steps:
       - name: Check out repository
@@ -30,39 +38,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
-          TAG_NAME="${GITHUB_REF_NAME}"
-          VERSION="$TAG_NAME"
-
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Expected a semantic version tag such as 1.4.4, got: $VERSION" >&2
-            exit 1
-          fi
-
-          PLUGIN_VERSION="$(sed -n 's/^Version:[[:space:]]*//p' slug-free-permalinks.php | head -n1 | tr -d '\r')"
-          STABLE_TAG="$(sed -n 's/^Stable tag:[[:space:]]*//Ip' readme.txt | head -n1 | tr -d '\r')"
-
-          if [[ -z "$PLUGIN_VERSION" ]]; then
-            echo "Could not read Version from slug-free-permalinks.php" >&2
-            exit 1
-          fi
-
-          if [[ -z "$STABLE_TAG" ]]; then
-            echo "Could not read Stable tag from readme.txt" >&2
-            exit 1
-          fi
-
-          if [[ "$PLUGIN_VERSION" != "$VERSION" ]]; then
-            echo "Plugin Version ($PLUGIN_VERSION) does not match tag version ($VERSION)." >&2
-            exit 1
-          fi
-
-          if [[ "$STABLE_TAG" != "$VERSION" ]]; then
-            echo "Stable tag ($STABLE_TAG) does not match tag version ($VERSION)." >&2
-            exit 1
-          fi
-
-          echo "WPORG_VERSION=$VERSION" >> "$GITHUB_ENV"
+          node scripts/validate-release-metadata.mjs "$RELEASE_VERSION"
+          echo "WPORG_VERSION=$RELEASE_VERSION" >> "$GITHUB_ENV"
 
       - name: Build distributable
         run: node scripts/build-dist.mjs
