@@ -24,6 +24,11 @@ Thanks for contributing to Slug-Free Permalinks.
 - Apply automatically fixable formatting changes with `composer fix`, then review the diff and run `composer check` again.
 - GitHub Actions runs the same check on pull requests and pushes to `main`.
 
+## Release Tooling Tests
+
+- Run the release tooling tests with `node --test tests/scripts/validate-release-metadata.test.mjs`.
+- GitHub Actions runs the tests with Node.js 20 on pull requests and pushes to `main`.
+
 ## Studio Smoke Test
 
 - The Studio smoke test builds the shipping artifact, installs it into an isolated Studio site, and checks ID-based post and taxonomy links, rewrite-rule registration, and settings normalization behavior.

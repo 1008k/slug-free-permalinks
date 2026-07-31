@@ -35,3 +35,20 @@ jobs:
 
       - name: Run WordPress Coding Standards
         run: composer check
+
+  release-tooling:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      - name: Test release tooling
+        run: node --test tests/scripts/validate-release-metadata.test.mjs
