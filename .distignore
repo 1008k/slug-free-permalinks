@@ -4,8 +4,13 @@
 /dist
 /node_modules
 /scripts
+/.shared
 
 AGENTS.md
+docs/policy-index.yaml
+docs/project-policy.md
+docs/rules-*.md
+docs/tracks
 .distignore
 .gitignore
 README-ja.md

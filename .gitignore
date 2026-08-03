@@ -7,3 +7,13 @@ AGENTS.md
 dist/
 vendor/
 docs/superpowers/
+
+# Local agent policy and shared-reference vendor files. These contain
+# private AI workflow guidance and are intentionally not part of the public repo.
+.shared/
+scripts/sync-shared-reference.ps1
+scripts/propose-shared-reference-change.ps1
+docs/policy-index.yaml
+docs/project-policy.md
+docs/rules-*.md
+docs/tracks/
