@@ -12,7 +12,15 @@ Use ID-based permalinks for selected post types and taxonomies without managing 
 
 == Description ==
 
-Slug-Free Permalinks lets you switch selected post types and taxonomies to simple ID-based permalink formats.
+Choosing a new slug for every post, term, or language version is extra URL design work. Slug-Free Permalinks lets you move that work out of the publishing flow by using an item's ID in the permalink instead.
+
+Select the public post types and taxonomies you want to change, choose a URL format, and keep the rest of your site on its existing permalink structure. The plugin is intentionally focused: it changes URL structure without adding content features or front-end UI.
+
+== Why use ID-based permalinks? ==
+
+* Reduce the number of slug decisions and maintenance steps as your content grows.
+* Keep the URL pattern consistent even when titles, translations, or editorial wording change.
+* Apply the change selectively instead of switching every post type at once.
 
 You can choose between:
 
@@ -21,29 +29,32 @@ You can choose between:
 
 The plugin only affects the post types and taxonomies you enable in the settings screen.
 
-Features:
+What you can configure:
 
 * Select individual public post types
 * Select individual public taxonomies
+* Use each selected type's registered rewrite slug for the ID-based route
 * Choose slash or hyphen based ID permalink format
 * Optionally redirect legacy slug URLs to the current ID-based permalink when WordPress can resolve the request
 * Preserve prefixed permalink bases such as `/en/` when another plugin adds them
 * Flush rewrite rules automatically when settings change
 
-This plugin is focused on permalink structure only. It does not add content features or front-end UI.
+== A focused, predictable change ==
 
-Plugin page (English): https://happas.jp/en/slug-free-permalinks/
-Plugin page (Japanese): https://happas.jp/slug-free-permalinks/
+Legacy slug redirects are optional and only run when WordPress can already resolve the request. Slug-Free Permalinks does not guess at every 404, so it avoids turning an ID-based permalink plugin into a site-wide slug lookup system.
 
-Development repository: https://github.com/1008k/slug-free-permalinks
+The plugin is intended for new sites, structured-content sites, or projects that are still defining a permalink policy.
 
-This plugin is best suited to new sites, sites still defining their permalink policy, or structured-content use cases where slug management is unnecessary.
+If your site already has many established slug-based URLs, review existing inbound links, search traffic, social shares, and editorial workflow assumptions before enabling it.
 
-If your site already has a large number of published posts and established slug based URLs, review the impact carefully before enabling it. Check existing inbound links, search traffic, social shares, and editorial workflow assumptions.
+* [Plugin page (English)](https://happas.jp/en/slug-free-permalinks/)
+* [Plugin page (Japanese)](https://happas.jp/slug-free-permalinks/)
+* [Development repository](https://github.com/1008k/slug-free-permalinks)
 
 Known limitations:
 
-* If a post type slug and taxonomy slug are identical, their ID-based rewrite patterns can conflict.
+* The settings screen rejects selected post types or taxonomies with identical registered rewrite slugs.
+* Prefixed ID routes reserve the matching path shape, so language or path prefixes should not overlap existing page routes.
 
 == Installation ==
 
@@ -87,9 +98,7 @@ Yes. Public taxonomies with UI support can be switched to the same ID-based form
 
 = Can a post type and taxonomy share the same slug? =
 
-This is not recommended.
-
-If a custom post type and a taxonomy share the same slug, WordPress rewrite rules may conflict.
+The settings screen rejects selected post types or taxonomies with identical registered rewrite slugs, keeping the ID-based routes unambiguous.
 
 = Does it work with Polylang or language-directory URLs such as `/en/`? =
 
@@ -115,40 +124,4 @@ For example, the plugin keeps using `/post/123/` as the base shape, while Polyla
 
 * Confirm compatibility with WordPress 7.0
 
-= 1.4.5 =
-
-* Improve internal permalink handling consistency
-
-= 1.4.4 =
-
-* Keep canonical ID permalinks consistent with or without Polylang
-* Continue supporting language-directory prefixes such as `/en/`
-
-= 1.4.3 =
-
-* Preserve Polylang and language-directory permalink prefixes for ID-based URLs
-* Accept prefixed ID routes such as `/en/post/123/` and `/en/category/45/`
-
-= 1.4.2 =
-
-* Add a guarded Japanese l10n PHP translation file for Plugin Check compatibility
-* Update distribution package for the latest Plugin Check fixes
-
-= 1.4.1 =
-
-* Remove unnecessary manual translation loading to satisfy current Plugin Check guidance
-* Refine FAQ and release packaging workflow
-
-= 1.4.0 =
-
-* Rebrand plugin as Slug-Free Permalinks
-* Add WordPress.org readme and distribution metadata
-* Add optional legacy slug redirect setting
-
-= 1.3.4 =
-
-* Add optional redirect from legacy slug URLs to the current ID-based permalink
-
-= 1.3.3 =
-
-* Add taxonomy support and selectable slash or hyphen formats
+For the complete release history, see the [English changelog](https://happas.jp/en/slug-free-permalinks/).

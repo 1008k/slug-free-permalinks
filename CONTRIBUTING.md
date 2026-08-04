@@ -39,11 +39,17 @@ Thanks for contributing to Slug-Free Permalinks.
 ## Release Workflow
 
 - GitHub is the source of truth for development.
-- Push a semantic version tag such as `1.4.5` to trigger WordPress.org deployment.
-- The same tag also triggers automatic GitHub Release creation.
-- The deploy workflow validates that the Git tag, `Version:` in `slug-free-permalinks.php`, and `Stable tag:` in `readme.txt` match exactly.
-- If a tag-triggered WordPress.org deployment fails before publication, rerun the “Deploy to WordPress.org” workflow manually with the existing semantic version. The workflow validates that the requested version matches all release metadata before deploying.
-- GitHub Actions runs Plugin Check against `dist/slug-free-permalinks` on pull requests and pushes to `main`.
+- Decide whether the user-visible change is a patch, minor, or major release and choose a semantic version.
+- Add the user-facing change to both `CHANGELOG.md` and `CHANGELOG.en.md`. Keep entries concise; put implementation rationale in the commit or pull request.
+- Update the `version` field in `plugin-meta.json` and run `node scripts/sync-meta.mjs` to synchronize the plugin header, readmes, and translation metadata.
+- Keep the latest three release sections in `readme.txt`; move older history to `CHANGELOG.md` and `CHANGELOG.en.md` and keep the complete-history link current.
+- Run `node scripts/validate-release-metadata.mjs <version>` with the selected version, then run `node --test tests/scripts/validate-release-metadata.test.mjs`.
+- Run `composer check` and rebuild the distributable with `node scripts/build-dist.mjs` when the release changes affect PHP, metadata, or package contents.
+- Review `dist/slug-free-permalinks`, run `git diff --check`, and confirm that no unrelated or local-only files are included.
+- Commit and push the release changes to `main`.
+- Push the matching semantic version tag, such as `1.4.5`, to trigger WordPress.org deployment and automatic GitHub Release creation.
+- After the tag push, confirm GitHub Actions, Plugin Check against `dist/slug-free-permalinks`, the GitHub Release, and the WordPress.org deployment result.
+- If a tag-triggered WordPress.org deployment fails before publication, rerun the “Deploy to WordPress.org” workflow manually with the existing semantic version. The workflow validates the requested version against the release metadata before deploying.
 - `scripts/create-github-release.mjs` uses the same version tag convention for GitHub Releases.
 
 ## WordPress.org Assets

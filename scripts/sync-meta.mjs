@@ -103,14 +103,14 @@ export function syncMetadata() {
   );
   wporgReadmeContents = replaceRequired(
     wporgReadmeContents,
-    /^Plugin page \(English\):\s*.+$/m,
-    `Plugin page (English): ${metadata.pluginPageEnglish}`,
+    /^\* \[Plugin page \(English\)\]\(https?:\/\/[^)]+\)$/m,
+    `* [Plugin page (English)](${metadata.pluginPageEnglish})`,
     'English plugin page URL'
   );
   wporgReadmeContents = replaceRequired(
     wporgReadmeContents,
-    /^Plugin page \(Japanese\):\s*.+$/m,
-    `Plugin page (Japanese): ${metadata.pluginPageJapanese}`,
+    /^\* \[Plugin page \(Japanese\)\]\(https?:\/\/[^)]+\)$/m,
+    `* [Plugin page (Japanese)](${metadata.pluginPageJapanese})`,
     'Japanese plugin page URL'
   );
   writeText(wporgReadmeFile, wporgReadmeContents);

@@ -4,6 +4,8 @@ Japanese: [README-ja.md](README-ja.md)
 
 Plugin page: [English](https://happas.jp/en/slug-free-permalinks/) | [Japanese](https://happas.jp/slug-free-permalinks/)
 
+Changelog: [English](CHANGELOG.en.md) | [Japanese](CHANGELOG.md)
+
 Slug-Free Permalinks is a WordPress plugin that switches selected post types and taxonomies to ID-based permalinks without using slugs.
 
 ## Why This Plugin Exists
@@ -26,6 +28,7 @@ If a site already has a large volume of published content and established slug-b
 
 - Select individual public post types with UI support
 - Select individual public taxonomies with UI support
+- Use each selected type's registered rewrite slug for the ID-based route
 - Choose `/post/123/` or `/post-123/`
 - Optionally redirect legacy slug URLs to the current ID-based permalink
 - Preserve language or path prefixes already added by permalink plugins such as Polylang
@@ -59,9 +62,7 @@ Slug-Free Permalinks prioritizes performance and reliability over aggressive URL
 
 **Can a post type and taxonomy share the same slug?**
 
-This is not recommended.
-
-If a custom post type and a taxonomy share the same slug, WordPress rewrite rules may conflict. Using distinct slugs for post types and taxonomies avoids ambiguity.
+The settings screen rejects a selection where a post type and taxonomy share the same registered rewrite slug. Using distinct slugs keeps the ID-based routes unambiguous.
 
 ---
 
@@ -91,7 +92,8 @@ For manual installation, upload the `slug-free-permalinks` folder to `/wp-conten
 
 ## Notes
 
-- If a post type slug and taxonomy slug are identical, their ID-based rewrite rules can conflict.
+- The settings screen rejects selected post types or taxonomies with identical registered rewrite slugs.
+- Prefixed ID routes reserve the matching path shape, so language or path prefixes should not overlap existing page routes.
 - Contributor and release workflow notes are documented in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License

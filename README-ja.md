@@ -4,6 +4,8 @@ English: [README.md](README.md)
 
 公式ページ: [English](https://happas.jp/en/slug-free-permalinks/) | [Japanese](https://happas.jp/slug-free-permalinks/)
 
+変更履歴: [日本語](CHANGELOG.md) | [English](CHANGELOG.en.md)
+
 WordPressの投稿タイプとタクソノミーを、スラッグを使わないIDベースのパーマリンクに切り替えるプラグインです。
 
 ## なぜこのプラグインが必要か
@@ -26,6 +28,7 @@ Slug-Free Permalinksは、必要な投稿タイプとタクソノミーだけを
 
 - 公開かつUIを持つ投稿タイプを個別に選択
 - 公開かつUIを持つタクソノミーを個別に選択
+- 選択したタイプに登録されたrewrite slugをIDベースURLにも使用
 - `/post/123/`または`/post-123/`を選択
 - 必要に応じて旧スラッグURLから現在のIDベースURLへ301リダイレクト
 - Polylangなどが追加した`/en/`のような言語・パスプレフィックスを維持
@@ -90,7 +93,8 @@ Slug-Free Permalinksはパフォーマンスと予測可能な挙動を優先し
 
 ## 注意点
 
-- 投稿タイプのスラッグとタクソノミーのスラッグが同じ場合、同じIDパターンのリライトルールが競合する可能性があります。
+- 選択した投稿タイプまたはタクソノミーの登録済み rewrite slug が同じ場合、設定保存を拒否してIDベースのルート競合を防ぎます。
+- 接頭辞付きのIDルートは対応するパス形状を予約するため、言語接頭辞やパス接頭辞を固定ページのURLと重ねないでください。
 - 開発・リリース運用に関するメモは[CONTRIBUTING.md](CONTRIBUTING.md)にまとめています。
 
 ## ライセンス
