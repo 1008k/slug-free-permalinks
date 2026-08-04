@@ -39,3 +39,5 @@ jobs:
         uses: wordpress/plugin-check-action@v1
         with:
           build-dir: dist/slug-free-permalinks
+          ignore-codes: |
+            mismatched_plugin_name

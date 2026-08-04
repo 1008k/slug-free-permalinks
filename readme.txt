@@ -4,7 +4,7 @@ Tags: permalinks, slugs, custom post types, taxonomy, urls
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.4.8
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -112,6 +112,12 @@ For example, the plugin keeps using `/post/123/` as the base shape, while Polyla
 
 == Changelog ==
 
+= 1.5.0 =
+
+* Use registered rewrite slugs for ID-based post type and taxonomy routes
+* Reject conflicting selections that share a rewrite slug
+* Improve rewrite-rule refresh after post type and taxonomy registration
+
 = 1.4.8 =
 
 * Avoid database writes when settings are normalized during public requests
@@ -119,9 +125,5 @@ For example, the plugin keeps using `/post/123/` as the base shape, while Polyla
 = 1.4.7 =
 
 * Fix sitemap and indexing compatibility so permalink integrations receive canonical ID-based URLs consistently
-
-= 1.4.6 =
-
-* Confirm compatibility with WordPress 7.0
 
 For the complete release history, see the [English changelog](https://happas.jp/en/slug-free-permalinks/).

@@ -3,7 +3,7 @@
  * Plugin Name: Slug-Free Permalinks
  * Plugin URI: https://happas.jp/en/slug-free-permalinks/
  * Description: Use ID-based permalinks for selected post types and taxonomies without managing slugs.
- * Version: 1.4.8
+ * Version: 1.5.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: Kodo
@@ -25,10 +25,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class PTID_Permalink_Plugin {
 
-	private const OPTION_NAME = 'ptid_permalink_settings';
-	private const MENU_SLUG      = 'ptid-permalink-settings';
-	private const REWRITE_MARKER = 'ptid_route=1';
-	private const REWRITE_MARKER_VERSION = '1';
+	private const OPTION_NAME                   = 'ptid_permalink_settings';
+	private const MENU_SLUG                     = 'ptid-permalink-settings';
+	private const REWRITE_MARKER                = 'ptid_route=1';
+	private const REWRITE_MARKER_VERSION        = '1';
 	private const REWRITE_MARKER_VERSION_OPTION = 'ptid_rewrite_marker_version';
 	/**
 	 * Normalized plugin settings.
@@ -341,7 +341,7 @@ final class PTID_Permalink_Plugin {
 	public function sanitize_settings( $input ): array {
 		$previous = $this->get_settings();
 
-		$settings = array(
+		$settings  = array(
 			'structure'       => $this->sanitize_structure( $input['structure'] ?? '' ),
 			'post_types'      => $this->sanitize_enabled_items(
 				$input['post_types'] ?? array(),
@@ -525,7 +525,7 @@ final class PTID_Permalink_Plugin {
 			return;
 		}
 
-		$current_url = $this->get_current_request_url();
+		$current_url  = $this->get_current_request_url();
 		$redirect_url = $this->append_current_query_args( $target_url, $current_url );
 
 		if ( '' === $current_url || ! $this->should_redirect_to_target( $current_url, $redirect_url ) ) {
@@ -721,9 +721,13 @@ final class PTID_Permalink_Plugin {
 	 * @param bool  $disabled  Whether conflicting saved selections were disabled.
 	 */
 	private function add_route_slug_conflict_errors( array $conflicts, bool $disabled = false ): void {
-		$message = $disabled
-			? __( 'The rewrite slug "%1$s" is shared by selected content types: %2$s. The conflicting saved selections were disabled.', 'slug-free-permalinks' )
-			: __( 'The rewrite slug "%1$s" is shared by selected content types: %2$s. Choose unique rewrite slugs before saving.', 'slug-free-permalinks' );
+		if ( $disabled ) {
+			/* translators: 1: rewrite slug, 2: selected content type names. */
+			$message = __( 'The rewrite slug "%1$s" is shared by selected content types: %2$s. The conflicting saved selections were disabled.', 'slug-free-permalinks' );
+		} else {
+			/* translators: 1: rewrite slug, 2: selected content type names. */
+			$message = __( 'The rewrite slug "%1$s" is shared by selected content types: %2$s. Choose unique rewrite slugs before saving.', 'slug-free-permalinks' );
+		}
 
 		foreach ( $conflicts as $route_slug => $content_types ) {
 			add_settings_error(

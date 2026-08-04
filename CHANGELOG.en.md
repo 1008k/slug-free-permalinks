@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.5.0]
+
+- Use registered rewrite slugs for ID-based post type and taxonomy routes.
+- Reject conflicting selections that share a rewrite slug and disable conflicting saved settings.
+- Improve rewrite-rule refresh after post type and taxonomy registration and remove stale plugin rules.
+- Improve compatibility with language and path-prefixed URLs and existing permalink integrations.
+
 ## [1.4.8]
 
 - Avoid database writes when settings are normalized during public requests.

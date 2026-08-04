@@ -71,7 +71,7 @@ $settings = array(
 
 update_option( $settings_option, $settings );
 
-$smoke_plugin    = new PTID_Permalink_Plugin();
+$smoke_plugin = new PTID_Permalink_Plugin();
 
 ptid_studio_assert_same(
 	$settings,
@@ -318,7 +318,7 @@ $conflicting_settings = array(
 );
 update_option( $settings_option, $conflicting_settings );
 $GLOBALS['wp_rewrite']->extra_rules['legacy-plugin-post-rule'] = 'index.php?post_type=post&p=$matches[1]&ptid_route=1';
-$GLOBALS['wp_rewrite']->extra_rules['third-party-post-rule'] = 'index.php?post_type=post&p=$matches[1]';
+$GLOBALS['wp_rewrite']->extra_rules['third-party-post-rule']   = 'index.php?post_type=post&p=$matches[1]';
 
 $read_only_plugin->normalize_stored_settings();
 
