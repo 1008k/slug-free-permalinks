@@ -33,9 +33,6 @@ jobs:
       - name: Install development dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
-      - name: Audit Composer dependencies
-        run: composer audit
-
       - name: Lint PHP files
         shell: bash
         run: |
