@@ -63,7 +63,7 @@ jobs:
           php-version: ${{ matrix.php }}
           coverage: none
 
-      - name: Lint distributable PHP files
+      - name: Lint PHP files
         shell: bash
         run: |
           set -euo pipefail
@@ -88,4 +88,7 @@ jobs:
           node-version: 20
 
       - name: Test release tooling
-        run: node --test tests/scripts/validate-release-metadata.test.mjs
+        run: node --test tests/scripts/*.test.mjs
+
+      - name: Verify synchronized metadata is committed
+        run: git diff --exit-code -- slug-free-permalinks.php readme.txt README.md README-ja.md languages/
