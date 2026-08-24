@@ -33,8 +33,45 @@ jobs:
       - name: Install development dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
+      - name: Audit Composer dependencies
+        run: composer audit
+
       - name: Run WordPress Coding Standards
         run: composer check
+
+  php-compatibility:
+    name: PHP ${{ matrix.php }} syntax
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        php:
+          - '7.4'
+          - '8.1'
+          - '8.4'
+          - '8.5'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Lint distributable PHP files
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -type f -name '*.php' \
+            -not -path './vendor/*' \
+            -not -path './dist/*' \
+            -print0 \
+            | xargs -0 -n1 php -l
 
   release-tooling:
     runs-on: ubuntu-latest
