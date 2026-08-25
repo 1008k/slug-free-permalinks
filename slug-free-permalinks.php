@@ -3,7 +3,7 @@
  * Plugin Name: Slug-Free Permalinks
  * Plugin URI: https://happas.jp/en/slug-free-permalinks/
  * Description: Use ID-based permalinks for selected post types and taxonomies without managing slugs.
- * Version: 1.5.0
+ * Version: 1.5.1
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: Kodo
