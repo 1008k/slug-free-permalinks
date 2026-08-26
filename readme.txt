@@ -127,8 +127,4 @@ For example, the plugin keeps using `/post/123/` as the base shape, while Polyla
 
 * Avoid database writes when settings are normalized during public requests
 
-= 1.4.7 =
-
-* Fix sitemap and indexing compatibility so permalink integrations receive canonical ID-based URLs consistently
-
 For the complete release history, see the [English changelog](https://happas.jp/en/slug-free-permalinks/).
