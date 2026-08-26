@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.5.1]
+
+- Update compatibility metadata for WordPress 7.1.
+- Improve CI and distribution validation.
+
 ## [1.5.0]
 
 - Use registered rewrite slugs for ID-based post type and taxonomy routes.
