@@ -10,7 +10,6 @@ const rootDir = path.resolve(__dirname, '..');
 const pluginSlug = 'slug-free-permalinks';
 const distRootDir = path.join(rootDir, 'dist');
 const distDir = path.join(distRootDir, pluginSlug);
-const pluginMainFile = path.join(rootDir, `${pluginSlug}.php`);
 
 const filesToCopy = [
   'LICENSE',
