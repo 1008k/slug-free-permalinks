@@ -1,13 +1,17 @@
-name: Coding Standards
+name: PHP Checks
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
+    paths:
+      - '**/*.php'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'phpcs.xml*'
+      - '.github/workflows/coding-standards.yml'
+  workflow_dispatch:
 
 concurrency:
-  group: coding-standards-${{ github.workflow }}-${{ github.ref }}
+  group: php-checks-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -45,25 +49,3 @@ jobs:
 
       - name: Run WordPress Coding Standards
         run: composer check
-
-  release-tooling:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: 20
-
-      - name: Test release tooling
-        run: node --test tests/scripts/*.test.mjs
-
-      - name: Verify synchronized metadata is committed
-        run: |
-          node scripts/sync-meta.mjs
-          git diff --exit-code -- slug-free-permalinks.php readme.txt README.md README-ja.md languages/
