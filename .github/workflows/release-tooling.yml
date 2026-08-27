@@ -1,0 +1,38 @@
+name: Release Tooling
+
+on:
+  pull_request:
+    paths:
+      - 'plugin-meta.json'
+      - 'scripts/**'
+      - 'tests/scripts/**'
+      - '.github/workflows/release-tooling.yml'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: release-tooling-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-tooling:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      - name: Test release tooling
+        run: node --test tests/scripts/*.test.mjs
+
+      - name: Verify synchronized metadata is committed
+        run: |
+          node scripts/sync-meta.mjs
+          git diff --exit-code -- slug-free-permalinks.php readme.txt README.md README-ja.md languages/

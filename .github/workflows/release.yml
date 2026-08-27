@@ -1,0 +1,108 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semantic version to release
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      - name: Validate release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/validate-release-metadata.mjs "$RELEASE_VERSION"
+
+      - name: Build distributable
+        run: node scripts/build-dist.mjs --zip
+
+      - name: Verify distributable
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist/slug-free-permalinks/slug-free-permalinks.php
+          test -f dist/slug-free-permalinks/readme.txt
+          test -f "dist/slug-free-permalinks-${RELEASE_VERSION}.zip"
+
+      - name: Run Plugin Check
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: dist/slug-free-permalinks
+          ignore-codes: |
+            mismatched_plugin_name
+
+      - name: Publish GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="$RELEASE_VERSION"
+          ZIP_PATH="dist/slug-free-permalinks-${VERSION}.zip"
+          NOTES_FILE="$(mktemp)"
+          CHANGELOG_LINES="$(
+            awk -v version="$VERSION" '
+              $0 == "= " version " =" { in_section=1; next }
+              in_section && /^= / { exit }
+              in_section { print }
+            ' readme.txt \
+            | sed '/^[[:space:]]*$/d'
+          )"
+
+          if [[ -z "$CHANGELOG_LINES" ]]; then
+            echo "Could not extract changelog entries for $VERSION from readme.txt" >&2
+            exit 1
+          fi
+
+          {
+            echo "## Changelog"
+            echo
+            echo "$CHANGELOG_LINES"
+          } > "$NOTES_FILE"
+
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release upload "$VERSION" "$ZIP_PATH" --clobber
+            gh release edit "$VERSION" --title "$VERSION" --notes-file "$NOTES_FILE"
+          else
+            gh release create "$VERSION" "$ZIP_PATH" \
+              --title "$VERSION" \
+              --notes-file "$NOTES_FILE"
+          fi
+
+      - name: Deploy to WordPress.org
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        env:
+          SLUG: slug-free-permalinks
+          VERSION: ${{ env.RELEASE_VERSION }}
+          BUILD_DIR: dist/slug-free-permalinks
+          ASSETS_DIR: .wordpress-org
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
