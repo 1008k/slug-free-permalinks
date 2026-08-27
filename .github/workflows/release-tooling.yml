@@ -7,6 +7,7 @@ on:
       - 'scripts/**'
       - 'tests/scripts/**'
       - '.github/workflows/release-tooling.yml'
+      - '.github/workflows/release.yml'
   workflow_dispatch:
 
 concurrency:
