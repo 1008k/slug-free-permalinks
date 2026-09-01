@@ -3,7 +3,6 @@ name: Release Tooling
 on:
   pull_request:
     paths:
-      - 'plugin-meta.json'
       - 'scripts/**'
       - 'tests/scripts/**'
       - '.github/workflows/release-tooling.yml'
