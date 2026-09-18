@@ -403,12 +403,17 @@ final class PTID_Permalink_Plugin {
 			return;
 		}
 
-		$settings                 = $this->get_settings();
-		$post_types               = $this->get_available_post_types();
-		$taxonomies               = $this->get_available_taxonomies();
-		$post_enabled             = in_array( 'post', $settings['post_types'], true );
-		$custom_targets_enabled   = array() !== array_diff( $settings['post_types'], array( 'post' ) ) || array() !== $settings['taxonomies'];
-		$wp_permalink_structure   = 'hyphen' === $settings['structure'] ? '/post-%post_id%/' : '/post/%post_id%/';
+		$settings               = $this->get_settings();
+		$post_types             = $this->get_available_post_types();
+		$taxonomies             = $this->get_available_taxonomies();
+		$post_enabled           = in_array( 'post', $settings['post_types'], true );
+		$custom_targets_enabled = array() !== array_diff(
+			$settings['post_types'],
+			array( 'post' )
+		) || array() !== $settings['taxonomies'];
+		$wp_permalink_structure = 'hyphen' === $settings['structure']
+			? '/post-%post_id%/'
+			: '/post/%post_id%/';
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'Slug-Free Permalinks', 'slug-free-permalinks' ); ?></h1>
