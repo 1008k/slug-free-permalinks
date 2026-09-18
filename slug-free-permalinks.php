@@ -88,13 +88,6 @@ final class PTID_Permalink_Plugin {
 	private array $taxonomy_route_slug_cache = array();
 
 	/**
-	 * Cached Polylang home URLs for the current request.
-	 *
-	 * @var array
-	 */
-	private array $polylang_home_url_cache = array();
-
-	/**
 	 * Registers plugin hooks.
 	 */
 	public static function bootstrap(): void {
@@ -102,7 +95,6 @@ final class PTID_Permalink_Plugin {
 		add_action( 'init', array( $instance, 'register_rewrite_rules' ), 99 );
 		add_action( 'registered_post_type', array( $instance, 'refresh_rewrite_rules_after_registration' ), 10, 0 );
 		add_action( 'registered_taxonomy', array( $instance, 'refresh_rewrite_rules_after_registration' ), 10, 0 );
-		add_action( 'init', array( $instance, 'flush_pending_rewrite_rules' ), 999 );
 		add_action( 'wp_loaded', array( $instance, 'flush_pending_rewrite_rules' ), 999 );
 		add_filter( 'post_link', array( $instance, 'filter_permalink' ), 10, 2 );
 		add_filter( 'post_type_link', array( $instance, 'filter_permalink' ), 10, 2 );
@@ -202,17 +194,17 @@ final class PTID_Permalink_Plugin {
 	 * Registers ID-based rewrite rules for enabled content types.
 	 */
 	public function register_rewrite_rules(): void {
-		$structure   = $this->get_permalink_structure();
-		$post_types  = $this->get_enabled_post_types();
-		$taxonomies  = $this->get_enabled_taxonomies();
-		$enabled     = array() !== $post_types || array() !== $taxonomies;
-		$signature   = $this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled );
+		$structure  = $this->get_permalink_structure();
+		$post_types = $this->get_enabled_post_types();
+		$taxonomies = $this->get_enabled_taxonomies();
+		$enabled    = array() !== $post_types || array() !== $taxonomies;
+		$signature  = $this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled );
 
 		$this->register_rewrite_rules_for( $structure, $post_types, $taxonomies, $enabled );
 		$this->rewrite_rules_registered = true;
 
 		if (
-			$signature !== (string) get_option( self::REWRITE_SIGNATURE_OPTION, '' )
+			(string) get_option( self::REWRITE_SIGNATURE_OPTION, '' ) !== $signature
 			|| self::REWRITE_MARKER_VERSION !== (string) get_option( self::REWRITE_MARKER_VERSION_OPTION, '' )
 		) {
 			$this->rewrite_rules_flush_pending = true;
@@ -223,12 +215,12 @@ final class PTID_Permalink_Plugin {
 	 * Refreshes rewrite rules after a post type or taxonomy is registered.
 	 */
 	public function refresh_rewrite_rules_after_registration(): void {
-		$this->settings_cache                   = null;
-		$this->enabled_post_types_cache         = null;
-		$this->enabled_taxonomies_cache         = null;
-		$this->permalink_structure_cache        = null;
-		$this->post_type_route_slug_cache       = array();
-		$this->taxonomy_route_slug_cache        = array();
+		$this->settings_cache              = null;
+		$this->enabled_post_types_cache    = null;
+		$this->enabled_taxonomies_cache    = null;
+		$this->permalink_structure_cache   = null;
+		$this->post_type_route_slug_cache  = array();
+		$this->taxonomy_route_slug_cache   = array();
 
 		if ( ! $this->rewrite_rules_registered ) {
 			return;
@@ -1300,28 +1292,19 @@ final class PTID_Permalink_Plugin {
 	 * @return string Language home URL, or an empty string.
 	 */
 	private function get_polylang_home_url( string $language_callback, int $object_id ): string {
-		$cache_key = $language_callback . ':' . $object_id;
-		if ( array_key_exists( $cache_key, $this->polylang_home_url_cache ) ) {
-			return $this->polylang_home_url_cache[ $cache_key ];
-		}
-
 		if ( ! function_exists( $language_callback ) || ! function_exists( 'pll_home_url' ) ) {
-			$this->polylang_home_url_cache[ $cache_key ] = '';
 			return '';
 		}
 
 		$language = $language_callback( $object_id, 'slug' );
 
 		if ( ! is_string( $language ) || '' === $language ) {
-			$this->polylang_home_url_cache[ $cache_key ] = '';
 			return '';
 		}
 
 		$home_url = pll_home_url( $language );
 
-		$this->polylang_home_url_cache[ $cache_key ] = is_string( $home_url ) ? $home_url : '';
-
-		return $this->polylang_home_url_cache[ $cache_key ];
+		return is_string( $home_url ) ? $home_url : '';
 	}
 
 	/**
