@@ -74,7 +74,7 @@ For example, the plugin keeps using `/post/123/` as the base shape, while Polyla
 
 **How can I deactivate the plugin without changing regular post URLs?**
 
-When regular posts are enabled, the settings screen shows the equivalent WordPress Custom Structure for the current ID URL format, such as `/post/%post_id%/` or `/post-%post_id%/`. Copy that value to `Settings > Permalinks` before deactivating the plugin.
+When regular posts are enabled, the settings screen shows the equivalent WordPress Custom Structure for the current ID URL format, such as `/post/%post_id%/` or `/post-%post_id%/`. The displayed value follows the site's current trailing-slash policy. Copy it to `Settings > Permalinks` before deactivating the plugin.
 
 The plugin does not change WordPress permalink settings automatically. Custom post types and taxonomies have their own rewrite settings and need to be checked separately before deactivation.
 
