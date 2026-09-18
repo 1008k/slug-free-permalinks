@@ -84,6 +84,7 @@ final class PTID_Permalink_Plugin {
 		add_action( 'admin_init', array( $instance, 'register_settings' ) );
 		add_action( 'admin_init', array( $instance, 'normalize_stored_settings' ) );
 		add_action( 'admin_menu', array( $instance, 'register_settings_page' ) );
+		add_action( 'admin_enqueue_scripts', array( $instance, 'enqueue_admin_assets' ) );
 		add_filter(
 			'plugin_action_links_' . plugin_basename( __FILE__ ),
 			array( $instance, 'add_settings_link' )
@@ -317,6 +318,25 @@ final class PTID_Permalink_Plugin {
 	}
 
 	/**
+	 * Enqueues assets only on the plugin settings screen.
+	 *
+	 * @param string $hook_suffix Current admin page hook suffix.
+	 */
+	public function enqueue_admin_assets( string $hook_suffix ): void {
+		if ( 'settings_page_' . self::MENU_SLUG !== $hook_suffix ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'slug-free-permalinks-admin',
+			plugins_url( 'assets/admin.js', __FILE__ ),
+			array(),
+			'1.0.0',
+			true
+		);
+	}
+
+	/**
 	 * Adds a settings link to the Plugins screen.
 	 *
 	 * @param array $links Existing plugin action links.
@@ -500,34 +520,6 @@ final class PTID_Permalink_Plugin {
 							<?php echo esc_html__( 'Open Permalink Settings', 'slug-free-permalinks' ); ?>
 						</a>
 					</p>
-					<script>
-						( function () {
-							const button = document.getElementById( 'ptid-copy-wordpress-permalink-structure' );
-							const input = document.getElementById( 'ptid-wordpress-permalink-structure' );
-
-							if ( ! button || ! input ) {
-								return;
-							}
-
-							button.addEventListener( 'click', async function () {
-								const value = button.dataset.copyText || input.value;
-
-								try {
-									if ( navigator.clipboard && window.isSecureContext ) {
-										await navigator.clipboard.writeText( value );
-										return;
-									}
-
-									input.focus();
-									input.select();
-									document.execCommand( 'copy' );
-								} catch ( error ) {
-									input.focus();
-									input.select();
-								}
-							} );
-						}() );
-					</script>
 				<?php endif; ?>
 
 				<?php if ( $custom_targets_enabled ) : ?>
