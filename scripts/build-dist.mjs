@@ -18,7 +18,7 @@ const filesToCopy = [
   'uninstall.php',
 ];
 
-const directoriesToCopy = ['languages'];
+const directoriesToCopy = ['assets', 'languages'];
 
 export function getPluginVersion() {
   return loadMetadata().version;
