@@ -215,12 +215,12 @@ final class PTID_Permalink_Plugin {
 	 * Refreshes rewrite rules after a post type or taxonomy is registered.
 	 */
 	public function refresh_rewrite_rules_after_registration(): void {
-		$this->settings_cache              = null;
-		$this->enabled_post_types_cache    = null;
-		$this->enabled_taxonomies_cache    = null;
-		$this->permalink_structure_cache   = null;
-		$this->post_type_route_slug_cache  = array();
-		$this->taxonomy_route_slug_cache   = array();
+		$this->settings_cache             = null;
+		$this->enabled_post_types_cache   = null;
+		$this->enabled_taxonomies_cache   = null;
+		$this->permalink_structure_cache  = null;
+		$this->post_type_route_slug_cache = array();
+		$this->taxonomy_route_slug_cache  = array();
 
 		if ( ! $this->rewrite_rules_registered ) {
 			return;
