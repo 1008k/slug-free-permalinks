@@ -2,6 +2,11 @@ name: Release Tooling
 
 on:
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
     paths:
       - 'scripts/**'
       - 'tests/scripts/**'
@@ -15,6 +20,7 @@ concurrency:
 
 jobs:
   release-tooling:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     permissions:
       contents: read
