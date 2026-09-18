@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Add pre-deactivation guidance and a copyable WordPress Custom Structure for preserving regular post ID URLs.
+- Reduce rewrite checks and permalink processing overhead.
 
 ## [1.5.1]
 
