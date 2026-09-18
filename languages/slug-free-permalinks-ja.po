@@ -39,3 +39,4 @@ msgstr "旧パーマリンクをリダイレクト"
 
 msgid "Redirect old slug based URLs to the current ID based permalink when WordPress can resolve the request."
 msgstr "WordPressがリクエストを解決できる場合、古いスラッグベースURLを現在のIDベースのパーマリンクへリダイレクトします。"
+\nmsgid "Before deactivating"\nmsgstr "無効化する前に"\n\nmsgid "To keep the current ID URL format for regular posts, set the following value as the Custom Structure under Settings > Permalinks before deactivating this plugin."\nmsgstr "通常投稿で現在のID URL形式を維持するには、このプラグインを無効化する前に、以下の値を「設定 > パーマリンク」のカスタム構造へ設定してください。"\n\nmsgid "WordPress custom structure"\nmsgstr "WordPressのカスタム構造"\n\nmsgid "Copy"\nmsgstr "コピー"\n\nmsgid "Open Permalink Settings"\nmsgstr "パーマリンク設定を開く"\n\nmsgid "Custom post types and taxonomies are not controlled by the regular WordPress post permalink setting. Check their rewrite settings before deactivating the plugin."\nmsgstr "カスタム投稿タイプとタクソノミーは、WordPress標準の投稿パーマリンク設定では管理されません。プラグインを無効化する前に、それぞれのrewrite設定を確認してください。"\n
