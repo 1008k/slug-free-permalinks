@@ -95,13 +95,6 @@ final class PTID_Permalink_Plugin {
 	private array $polylang_home_url_cache = array();
 
 	/**
-	 * Parsed site home URL parts for the current request.
-	 *
-	 * @var array|null
-	 */
-	private ?array $home_url_parts_cache = null;
-
-	/**
 	 * Registers plugin hooks.
 	 */
 	public static function bootstrap(): void {
@@ -345,6 +338,7 @@ final class PTID_Permalink_Plugin {
 			);
 			flush_rewrite_rules();
 			$this->prime_settings_cache( $normalized );
+			$this->persist_rewrite_state();
 		}
 	}
 
@@ -424,7 +418,8 @@ final class PTID_Permalink_Plugin {
 			return $previous;
 		}
 
-		if ( $previous !== $settings ) {
+		$settings_changed = $previous !== $settings;
+		if ( $settings_changed ) {
 			$this->register_rewrite_rules_for(
 				$settings['structure'],
 				$settings['post_types'],
@@ -435,6 +430,10 @@ final class PTID_Permalink_Plugin {
 		}
 
 		$this->prime_settings_cache( $settings );
+
+		if ( $settings_changed ) {
+			$this->persist_rewrite_state();
+		}
 
 		return $settings;
 	}
@@ -1020,7 +1019,7 @@ final class PTID_Permalink_Plugin {
 	 */
 	private function get_existing_url_prefix( string $existing_url, string $slug ): string {
 		$existing_parts = wp_parse_url( $existing_url );
-		$home_parts     = $this->get_home_url_parts();
+		$home_parts     = wp_parse_url( home_url( '/' ) );
 
 		if ( ! is_array( $existing_parts ) || ! is_array( $home_parts ) ) {
 			return '';
@@ -1401,14 +1400,12 @@ final class PTID_Permalink_Plugin {
 			$taxonomy_routes[ $taxonomy ] = $this->get_taxonomy_route_slug( $taxonomy );
 		}
 
-		return md5(
-			wp_json_encode(
-				array(
-					'structure'       => $structure,
-					'enabled'         => $enabled,
-					'post_routes'     => $post_routes,
-					'taxonomy_routes' => $taxonomy_routes,
-				)
+		return (string) wp_json_encode(
+			array(
+				'structure'       => $structure,
+				'enabled'         => $enabled,
+				'post_routes'     => $post_routes,
+				'taxonomy_routes' => $taxonomy_routes,
 			)
 		);
 	}
@@ -1428,22 +1425,6 @@ final class PTID_Permalink_Plugin {
 			$this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled ),
 			true
 		);
-	}
-
-	/**
-	 * Returns parsed site home URL parts.
-	 *
-	 * @return array Parsed home URL parts, or an empty array.
-	 */
-	private function get_home_url_parts(): array {
-		if ( is_array( $this->home_url_parts_cache ) ) {
-			return $this->home_url_parts_cache;
-		}
-
-		$parts = wp_parse_url( home_url( '/' ) );
-		$this->home_url_parts_cache = is_array( $parts ) ? $parts : array();
-
-		return $this->home_url_parts_cache;
 	}
 
 	/**
