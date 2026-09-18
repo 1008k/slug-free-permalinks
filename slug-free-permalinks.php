@@ -84,6 +84,7 @@ final class PTID_Permalink_Plugin {
 		add_action( 'admin_init', array( $instance, 'register_settings' ) );
 		add_action( 'admin_init', array( $instance, 'normalize_stored_settings' ) );
 		add_action( 'admin_menu', array( $instance, 'register_settings_page' ) );
+		add_action( 'admin_enqueue_scripts', array( $instance, 'enqueue_admin_assets' ) );
 		add_filter(
 			'plugin_action_links_' . plugin_basename( __FILE__ ),
 			array( $instance, 'add_settings_link' )
@@ -317,6 +318,25 @@ final class PTID_Permalink_Plugin {
 	}
 
 	/**
+	 * Enqueues assets only on the plugin settings screen.
+	 *
+	 * @param string $hook_suffix Current admin page hook suffix.
+	 */
+	public function enqueue_admin_assets( string $hook_suffix ): void {
+		if ( 'settings_page_' . self::MENU_SLUG !== $hook_suffix ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'slug-free-permalinks-admin',
+			plugins_url( 'assets/admin.js', __FILE__ ),
+			array(),
+			'1.0.0',
+			true
+		);
+	}
+
+	/**
 	 * Adds a settings link to the Plugins screen.
 	 *
 	 * @param array $links Existing plugin action links.
@@ -383,9 +403,18 @@ final class PTID_Permalink_Plugin {
 			return;
 		}
 
-		$settings   = $this->get_settings();
-		$post_types = $this->get_available_post_types();
-		$taxonomies = $this->get_available_taxonomies();
+		$settings               = $this->get_settings();
+		$post_types             = $this->get_available_post_types();
+		$taxonomies             = $this->get_available_taxonomies();
+		$post_enabled           = in_array( 'post', $settings['post_types'], true );
+		$custom_targets_enabled = array() !== array_diff(
+			$settings['post_types'],
+			array( 'post' )
+		) || array() !== $settings['taxonomies'];
+		$wp_permalink_structure = '/' . user_trailingslashit(
+			'hyphen' === $settings['structure'] ? 'post-%post_id%' : 'post/%post_id%',
+			'single'
+		);
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'Slug-Free Permalinks', 'slug-free-permalinks' ); ?></h1>
@@ -463,6 +492,48 @@ final class PTID_Permalink_Plugin {
 				</table>
 			<?php submit_button(); ?>
 			</form>
+
+			<?php if ( $post_enabled || $custom_targets_enabled ) : ?>
+				<hr />
+				<h2><?php echo esc_html__( 'Before deactivating', 'slug-free-permalinks' ); ?></h2>
+
+				<?php if ( $post_enabled ) : ?>
+					<p>
+						<?php echo esc_html__( 'To keep the current ID URL format for regular posts, set the following value as the Custom Structure under Settings > Permalinks before deactivating this plugin.', 'slug-free-permalinks' ); ?>
+					</p>
+					<p>
+						<label for="ptid-wordpress-permalink-structure">
+							<strong><?php echo esc_html__( 'WordPress custom structure', 'slug-free-permalinks' ); ?></strong>
+						</label>
+					</p>
+					<p>
+						<input
+							id="ptid-wordpress-permalink-structure"
+							class="regular-text code"
+							type="text"
+							value="<?php echo esc_attr( $wp_permalink_structure ); ?>"
+							readonly
+						/>
+						<button
+							id="ptid-copy-wordpress-permalink-structure"
+							class="button"
+							type="button"
+							data-copy-text="<?php echo esc_attr( $wp_permalink_structure ); ?>"
+						>
+							<?php echo esc_html__( 'Copy', 'slug-free-permalinks' ); ?>
+						</button>
+						<a class="button" href="<?php echo esc_url( admin_url( 'options-permalink.php' ) ); ?>">
+							<?php echo esc_html__( 'Open Permalink Settings', 'slug-free-permalinks' ); ?>
+						</a>
+					</p>
+				<?php endif; ?>
+
+				<?php if ( $custom_targets_enabled ) : ?>
+					<p>
+						<?php echo esc_html__( 'Custom post types and taxonomies are not controlled by the regular WordPress post permalink setting. Check their rewrite settings before deactivating the plugin.', 'slug-free-permalinks' ); ?>
+					</p>
+				<?php endif; ?>
+			<?php endif; ?>
 		</div>
 			<?php
 	}

@@ -106,6 +106,14 @@ Yes. The canonical ID-based permalink stays rooted at the site home, and languag
 
 For example, the plugin keeps using `/post/123/` as the base shape, while Polylang style setups can expose `/en/post/123/` and `/en/category/45/`.
 
+= How can I deactivate the plugin without changing regular post URLs? =
+
+When regular posts are enabled, the settings screen shows the equivalent WordPress Custom Structure for the current ID URL format. The displayed value follows the site's current trailing-slash policy.
+
+Copy that value to `Settings > Permalinks` before deactivating the plugin. Slug-Free Permalinks does not change WordPress permalink settings automatically.
+
+Custom post types and taxonomies have their own rewrite settings and need to be checked separately before deactivation.
+
 == Screenshots ==
 
 1. Settings screen for choosing the ID permalink format, target post types, target taxonomies, and optional legacy redirect behavior.

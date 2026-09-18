@@ -6,7 +6,7 @@ if (! defined('ABSPATH')) {
 
 return array(
     'x-generator' => 'slug-free-permalinks',
-    'translation-revision-date' => '2026-03-17 00:00+0000',
+    'translation-revision-date' => '2026-09-18 00:00+0000',
     'plural-forms' => 'nplurals=1; plural=0;',
     'project-id-version' => 'Slug-Free Permalinks 1.5.1',
     'language' => 'ja',
@@ -20,5 +20,11 @@ return array(
         'Target taxonomies' => '対象タクソノミー',
         'Redirect legacy permalinks' => '旧パーマリンクをリダイレクト',
         'Redirect old slug based URLs to the current ID based permalink when WordPress can resolve the request.' => 'WordPressがリクエストを解決できる場合、古いスラッグベースURLを現在のIDベースのパーマリンクへリダイレクトします。',
+        'Before deactivating' => '無効化する前に',
+        'To keep the current ID URL format for regular posts, set the following value as the Custom Structure under Settings > Permalinks before deactivating this plugin.' => '通常投稿で現在のID URL形式を維持するには、このプラグインを無効化する前に、以下の値を「設定 > パーマリンク」のカスタム構造へ設定してください。',
+        'WordPress custom structure' => 'WordPressのカスタム構造',
+        'Copy' => 'コピー',
+        'Open Permalink Settings' => 'パーマリンク設定を開く',
+        'Custom post types and taxonomies are not controlled by the regular WordPress post permalink setting. Check their rewrite settings before deactivating the plugin.' => 'カスタム投稿タイプとタクソノミーは、WordPress標準の投稿パーマリンク設定では管理されません。プラグインを無効化する前に、それぞれのrewrite設定を確認してください。',
     ),
 );
