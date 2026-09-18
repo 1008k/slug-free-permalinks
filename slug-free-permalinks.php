@@ -28,8 +28,9 @@ final class PTID_Permalink_Plugin {
 	private const OPTION_NAME                   = 'ptid_permalink_settings';
 	private const MENU_SLUG                     = 'ptid-permalink-settings';
 	private const REWRITE_MARKER                = 'ptid_route=1';
-	private const REWRITE_MARKER_VERSION        = '1';
+	private const REWRITE_MARKER_VERSION        = '2';
 	private const REWRITE_MARKER_VERSION_OPTION = 'ptid_rewrite_marker_version';
+	private const REWRITE_SIGNATURE_OPTION      = 'ptid_rewrite_signature';
 	/**
 	 * Normalized plugin settings.
 	 *
@@ -64,6 +65,41 @@ final class PTID_Permalink_Plugin {
 	 * @var bool
 	 */
 	private bool $rewrite_rules_flush_pending = false;
+
+	/**
+	 * Whether the initial rewrite-rule registration has completed.
+	 *
+	 * @var bool
+	 */
+	private bool $rewrite_rules_registered = false;
+
+	/**
+	 * Cached post type route slugs for the current request.
+	 *
+	 * @var array
+	 */
+	private array $post_type_route_slug_cache = array();
+
+	/**
+	 * Cached taxonomy route slugs for the current request.
+	 *
+	 * @var array
+	 */
+	private array $taxonomy_route_slug_cache = array();
+
+	/**
+	 * Cached Polylang home URLs for the current request.
+	 *
+	 * @var array
+	 */
+	private array $polylang_home_url_cache = array();
+
+	/**
+	 * Parsed site home URL parts for the current request.
+	 *
+	 * @var array|null
+	 */
+	private ?array $home_url_parts_cache = null;
 
 	/**
 	 * Registers plugin hooks.
@@ -102,7 +138,7 @@ final class PTID_Permalink_Plugin {
 		$plugin = new self();
 		$plugin->register_rewrite_rules();
 		flush_rewrite_rules();
-		update_option( self::REWRITE_MARKER_VERSION_OPTION, self::REWRITE_MARKER_VERSION, true );
+		$plugin->persist_rewrite_state();
 	}
 
 	/**
@@ -173,15 +209,17 @@ final class PTID_Permalink_Plugin {
 	 * Registers ID-based rewrite rules for enabled content types.
 	 */
 	public function register_rewrite_rules(): void {
-		$this->register_rewrite_rules_for(
-			$this->get_permalink_structure(),
-			$this->get_enabled_post_types(),
-			$this->get_enabled_taxonomies(),
-			$this->is_feature_enabled()
-		);
+		$structure   = $this->get_permalink_structure();
+		$post_types  = $this->get_enabled_post_types();
+		$taxonomies  = $this->get_enabled_taxonomies();
+		$enabled     = array() !== $post_types || array() !== $taxonomies;
+		$signature   = $this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled );
+
+		$this->register_rewrite_rules_for( $structure, $post_types, $taxonomies, $enabled );
+		$this->rewrite_rules_registered = true;
 
 		if (
-			$this->has_stale_persisted_rewrite_rules()
+			$signature !== (string) get_option( self::REWRITE_SIGNATURE_OPTION, '' )
 			|| self::REWRITE_MARKER_VERSION !== (string) get_option( self::REWRITE_MARKER_VERSION_OPTION, '' )
 		) {
 			$this->rewrite_rules_flush_pending = true;
@@ -192,10 +230,16 @@ final class PTID_Permalink_Plugin {
 	 * Refreshes rewrite rules after a post type or taxonomy is registered.
 	 */
 	public function refresh_rewrite_rules_after_registration(): void {
-		$this->settings_cache            = null;
-		$this->enabled_post_types_cache  = null;
-		$this->enabled_taxonomies_cache  = null;
-		$this->permalink_structure_cache = null;
+		$this->settings_cache                   = null;
+		$this->enabled_post_types_cache         = null;
+		$this->enabled_taxonomies_cache         = null;
+		$this->permalink_structure_cache        = null;
+		$this->post_type_route_slug_cache       = array();
+		$this->taxonomy_route_slug_cache        = array();
+
+		if ( ! $this->rewrite_rules_registered ) {
+			return;
+		}
 
 		$this->register_rewrite_rules();
 	}
@@ -210,7 +254,7 @@ final class PTID_Permalink_Plugin {
 
 		$this->rewrite_rules_flush_pending = false;
 		flush_rewrite_rules( false );
-		update_option( self::REWRITE_MARKER_VERSION_OPTION, self::REWRITE_MARKER_VERSION, true );
+		$this->persist_rewrite_state();
 	}
 
 	/**
@@ -656,10 +700,7 @@ final class PTID_Permalink_Plugin {
 		}
 
 		$settings                       = $this->get_settings();
-		$this->enabled_post_types_cache = $this->sanitize_enabled_items(
-			$settings['post_types'] ?? array(),
-			array_keys( $this->get_available_post_types() )
-		);
+		$this->enabled_post_types_cache = $settings['post_types'];
 
 		return $this->enabled_post_types_cache;
 	}
@@ -675,10 +716,7 @@ final class PTID_Permalink_Plugin {
 			return $this->enabled_taxonomies_cache;
 		}
 		$settings                       = $this->get_settings();
-		$this->enabled_taxonomies_cache = $this->sanitize_enabled_items(
-			$settings['taxonomies'] ?? array(),
-			array_keys( $this->get_available_taxonomies() )
-		);
+		$this->enabled_taxonomies_cache = $settings['taxonomies'];
 
 		return $this->enabled_taxonomies_cache;
 	}
@@ -728,16 +766,23 @@ final class PTID_Permalink_Plugin {
 	 * @return string Route slug.
 	 */
 	private function get_post_type_route_slug( string $post_type ): string {
+		if ( isset( $this->post_type_route_slug_cache[ $post_type ] ) ) {
+			return $this->post_type_route_slug_cache[ $post_type ];
+		}
+
 		$post_type_object = get_post_type_object( $post_type );
+		$route_slug       = $post_type;
 
 		if ( $post_type_object && is_array( $post_type_object->rewrite ) && ! empty( $post_type_object->rewrite['slug'] ) ) {
-			$route_slug = trim( (string) $post_type_object->rewrite['slug'], '/' );
-			if ( '' !== $route_slug ) {
-				return $route_slug;
+			$registered_slug = trim( (string) $post_type_object->rewrite['slug'], '/' );
+			if ( '' !== $registered_slug ) {
+				$route_slug = $registered_slug;
 			}
 		}
 
-		return $post_type;
+		$this->post_type_route_slug_cache[ $post_type ] = $route_slug;
+
+		return $route_slug;
 	}
 
 	/**
@@ -747,16 +792,23 @@ final class PTID_Permalink_Plugin {
 	 * @return string Route slug.
 	 */
 	private function get_taxonomy_route_slug( string $taxonomy ): string {
+		if ( isset( $this->taxonomy_route_slug_cache[ $taxonomy ] ) ) {
+			return $this->taxonomy_route_slug_cache[ $taxonomy ];
+		}
+
 		$taxonomy_object = get_taxonomy( $taxonomy );
+		$route_slug      = $taxonomy;
 
 		if ( $taxonomy_object && is_array( $taxonomy_object->rewrite ) && ! empty( $taxonomy_object->rewrite['slug'] ) ) {
-			$route_slug = trim( (string) $taxonomy_object->rewrite['slug'], '/' );
-			if ( '' !== $route_slug ) {
-				return $route_slug;
+			$registered_slug = trim( (string) $taxonomy_object->rewrite['slug'], '/' );
+			if ( '' !== $registered_slug ) {
+				$route_slug = $registered_slug;
 			}
 		}
 
-		return $taxonomy;
+		$this->taxonomy_route_slug_cache[ $taxonomy ] = $route_slug;
+
+		return $route_slug;
 	}
 
 	/**
@@ -968,7 +1020,7 @@ final class PTID_Permalink_Plugin {
 	 */
 	private function get_existing_url_prefix( string $existing_url, string $slug ): string {
 		$existing_parts = wp_parse_url( $existing_url );
-		$home_parts     = wp_parse_url( home_url( '/' ) );
+		$home_parts     = $this->get_home_url_parts();
 
 		if ( ! is_array( $existing_parts ) || ! is_array( $home_parts ) ) {
 			return '';
@@ -1249,19 +1301,28 @@ final class PTID_Permalink_Plugin {
 	 * @return string Language home URL, or an empty string.
 	 */
 	private function get_polylang_home_url( string $language_callback, int $object_id ): string {
+		$cache_key = $language_callback . ':' . $object_id;
+		if ( array_key_exists( $cache_key, $this->polylang_home_url_cache ) ) {
+			return $this->polylang_home_url_cache[ $cache_key ];
+		}
+
 		if ( ! function_exists( $language_callback ) || ! function_exists( 'pll_home_url' ) ) {
+			$this->polylang_home_url_cache[ $cache_key ] = '';
 			return '';
 		}
 
 		$language = $language_callback( $object_id, 'slug' );
 
 		if ( ! is_string( $language ) || '' === $language ) {
+			$this->polylang_home_url_cache[ $cache_key ] = '';
 			return '';
 		}
 
 		$home_url = pll_home_url( $language );
 
-		return is_string( $home_url ) ? $home_url : '';
+		$this->polylang_home_url_cache[ $cache_key ] = is_string( $home_url ) ? $home_url : '';
+
+		return $this->polylang_home_url_cache[ $cache_key ];
 	}
 
 	/**
@@ -1321,54 +1382,68 @@ final class PTID_Permalink_Plugin {
 	}
 
 	/**
-	 * Determines whether persisted rewrite rules differ from current plugin rules.
+	 * Builds a signature for the rewrite rules generated by current settings.
 	 *
-	 * @return bool Whether a one-time flush is needed.
+	 * @param string $structure  Permalink structure name.
+	 * @param array  $post_types Enabled post type names.
+	 * @param array  $taxonomies Enabled taxonomy names.
+	 * @param bool   $enabled    Whether routing is enabled.
+	 * @return string Rewrite signature.
 	 */
-	private function has_stale_persisted_rewrite_rules(): bool {
-		$persisted_rules = get_option( 'rewrite_rules', array() );
-		if ( ! is_array( $persisted_rules ) ) {
-			return true;
+	private function build_rewrite_signature( string $structure, array $post_types, array $taxonomies, bool $enabled ): string {
+		$post_routes = array();
+		foreach ( $post_types as $post_type ) {
+			$post_routes[ $post_type ] = $this->get_post_type_route_slug( $post_type );
 		}
 
-		$current_rules = $this->get_current_plugin_rewrite_rules();
-		foreach ( $current_rules as $regex => $query ) {
-			if ( ! isset( $persisted_rules[ $regex ] ) || $persisted_rules[ $regex ] !== $query ) {
-				return true;
-			}
+		$taxonomy_routes = array();
+		foreach ( $taxonomies as $taxonomy ) {
+			$taxonomy_routes[ $taxonomy ] = $this->get_taxonomy_route_slug( $taxonomy );
 		}
 
-		foreach ( $persisted_rules as $regex => $query ) {
-			if ( $this->is_plugin_rewrite_query( $query ) && ! isset( $current_rules[ $regex ] ) ) {
-				return true;
-			}
-		}
-
-		return false;
+		return md5(
+			wp_json_encode(
+				array(
+					'structure'       => $structure,
+					'enabled'         => $enabled,
+					'post_routes'     => $post_routes,
+					'taxonomy_routes' => $taxonomy_routes,
+				)
+			)
+		);
 	}
 
 	/**
-	 * Returns the plugin's current in-memory rewrite rules.
-	 *
-	 * @return array Current plugin rewrite rules keyed by regex.
+	 * Persists the rewrite marker version and current rewrite signature.
 	 */
-	private function get_current_plugin_rewrite_rules(): array {
-		global $wp_rewrite;
+	private function persist_rewrite_state(): void {
+		$structure  = $this->get_permalink_structure();
+		$post_types = $this->get_enabled_post_types();
+		$taxonomies = $this->get_enabled_taxonomies();
+		$enabled    = array() !== $post_types || array() !== $taxonomies;
 
-		$rules = array();
-		foreach ( array( 'extra_rules_top', 'extra_rules' ) as $rules_property ) {
-			if ( ! isset( $wp_rewrite->{$rules_property} ) || ! is_array( $wp_rewrite->{$rules_property} ) ) {
-				continue;
-			}
+		update_option( self::REWRITE_MARKER_VERSION_OPTION, self::REWRITE_MARKER_VERSION, true );
+		update_option(
+			self::REWRITE_SIGNATURE_OPTION,
+			$this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled ),
+			true
+		);
+	}
 
-			foreach ( $wp_rewrite->{$rules_property} as $regex => $query ) {
-				if ( $this->is_plugin_rewrite_query( $query ) ) {
-					$rules[ $regex ] = $query;
-				}
-			}
+	/**
+	 * Returns parsed site home URL parts.
+	 *
+	 * @return array Parsed home URL parts, or an empty array.
+	 */
+	private function get_home_url_parts(): array {
+		if ( is_array( $this->home_url_parts_cache ) ) {
+			return $this->home_url_parts_cache;
 		}
 
-		return $rules;
+		$parts = wp_parse_url( home_url( '/' ) );
+		$this->home_url_parts_cache = is_array( $parts ) ? $parts : array();
+
+		return $this->home_url_parts_cache;
 	}
 
 	/**
