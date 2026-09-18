@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Add pre-deactivation guidance and a copyable WordPress Custom Structure for preserving regular post ID URLs.
+
 ## [1.5.1]
 
 - Update compatibility metadata for WordPress 7.1.
