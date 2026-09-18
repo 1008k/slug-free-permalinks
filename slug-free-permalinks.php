@@ -411,9 +411,10 @@ final class PTID_Permalink_Plugin {
 			$settings['post_types'],
 			array( 'post' )
 		) || array() !== $settings['taxonomies'];
-		$wp_permalink_structure = 'hyphen' === $settings['structure']
-			? '/post-%post_id%/'
-			: '/post/%post_id%/';
+		$wp_permalink_structure = '/' . user_trailingslashit(
+			'hyphen' === $settings['structure'] ? 'post-%post_id%' : 'post/%post_id%',
+			'single'
+		);
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'Slug-Free Permalinks', 'slug-free-permalinks' ); ?></h1>
