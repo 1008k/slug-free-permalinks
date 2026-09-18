@@ -4,7 +4,7 @@ Tags: permalinks, slugs, custom post types, taxonomy, urls
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.5.1
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -120,6 +120,11 @@ Custom post types and taxonomies have their own rewrite settings and need to be 
 
 == Changelog ==
 
+= 1.6.0 =
+
+* Add pre-deactivation guidance for preserving regular post ID URLs
+* Reduce rewrite checks and permalink processing overhead
+
 = 1.5.1 =
 
 * Update compatibility metadata for WordPress 7.1
@@ -130,9 +135,5 @@ Custom post types and taxonomies have their own rewrite settings and need to be 
 * Use registered rewrite slugs for ID-based post type and taxonomy routes
 * Reject conflicting selections that share a rewrite slug
 * Improve rewrite-rule refresh after post type and taxonomy registration
-
-= 1.4.8 =
-
-* Avoid database writes when settings are normalized during public requests
 
 For the complete release history, see the [English changelog](https://happas.jp/en/slug-free-permalinks/).

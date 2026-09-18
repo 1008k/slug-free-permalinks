@@ -8,7 +8,7 @@ return array(
     'x-generator' => 'slug-free-permalinks',
     'translation-revision-date' => '2026-09-18 00:00+0000',
     'plural-forms' => 'nplurals=1; plural=0;',
-    'project-id-version' => 'Slug-Free Permalinks 1.5.1',
+    'project-id-version' => 'Slug-Free Permalinks 1.6.0',
     'language' => 'ja',
     'messages' => array(
         'Slug-Free Permalinks' => 'Slug-Free Permalinks',
