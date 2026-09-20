@@ -57,3 +57,34 @@ msgstr "パーマリンク設定を開く"
 
 msgid "Custom post types and taxonomies are not controlled by the regular WordPress post permalink setting. Check their rewrite settings before deactivating the plugin."
 msgstr "カスタム投稿タイプとタクソノミーは、WordPress標準の投稿パーマリンク設定では管理されません。プラグインを無効化する前に、それぞれのrewrite設定を確認してください。"
+
+
+msgid "Helpful links"
+msgstr "参考リンク"
+
+msgid "Official site"
+msgstr "公式サイト"
+
+msgid "See the feature overview, installation steps, FAQ, and recent changes."
+msgstr "機能概要、インストール手順、FAQ、更新履歴を確認できます。"
+
+msgid "Visit official site"
+msgstr "公式サイトを見る"
+
+msgid "Introduction article"
+msgstr "紹介記事"
+
+msgid "Read why the plugin uses ID-based URLs and how the design works."
+msgstr "IDベースURLを採用した理由や設計方針を紹介しています。"
+
+msgid "Read article"
+msgstr "記事を読む"
+
+msgid "Share feedback"
+msgstr "フィードバック"
+
+msgid "If the plugin helps your site, feedback on WordPress.org is appreciated."
+msgstr "プラグインが役立ったら、WordPress.orgでの評価やレビューを歓迎しています。"
+
+msgid "Open reviews"
+msgstr "レビューを見る"

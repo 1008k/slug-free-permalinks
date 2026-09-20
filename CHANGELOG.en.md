@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Add links from the settings screen to the official site, introduction article, and WordPress.org reviews.
+
 ## [1.6.0]
 
 - Add pre-deactivation guidance and a copyable WordPress Custom Structure for preserving regular post ID URLs.
