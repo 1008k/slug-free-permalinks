@@ -357,6 +357,13 @@ final class PTID_Permalink_Plugin {
 			return;
 		}
 
+		wp_enqueue_style(
+			'slug-free-permalinks-admin',
+			plugins_url( 'assets/admin.css', __FILE__ ),
+			array(),
+			'1.0.0'
+		);
+
 		wp_enqueue_script(
 			'slug-free-permalinks-admin',
 			plugins_url( 'assets/admin.js', __FILE__ ),
@@ -456,7 +463,9 @@ final class PTID_Permalink_Plugin {
 			<?php settings_errors( self::OPTION_NAME ); ?>
 			<p><?php echo esc_html__( 'Checked post types and taxonomies will use the selected ID based permalink format. Clear all checks to disable. Rewrite rules are flushed automatically when settings change.', 'slug-free-permalinks' ); ?></p>
 
-			<form action="options.php" method="post">
+			<div class="ptid-admin-layout">
+				<div class="ptid-admin-main">
+					<form action="options.php" method="post">
 			<?php settings_fields( 'ptid_permalink_settings_group' ); ?>
 				<table class="form-table" role="presentation">
 					<tbody>
@@ -526,7 +535,7 @@ final class PTID_Permalink_Plugin {
 					</tbody>
 				</table>
 			<?php submit_button(); ?>
-			</form>
+					</form>
 
 			<?php if ( $post_enabled || $custom_targets_enabled ) : ?>
 				<hr />
@@ -569,8 +578,67 @@ final class PTID_Permalink_Plugin {
 					</p>
 				<?php endif; ?>
 			<?php endif; ?>
+				</div>
+
+				<aside class="ptid-admin-sidebar" aria-label="<?php echo esc_attr__( 'Helpful links', 'slug-free-permalinks' ); ?>">
+					<?php echo $this->render_helpful_links(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Markup is escaped in render_helpful_links(). ?>
+				</aside>
+			</div>
 		</div>
 			<?php
+	}
+
+	/**
+	 * Renders helpful links for the plugin settings screen.
+	 *
+	 * @return string Escaped sidebar markup.
+	 */
+	private function render_helpful_links(): string {
+		$locale            = get_user_locale();
+		$official_site_url = 0 === strpos( $locale, 'ja' )
+			? 'https://happas.jp/slug-free-permalinks/'
+			: 'https://happas.jp/en/slug-free-permalinks/';
+
+		$links = array(
+			array(
+				'title'       => __( 'Official site', 'slug-free-permalinks' ),
+				'description' => __( 'See the feature overview, installation steps, FAQ, and recent changes.', 'slug-free-permalinks' ),
+				'url'         => $official_site_url,
+				'label'       => __( 'Visit official site', 'slug-free-permalinks' ),
+			),
+			array(
+				'title'       => __( 'Introduction article', 'slug-free-permalinks' ),
+				'description' => __( 'Read why the plugin uses ID-based URLs and how the design works.', 'slug-free-permalinks' ),
+				'url'         => 'https://happas.jp/blog/post/84/',
+				'label'       => __( 'Read article', 'slug-free-permalinks' ),
+			),
+			array(
+				'title'       => __( 'Share feedback', 'slug-free-permalinks' ),
+				'description' => __( 'If the plugin helps your site, feedback on WordPress.org is appreciated.', 'slug-free-permalinks' ),
+				'url'         => 'https://wordpress.org/support/plugin/slug-free-permalinks/reviews/',
+				'label'       => __( 'Open reviews', 'slug-free-permalinks' ),
+			),
+		);
+
+		$markup = '<section class="ptid-side-card">';
+
+		foreach ( $links as $index => $link ) {
+			if ( 0 < $index ) {
+				$markup .= '<hr class="ptid-side-card__divider">';
+			}
+
+			$markup .= sprintf(
+				'<div class="ptid-side-card__section"><h2>%1$s</h2><p>%2$s</p><p><a class="button button-secondary" href="%3$s" target="_blank" rel="noopener noreferrer">%4$s</a></p></div>',
+				esc_html( $link['title'] ),
+				esc_html( $link['description'] ),
+				esc_url( $link['url'] ),
+				esc_html( $link['label'] )
+			);
+		}
+
+		$markup .= '</section>';
+
+		return $markup;
 	}
 
 	/**
