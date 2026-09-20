@@ -88,3 +88,6 @@ msgstr "プラグインが役立ったら、WordPress.orgでの評価やレビ�
 
 msgid "Open reviews"
 msgstr "レビューを見る"
+
+msgid "{type} is replaced with the post type or taxonomy rewrite slug."
+msgstr "{type} は投稿タイプまたはタクソノミーの rewrite slug に置き換わります。"

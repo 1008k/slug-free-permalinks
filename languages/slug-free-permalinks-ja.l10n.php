@@ -36,5 +36,6 @@ return array(
         'Share feedback' => 'フィードバック',
         'If the plugin helps your site, feedback on WordPress.org is appreciated.' => 'プラグインが役立ったら、WordPress.orgでの評価やレビューを歓迎しています。',
         'Open reviews' => 'レビューを見る',
+        '{type} is replaced with the post type or taxonomy rewrite slug.' => '{type} は投稿タイプまたはタクソノミーの rewrite slug に置き換わります。',
     ),
 );
