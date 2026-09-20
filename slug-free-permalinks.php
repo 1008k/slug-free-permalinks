@@ -474,12 +474,15 @@ final class PTID_Permalink_Plugin {
 							<td>
 								<select name="<?php echo esc_attr( self::OPTION_NAME ); ?>[structure]">
 									<option value="slash" <?php selected( $settings['structure'], 'slash' ); ?>>
-									<?php echo esc_html( '/post/123/' ); ?>
+									<?php echo esc_html( '/{type}/123/' ); ?>
 									</option>
 									<option value="hyphen" <?php selected( $settings['structure'], 'hyphen' ); ?>>
-									<?php echo esc_html( '/post-123/' ); ?>
+									<?php echo esc_html( '/{type}-123/' ); ?>
 									</option>
 								</select>
+								<p class="description">
+									<?php echo esc_html__( '{type} is replaced with the post type or taxonomy rewrite slug.', 'slug-free-permalinks' ); ?>
+								</p>
 							</td>
 						</tr>
 						<tr>
