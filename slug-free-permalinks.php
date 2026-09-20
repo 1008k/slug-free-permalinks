@@ -594,11 +594,16 @@ final class PTID_Permalink_Plugin {
 	 * @return string Escaped sidebar markup.
 	 */
 	private function render_helpful_links(): string {
+		$locale            = get_user_locale();
+		$official_site_url = 0 === strpos( $locale, 'ja' )
+			? 'https://happas.jp/slug-free-permalinks/'
+			: 'https://happas.jp/en/slug-free-permalinks/';
+
 		$links = array(
 			array(
 				'title'       => __( 'Official site', 'slug-free-permalinks' ),
 				'description' => __( 'See the feature overview, installation steps, FAQ, and recent changes.', 'slug-free-permalinks' ),
-				'url'         => 'https://happas.jp/slug-free-permalinks/',
+				'url'         => $official_site_url,
 				'label'       => __( 'Visit official site', 'slug-free-permalinks' ),
 			),
 			array(
