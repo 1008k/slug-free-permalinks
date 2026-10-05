@@ -8,6 +8,9 @@ on:
       - reopened
       - ready_for_review
     paths:
+      - 'plugin-meta.json'
+      - 'README.md'
+      - 'README-ja.md'
       - 'scripts/**'
       - 'tests/scripts/**'
       - '.github/workflows/release-tooling.yml'

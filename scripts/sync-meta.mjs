@@ -122,6 +122,24 @@ export function syncMetadata() {
     `Plugin page: [English](${metadata.pluginPageEnglish}) | [Japanese](${metadata.pluginPageJapanese})`,
     'README plugin page links'
   );
+  readmeContents = replaceRequired(
+    readmeContents,
+    /^- WordPress .+$/m,
+    `- WordPress ${metadata.requiresAtLeast} or later`,
+    'README minimum WordPress version'
+  );
+  readmeContents = replaceRequired(
+    readmeContents,
+    /^- Tested through WordPress .+$/m,
+    `- Tested through WordPress ${metadata.testedUpTo}`,
+    'README tested WordPress version'
+  );
+  readmeContents = replaceRequired(
+    readmeContents,
+    /^- PHP .+$/m,
+    `- PHP ${metadata.requiresPhp} or later`,
+    'README minimum PHP version'
+  );
   writeText(readmeFile, readmeContents);
 
   let readmeJaContents = readText(readmeJaFile);
@@ -130,6 +148,24 @@ export function syncMetadata() {
     /^公式ページ:\s*\[English\]\(.+\) \| \[Japanese\]\(.+\)$/m,
     `公式ページ: [English](${metadata.pluginPageEnglish}) | [Japanese](${metadata.pluginPageJapanese})`,
     'Japanese README plugin page links'
+  );
+  readmeJaContents = replaceRequired(
+    readmeJaContents,
+    /^- WordPress [0-9.]+ 以上$/m,
+    `- WordPress ${metadata.requiresAtLeast} 以上`,
+    'Japanese README minimum WordPress version'
+  );
+  readmeJaContents = replaceRequired(
+    readmeJaContents,
+    /^- WordPress [0-9.]+ まで動作確認済み$/m,
+    `- WordPress ${metadata.testedUpTo} まで動作確認済み`,
+    'Japanese README tested WordPress version'
+  );
+  readmeJaContents = replaceRequired(
+    readmeJaContents,
+    /^- PHP .+$/m,
+    `- PHP ${metadata.requiresPhp} 以上`,
+    'Japanese README minimum PHP version'
   );
   writeText(readmeJaFile, readmeJaContents);
 

@@ -83,7 +83,7 @@ The plugin does not change WordPress permalink settings automatically. Custom po
 ## Requirements
 
 - WordPress 5.8 or later
-- Tested through WordPress 7.0
+- Tested through WordPress 7.1
 - PHP 7.4 or later
 
 These minimum versions are based on the PHP syntax and WordPress APIs used by the plugin.
