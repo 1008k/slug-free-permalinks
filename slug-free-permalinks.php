@@ -482,15 +482,16 @@ final class PTID_Permalink_Plugin {
 								</select>
 								<p class="description">
 									<?php echo esc_html__( '{type} is replaced with the post type or taxonomy rewrite slug.', 'slug-free-permalinks' ); ?>
+									<?php echo esc_html__( ' Example: /post/123/ or /post-123/.', 'slug-free-permalinks' ); ?>
 								</p>
 							</td>
 						</tr>
 						<tr>
 							<th scope="row"><?php echo esc_html__( 'Target post types', 'slug-free-permalinks' ); ?></th>
 							<td>
-								<fieldset>
+								<fieldset class="ptid-target-list">
 								<?php foreach ( $post_types as $post_type => $object ) : ?>
-										<label style="display:block; margin-bottom:0.5rem;">
+										<label class="ptid-target-list__item">
 											<input
 												name="<?php echo esc_attr( self::OPTION_NAME ); ?>[post_types][]"
 												type="checkbox"
@@ -506,9 +507,9 @@ final class PTID_Permalink_Plugin {
 						<tr>
 							<th scope="row"><?php echo esc_html__( 'Target taxonomies', 'slug-free-permalinks' ); ?></th>
 							<td>
-								<fieldset>
+								<fieldset class="ptid-target-list">
 								<?php foreach ( $taxonomies as $taxonomy => $object ) : ?>
-										<label style="display:block; margin-bottom:0.5rem;">
+										<label class="ptid-target-list__item">
 											<input
 												name="<?php echo esc_attr( self::OPTION_NAME ); ?>[taxonomies][]"
 												type="checkbox"
@@ -541,45 +542,47 @@ final class PTID_Permalink_Plugin {
 					</form>
 
 			<?php if ( $post_enabled || $custom_targets_enabled ) : ?>
-				<hr />
-				<h2><?php echo esc_html__( 'Before deactivating', 'slug-free-permalinks' ); ?></h2>
+				<details class="ptid-deactivation-guide">
+					<summary><?php echo esc_html__( 'Before deactivating', 'slug-free-permalinks' ); ?></summary>
+					<div class="ptid-deactivation-guide__body">
+						<?php if ( $post_enabled ) : ?>
+							<p>
+								<?php echo esc_html__( 'To keep the current ID URL format for regular posts, set the following value as the Custom Structure under Settings > Permalinks before deactivating this plugin.', 'slug-free-permalinks' ); ?>
+							</p>
+							<p>
+								<label for="ptid-wordpress-permalink-structure">
+									<strong><?php echo esc_html__( 'WordPress custom structure', 'slug-free-permalinks' ); ?></strong>
+								</label>
+							</p>
+							<p>
+								<input
+									id="ptid-wordpress-permalink-structure"
+									class="regular-text code"
+									type="text"
+									value="<?php echo esc_attr( $wp_permalink_structure ); ?>"
+									readonly
+								/>
+								<button
+									id="ptid-copy-wordpress-permalink-structure"
+									class="button"
+									type="button"
+									data-copy-text="<?php echo esc_attr( $wp_permalink_structure ); ?>"
+								>
+									<?php echo esc_html__( 'Copy', 'slug-free-permalinks' ); ?>
+								</button>
+								<a class="button" href="<?php echo esc_url( admin_url( 'options-permalink.php' ) ); ?>">
+									<?php echo esc_html__( 'Open Permalink Settings', 'slug-free-permalinks' ); ?>
+								</a>
+							</p>
+						<?php endif; ?>
 
-				<?php if ( $post_enabled ) : ?>
-					<p>
-						<?php echo esc_html__( 'To keep the current ID URL format for regular posts, set the following value as the Custom Structure under Settings > Permalinks before deactivating this plugin.', 'slug-free-permalinks' ); ?>
-					</p>
-					<p>
-						<label for="ptid-wordpress-permalink-structure">
-							<strong><?php echo esc_html__( 'WordPress custom structure', 'slug-free-permalinks' ); ?></strong>
-						</label>
-					</p>
-					<p>
-						<input
-							id="ptid-wordpress-permalink-structure"
-							class="regular-text code"
-							type="text"
-							value="<?php echo esc_attr( $wp_permalink_structure ); ?>"
-							readonly
-						/>
-						<button
-							id="ptid-copy-wordpress-permalink-structure"
-							class="button"
-							type="button"
-							data-copy-text="<?php echo esc_attr( $wp_permalink_structure ); ?>"
-						>
-							<?php echo esc_html__( 'Copy', 'slug-free-permalinks' ); ?>
-						</button>
-						<a class="button" href="<?php echo esc_url( admin_url( 'options-permalink.php' ) ); ?>">
-							<?php echo esc_html__( 'Open Permalink Settings', 'slug-free-permalinks' ); ?>
-						</a>
-					</p>
-				<?php endif; ?>
-
-				<?php if ( $custom_targets_enabled ) : ?>
-					<p>
-						<?php echo esc_html__( 'Custom post types and taxonomies are not controlled by the regular WordPress post permalink setting. Check their rewrite settings before deactivating the plugin.', 'slug-free-permalinks' ); ?>
-					</p>
-				<?php endif; ?>
+						<?php if ( $custom_targets_enabled ) : ?>
+							<p>
+								<?php echo esc_html__( 'Custom post types and taxonomies are not controlled by the regular WordPress post permalink setting. Check their rewrite settings before deactivating the plugin.', 'slug-free-permalinks' ); ?>
+							</p>
+						<?php endif; ?>
+					</div>
+				</details>
 			<?php endif; ?>
 				</div>
 
