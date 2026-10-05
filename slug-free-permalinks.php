@@ -361,7 +361,7 @@ final class PTID_Permalink_Plugin {
 			'slug-free-permalinks-admin',
 			plugins_url( 'assets/admin.css', __FILE__ ),
 			array(),
-			'1.0.0'
+			'1.6.0'
 		);
 
 		wp_enqueue_script(
