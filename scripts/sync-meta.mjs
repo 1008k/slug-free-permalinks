@@ -52,6 +52,12 @@ export function syncMetadata() {
   pluginContents = replacePluginHeader(pluginContents, 'Plugin Name', metadata.pluginName, 'plugin header name');
   pluginContents = replacePluginHeader(pluginContents, 'Plugin URI', metadata.pluginUri, 'plugin header URI');
   pluginContents = replacePluginHeader(pluginContents, 'Version', metadata.version, 'plugin header version');
+  pluginContents = replaceRequired(
+    pluginContents,
+    /private const PLUGIN_VERSION\s*=\s*'[^']+';/,
+    `private const PLUGIN_VERSION                = '${metadata.version}';`,
+    'plugin runtime version'
+  );
   pluginContents = replacePluginHeader(
     pluginContents,
     'Requires at least',

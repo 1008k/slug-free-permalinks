@@ -25,6 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class PTID_Permalink_Plugin {
 
+	private const PLUGIN_VERSION                = '1.6.0';
 	private const OPTION_NAME                   = 'ptid_permalink_settings';
 	private const MENU_SLUG                     = 'ptid-permalink-settings';
 	private const REWRITE_MARKER                = 'ptid_route=1';
@@ -361,14 +362,14 @@ final class PTID_Permalink_Plugin {
 			'slug-free-permalinks-admin',
 			plugins_url( 'assets/admin.css', __FILE__ ),
 			array(),
-			'1.6.0'
+			self::PLUGIN_VERSION
 		);
 
 		wp_enqueue_script(
 			'slug-free-permalinks-admin',
 			plugins_url( 'assets/admin.js', __FILE__ ),
 			array(),
-			'1.0.0',
+			self::PLUGIN_VERSION,
 			true
 		);
 	}
