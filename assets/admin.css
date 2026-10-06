@@ -47,3 +47,35 @@
 		margin-top: 0;
 	}
 }
+
+.ptid-target-list {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px 24px;
+	max-width: 720px;
+}
+
+.ptid-target-list__item {
+	display: block;
+}
+
+.ptid-deactivation-guide {
+	margin-top: 24px;
+	border-top: 1px solid #dcdcde;
+	padding-top: 12px;
+}
+
+.ptid-deactivation-guide summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.ptid-deactivation-guide__body {
+	margin-top: 12px;
+}
+
+@media screen and (max-width: 782px) {
+	.ptid-target-list {
+		grid-template-columns: 1fr;
+	}
+}

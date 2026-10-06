@@ -4,6 +4,7 @@
 
 - Add links from the settings screen to the official site, introduction article, and WordPress.org reviews.
 - Clarify permalink format examples with a `{type}` placeholder shared by post types and taxonomies.
+- Refine the settings layout for target selection and deactivation guidance.
 
 ## [1.6.0]
 
