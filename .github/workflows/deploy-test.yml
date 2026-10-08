@@ -1,0 +1,76 @@
+name: Deploy Test Site
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: slug-free-permalinks-test-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: test
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      - name: Build distributable
+        run: node scripts/build-dist.mjs
+
+      - name: Verify distributable
+        run: |
+          set -euo pipefail
+          test -f dist/slug-free-permalinks/slug-free-permalinks.php
+          test -f dist/slug-free-permalinks/readme.txt
+
+      - name: Deploy plugin over FTPS
+        env:
+          TEST_FTP_HOST: ${{ secrets.TEST_FTP_HOST }}
+          TEST_FTP_USER: ${{ secrets.TEST_FTP_USER }}
+          TEST_FTP_PASSWORD: ${{ secrets.TEST_FTP_PASSWORD }}
+          TEST_PLUGIN_DIR: ${{ vars.TEST_PLUGIN_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for key in TEST_FTP_HOST TEST_FTP_USER TEST_FTP_PASSWORD TEST_PLUGIN_DIR; do
+            if [[ -z "${!key}" ]]; then
+              echo "Missing test environment setting: $key" >&2
+              exit 1
+            fi
+          done
+
+          # Only the expected plugin directory may be targeted.
+          if [[ ! "$TEST_PLUGIN_DIR" =~ (^|/)wp-content/plugins/slug-free-permalinks/?$ ]]; then
+            echo "TEST_PLUGIN_DIR must end in wp-content/plugins/slug-free-permalinks" >&2
+            exit 1
+          fi
+
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+
+          # Explicit FTPS (port 21); keep other plugins and unrelated files intact.
+          lftp -u "$TEST_FTP_USER","$TEST_FTP_PASSWORD" "ftp://$TEST_FTP_HOST" <<EOF
+          set cmd:fail-exit true
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate true
+          mirror --reverse --verbose --transfer-all dist/slug-free-permalinks "$TEST_PLUGIN_DIR"
+          bye
+          EOF
+
+          echo "Deployed ${GITHUB_SHA} to the test plugin directory."

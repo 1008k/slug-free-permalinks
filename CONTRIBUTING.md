@@ -70,6 +70,25 @@ Thanks for contributing to Slug-Free Permalinks.
 - After the tag push, confirm the `Release` workflow, GitHub Release, and WordPress.org deployment result.
 - If a release must be retried for an existing version, run the `Release` workflow manually with that semantic version; the workflow validates the requested version before publishing or deploying.
 
+## Manual test-site deployment
+
+A separate **Deploy Test Site** GitHub Actions workflow deploys the latest `main` distributable to the WordPress test site (https://xs956904.xsrv.jp/wp-admin/). It runs **only** through `workflow_dispatch`; merging and releasing do not trigger it.
+
+Create a GitHub Actions environment named `test` and set:
+
+| Setting | Kind | Meaning |
+| --- | --- | --- |
+| `TEST_FTP_HOST` | Environment secret | XServer FTP hostname from the server panel (not the WordPress admin URL) |
+| `TEST_FTP_USER` | Environment secret | FTP account username |
+| `TEST_FTP_PASSWORD` | Environment secret | FTP account password |
+| `TEST_PLUGIN_DIR` | Environment variable | FTP-visible path ending in `wp-content/plugins/slug-free-permalinks` |
+
+Prefer an FTP account restricted to the test site's plugin directory. Find the remote path from the FTP file listing: the path is relative to that account's FTP root and may differ from a filesystem path.
+
+To deploy, open **Actions → Deploy Test Site → Run workflow**, choose `main`, and run it. The workflow builds `dist/slug-free-permalinks` and uploads it using explicit FTPS on port 21. It does not alter the database, change plugin activation state, or delete remote files. No version/tag increment is needed for test deployments.
+
+The plugin header version still comes from `plugin-meta.json`, so multiple test deployments of `main` can share the same displayed WordPress version. If the plugin is already active, reload WordPress after deployment and check the target pages manually.
+
 ## WordPress.org Assets
 
 - Optional WordPress.org assets live in `.wordpress-org/`.
