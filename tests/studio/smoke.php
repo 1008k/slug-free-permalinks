@@ -53,7 +53,9 @@ if ( ! function_exists( 'pll_home_url' ) ) {
 	 * @return string Language home URL.
 	 */
 	function pll_home_url( $language = '' ): string {
-		return 'en' === $language ? home_url( '/en/' ) : home_url( '/' );
+		$home_url = untrailingslashit( (string) get_option( 'home' ) );
+
+		return 'en' === $language ? $home_url . '/en/' : $home_url . '/';
 	}
 }
 
@@ -270,7 +272,18 @@ ptid_studio_assert_same(
 	'Custom taxonomy rewrite slugs must be used for ID-based permalinks.'
 );
 
+$filter_current_language_home = static function ( string $url, string $path ): string {
+	if ( '/' !== $path ) {
+		return $url;
+	}
+
+	return untrailingslashit( $url ) . '/en/';
+};
+add_filter( 'home_url', $filter_current_language_home, 10, 2 );
+
 $smoke_plugin->register_rewrite_rules();
+
+remove_filter( 'home_url', $filter_current_language_home, 10 );
 $rewrite_rules = $GLOBALS['wp_rewrite']->extra_rules_top;
 
 ptid_studio_assert_same(

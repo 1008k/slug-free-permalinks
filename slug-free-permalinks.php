@@ -1305,7 +1305,7 @@ final class PTID_Permalink_Plugin {
 		}
 
 		$languages  = pll_languages_list( array( 'fields' => 'slug' ) );
-		$home_parts = wp_parse_url( home_url( '/' ) );
+		$home_parts = wp_parse_url( (string) get_option( 'home' ) );
 
 		if ( ! is_array( $languages ) || ! is_array( $home_parts ) ) {
 			return array();
@@ -1451,7 +1451,7 @@ final class PTID_Permalink_Plugin {
 				'enabled'         => $enabled,
 				'post_routes'     => $post_routes,
 				'taxonomy_routes' => $taxonomy_routes,
-				'path_prefixes'    => $this->get_rewrite_path_prefixes(),
+				'path_prefixes'   => $this->get_rewrite_path_prefixes(),
 			)
 		);
 	}
