@@ -31,6 +31,18 @@ function ptid_studio_assert_same( $expected, $actual, string $message ): void {
 
 $settings_option = 'ptid_permalink_settings';
 
+if ( ! function_exists( 'pll_languages_list' ) ) {
+	function pll_languages_list( $args = array() ): array {
+		return array( 'ja', 'en' );
+	}
+}
+
+if ( ! function_exists( 'pll_home_url' ) ) {
+	function pll_home_url( $language = '' ): string {
+		return 'en' === $language ? home_url( '/en/' ) : home_url( '/' );
+	}
+}
+
 register_post_type(
 	'studio_book',
 	array(
@@ -101,14 +113,14 @@ register_post_type(
 
 ptid_studio_assert_same(
 	true,
-	isset( $GLOBALS['wp_rewrite']->extra_rules_top['^(?:[^/]+/)*late-books/([0-9]+)/?$'] ),
+	isset( $GLOBALS['wp_rewrite']->extra_rules_top['^late-books/([0-9]+)/?$'] ),
 	'Rewrite rules must use the registered slug when a post type is registered after the plugin.'
 );
 $smoke_plugin->flush_pending_rewrite_rules();
 $persisted_rewrite_rules = get_option( 'rewrite_rules', array() );
 ptid_studio_assert_same(
 	true,
-	isset( $persisted_rewrite_rules['^(?:[^/]+/)*late-books/([0-9]+)/?$'] ),
+	isset( $persisted_rewrite_rules['^late-books/([0-9]+)/?$'] ),
 	'Late-registered post type rewrite rules must be persisted after the deferred flush.'
 );
 
@@ -153,23 +165,23 @@ ptid_studio_assert_same(
 
 $prefixed_post_url = $smoke_plugin->filter_permalink( home_url( '/en/studio-smoke-test-post/' ), $created_post );
 ptid_studio_assert_same(
-	home_url( '/en/post/' . $created_post_id . '/' ),
+	home_url( '/post/' . $created_post_id . '/' ),
 	$prefixed_post_url,
-	'Existing post URL prefixes must be preserved.'
+	'Arbitrary prefixes from existing post URLs must not be preserved.'
 );
 
 $query_prefixed_post_url = $smoke_plugin->filter_permalink( home_url( '/en/?p=' . $created_post_id ), $created_post );
 ptid_studio_assert_same(
-	home_url( '/en/post/' . $created_post_id . '/' ),
+	home_url( '/post/' . $created_post_id . '/' ),
 	$query_prefixed_post_url,
-	'Query-style prefixed post URLs must preserve the path prefix.'
+	'Query-style existing URLs must not add an arbitrary path prefix.'
 );
 
 $prefixed_term_url = $smoke_plugin->filter_term_link( home_url( '/en/studio-smoke-test-category/' ), $created_term, 'category' );
 ptid_studio_assert_same(
-	home_url( '/en/category/' . $term_id . '/' ),
+	home_url( '/category/' . $term_id . '/' ),
 	$prefixed_term_url,
-	'Existing term URL prefixes must be preserved.'
+	'Arbitrary prefixes from existing term URLs must not be preserved.'
 );
 
 $append_query_args = new ReflectionMethod( PTID_Permalink_Plugin::class, 'append_current_query_args' );
@@ -249,33 +261,43 @@ $rewrite_rules = $GLOBALS['wp_rewrite']->extra_rules_top;
 
 ptid_studio_assert_same(
 	true,
-	isset( $rewrite_rules['^(?:[^/]+/)*post/([0-9]+)/?$'] ),
-	'Post ID rewrite rule must be registered.'
+	isset( $rewrite_rules['^post/([0-9]+)/?$'] ),
+	'Post ID base rewrite rule must be registered.'
 );
 ptid_studio_assert_same(
 	true,
-	isset( $rewrite_rules['^(?:[^/]+/)*category/([0-9]+)/?$'] ),
-	'Taxonomy ID rewrite rule must be registered.'
+	isset( $rewrite_rules['^en/post/([0-9]+)/?$'] ),
+	'Polylang language path rewrite rule must be registered.'
+);
+ptid_studio_assert_same(
+	true,
+	isset( $rewrite_rules['^category/([0-9]+)/?$'] ),
+	'Taxonomy ID base rewrite rule must be registered.'
 );
 ptid_studio_assert_same(
 	'index.php?post_type=post&p=$matches[1]&ptid_route=1',
-	$rewrite_rules['^(?:[^/]+/)*post/([0-9]+)/?$'],
+	$rewrite_rules['^post/([0-9]+)/?$'],
 	'Post ID rewrite rules must carry the plugin ownership marker.'
 );
 ptid_studio_assert_same(
 	'index.php?ptid_taxonomy=category&ptid_term_id=$matches[1]&ptid_route=1',
-	$rewrite_rules['^(?:[^/]+/)*category/([0-9]+)/?$'],
-	'Taxonomy ID rewrite rules must carry the plugin ownership marker.'
+	$rewrite_rules['^en/category/([0-9]+)/?$'],
+	'Polylang taxonomy rewrite rules must carry the plugin ownership marker.'
+);
+ptid_studio_assert_same(
+	false,
+	isset( $rewrite_rules['^post/([0-9]+)/?$'] ),
+	'Arbitrary path-prefix rewrite rules must not be registered.'
 );
 ptid_studio_assert_same(
 	true,
-	isset( $rewrite_rules['^(?:[^/]+/)*books/archive/([0-9]+)/?$'] ),
+	isset( $rewrite_rules['^books/archive/([0-9]+)/?$'] ),
 	'Custom post type rewrite rule must use the configured rewrite slug.'
 );
 ptid_studio_assert_same(
 	true,
-	isset( $rewrite_rules['^(?:[^/]+/)*genres/archive/([0-9]+)/?$'] ),
-	'Custom taxonomy rewrite rule must use the configured rewrite slug.'
+	isset( $rewrite_rules['^en/genres/archive/([0-9]+)/?$'] ),
+	'Polylang custom taxonomy rewrite rule must use the configured rewrite slug.'
 );
 
 $legacy_settings = array(
@@ -334,7 +356,7 @@ ptid_studio_assert_same(
 );
 ptid_studio_assert_same(
 	false,
-	isset( $GLOBALS['wp_rewrite']->extra_rules_top['^(?:[^/]+/)*post/([0-9]+)/?$'] ),
+	isset( $GLOBALS['wp_rewrite']->extra_rules_top['^post/([0-9]+)/?$'] ),
 	'Admin-side normalization must remove stale plugin rewrite rules when disabling conflicting selections.'
 );
 ptid_studio_assert_same(
