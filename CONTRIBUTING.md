@@ -72,22 +72,23 @@ Thanks for contributing to Slug-Free Permalinks.
 
 ## Manual test-site deployment
 
-A separate **Deploy Test Site** GitHub Actions workflow deploys the latest `main` distributable to the WordPress test site (https://xs956904.xsrv.jp/wp-admin/). It runs **only** through `workflow_dispatch`; merging and releasing do not trigger it.
+The **Deploy Test Site** workflow manually deploys the latest `main` distributable to the WordPress test site (https://xs956904.xsrv.jp/wp-admin/). Merging and releasing do not trigger it.
 
-Create a GitHub Actions environment named `test` and set:
+Create a GitHub Actions environment named `test` with these settings:
 
 | Setting | Kind | Meaning |
 | --- | --- | --- |
-| `TEST_FTP_HOST` | Environment secret | XServer FTP hostname from the server panel (not the WordPress admin URL) |
-| `TEST_FTP_USER` | Environment secret | FTP account username |
-| `TEST_FTP_PASSWORD` | Environment secret | FTP account password |
-| `TEST_PLUGIN_DIR` | Environment variable | FTP-visible path ending in `wp-content/plugins/slug-free-permalinks` |
+| `TEST_SSH_HOST` | Environment secret | XServer SSH hostname from the server panel |
+| `TEST_SSH_USER` | Environment secret | XServer SSH login username |
+| `TEST_SSH_PRIVATE_KEY` | Environment secret | Private key for the SSH public key registered on XServer |
+| `TEST_SSH_KNOWN_HOSTS` | Environment secret | Verified SSH host-key entry for the server on port 10022 |
+| `TEST_PLUGIN_DIR` | Environment variable | Absolute server path ending in `wp-content/plugins/slug-free-permalinks` |
 
-Prefer an FTP account restricted to the test site's plugin directory. Find the remote path from the FTP file listing: the path is relative to that account's FTP root and may differ from a filesystem path.
+Enable SSH and register the public key in the XServer panel. Keep the private key only in the GitHub environment secret. Obtain the remote host-key fingerprint through a trusted channel (the server panel or another independently verified connection), then store the corresponding `[hostname]:10022 key-type base64-key` known-hosts line; do not blindly trust an unverified `ssh-keyscan` result. Confirm the absolute deployment path over SSH before running.
 
-To deploy, open **Actions → Deploy Test Site → Run workflow**, choose `main`, and run it. The workflow builds `dist/slug-free-permalinks` and uploads it using explicit FTPS on port 21. It does not alter the database, change plugin activation state, or delete remote files. No version/tag increment is needed for test deployments.
+To deploy, open **Actions → Deploy Test Site → Run workflow**, choose `main`, and run it. The workflow builds `dist/slug-free-permalinks` and transfers it using SSH on port 10022 and rsync. It does not alter the database, change plugin activation state, or delete remote files. No version/tag increment is needed.
 
-The plugin header version still comes from `plugin-meta.json`, so multiple test deployments of `main` can share the same displayed WordPress version. If the plugin is already active, reload WordPress after deployment and check the target pages manually.
+The plugin header version still comes from `plugin-meta.json`, so multiple test deployments of `main` can share the same displayed WordPress version. If the plugin is active, reload WordPress after deployment and check the target pages manually.
 
 ## WordPress.org Assets
 

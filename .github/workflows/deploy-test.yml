@@ -37,40 +37,45 @@ jobs:
           test -f dist/slug-free-permalinks/slug-free-permalinks.php
           test -f dist/slug-free-permalinks/readme.txt
 
-      - name: Deploy plugin over FTPS
+      - name: Deploy plugin over SSH
         env:
-          TEST_FTP_HOST: ${{ secrets.TEST_FTP_HOST }}
-          TEST_FTP_USER: ${{ secrets.TEST_FTP_USER }}
-          TEST_FTP_PASSWORD: ${{ secrets.TEST_FTP_PASSWORD }}
+          TEST_SSH_HOST: ${{ secrets.TEST_SSH_HOST }}
+          TEST_SSH_USER: ${{ secrets.TEST_SSH_USER }}
+          TEST_SSH_PRIVATE_KEY: ${{ secrets.TEST_SSH_PRIVATE_KEY }}
+          TEST_SSH_KNOWN_HOSTS: ${{ secrets.TEST_SSH_KNOWN_HOSTS }}
           TEST_PLUGIN_DIR: ${{ vars.TEST_PLUGIN_DIR }}
         shell: bash
         run: |
           set -euo pipefail
 
-          for key in TEST_FTP_HOST TEST_FTP_USER TEST_FTP_PASSWORD TEST_PLUGIN_DIR; do
+          for key in TEST_SSH_HOST TEST_SSH_USER TEST_SSH_PRIVATE_KEY TEST_SSH_KNOWN_HOSTS TEST_PLUGIN_DIR; do
             if [[ -z "${!key}" ]]; then
               echo "Missing test environment setting: $key" >&2
               exit 1
             fi
           done
 
-          # Only the expected plugin directory may be targeted.
-          if [[ ! "$TEST_PLUGIN_DIR" =~ (^|/)wp-content/plugins/slug-free-permalinks/?$ ]]; then
-            echo "TEST_PLUGIN_DIR must end in wp-content/plugins/slug-free-permalinks" >&2
+          # Reject unexpected paths and shell metacharacters.
+          if [[ ! "$TEST_PLUGIN_DIR" =~ ^/[a-zA-Z0-9_./-]+/wp-content/plugins/slug-free-permalinks/?$ ]] ||
+             [[ "/$TEST_PLUGIN_DIR/" == *"/../"* ]] ||
+             [[ "/$TEST_PLUGIN_DIR/" == *"/./"* ]]; then
+            echo "TEST_PLUGIN_DIR must be an absolute plugin directory path without traversal" >&2
             exit 1
           fi
 
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq lftp
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$TEST_SSH_PRIVATE_KEY" > ~/.ssh/test_deploy_key
+          printf '%s\n' "$TEST_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/test_deploy_key ~/.ssh/known_hosts
+          unset TEST_SSH_PRIVATE_KEY TEST_SSH_KNOWN_HOSTS
 
-          # Explicit FTPS (port 21); keep other plugins and unrelated files intact.
-          lftp -u "$TEST_FTP_USER","$TEST_FTP_PASSWORD" "ftp://$TEST_FTP_HOST" <<EOF
-          set cmd:fail-exit true
-          set ftp:ssl-force true
-          set ftp:ssl-protect-data true
-          set ssl:verify-certificate true
-          mirror --reverse --verbose --transfer-all dist/slug-free-permalinks "$TEST_PLUGIN_DIR"
-          bye
-          EOF
+          SSH_COMMAND="ssh -i $HOME/.ssh/test_deploy_key -p 10022 -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
+
+          # Only create/update the target plugin directory; never delete remote files.
+          $SSH_COMMAND "$TEST_SSH_USER@$TEST_SSH_HOST" "mkdir -p '$TEST_PLUGIN_DIR'"
+          rsync -rlz --no-perms --no-owner --no-group --omit-dir-times \
+            -e "$SSH_COMMAND" \
+            dist/slug-free-permalinks/ \
+            "$TEST_SSH_USER@$TEST_SSH_HOST:$TEST_PLUGIN_DIR/"
 
           echo "Deployed ${GITHUB_SHA} to the test plugin directory."
