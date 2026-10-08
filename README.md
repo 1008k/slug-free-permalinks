@@ -31,7 +31,7 @@ If a site already has a large volume of published content and established slug-b
 - Use each selected type's registered rewrite slug for the ID-based route
 - Choose `/post/123/` or `/post-123/`
 - Optionally redirect legacy slug URLs to the current ID-based permalink
-- Preserve language or path prefixes already added by permalink plugins such as Polylang
+- Preserve Polylang language URLs using the language home URLs Polylang actually exposes
 - Flush rewrite rules automatically when settings change
 
 ## FAQ
@@ -68,9 +68,9 @@ The settings screen rejects a selection where a post type and taxonomy share the
 
 **Does it work with Polylang or language-directory URLs such as `/en/`?**
 
-Yes. The canonical ID-based permalink stays rooted at the site home, and language-directory plugins can add their own prefix on top of that.
+Yes. Polylang integration uses the language home URL returned by Polylang instead of accepting arbitrary path prefixes.
 
-For example, the plugin keeps using `/post/123/` as the base shape, while Polylang style setups can expose `/en/post/123/` or `/en/category/45/`.
+For example, when Polylang exposes `/en/` as a language path, Slug-Free Permalinks registers `/en/post/123/` and `/en/category/45/` alongside the base routes. Domain-based or query-based language modes continue to use the URL returned by Polylang without inventing an extra path prefix.
 
 **How can I deactivate the plugin without changing regular post URLs?**
 
@@ -101,7 +101,7 @@ For manual installation, upload the `slug-free-permalinks` folder to `/wp-conten
 ## Notes
 
 - The settings screen rejects selected post types or taxonomies with identical registered rewrite slugs.
-- Prefixed ID routes reserve the matching path shape, so language or path prefixes should not overlap existing page routes.
+- Only path prefixes exposed by Polylang language home URLs are registered as prefixed ID routes; arbitrary prefixes are not accepted.
 - Contributor and release workflow notes are documented in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License

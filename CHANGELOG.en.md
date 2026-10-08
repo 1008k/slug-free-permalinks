@@ -5,6 +5,7 @@
 - Add links from the settings screen to the official site, introduction article, and WordPress.org reviews.
 - Clarify permalink format examples with a `{type}` placeholder shared by post types and taxonomies.
 - Refine the settings layout for target selection and deactivation guidance.
+- Restrict prefixed ID rewrite rules to language paths actually exposed by Polylang instead of accepting arbitrary path prefixes.
 
 ## [1.6.0]
 
