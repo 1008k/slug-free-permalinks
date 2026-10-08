@@ -1,0 +1,83 @@
+name: Deploy Test Site
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: slug-free-permalinks-test-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      - name: Build distributable
+        run: node scripts/build-dist.mjs
+
+      - name: Verify distributable
+        run: |
+          set -euo pipefail
+          test -f dist/slug-free-permalinks/slug-free-permalinks.php
+          test -f dist/slug-free-permalinks/readme.txt
+
+      - name: Deploy plugin over SSH
+        env:
+          TEST_SSH_PRIVATE_KEY: ${{ secrets.TEST_SSH_PRIVATE_KEY }}
+          TEST_SSH_KNOWN_HOSTS: ${{ secrets.TEST_SSH_KNOWN_HOSTS }}
+          TEST_SSH_TARGET: ${{ vars.TEST_SSH_TARGET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for key in TEST_SSH_PRIVATE_KEY TEST_SSH_KNOWN_HOSTS TEST_SSH_TARGET; do
+            if [[ -z "${!key}" ]]; then
+              echo "Missing test environment setting: $key" >&2
+              exit 1
+            fi
+          done
+
+          # Only allow a simple user@host and the exact plugin directory.
+          if [[ ! "$TEST_SSH_TARGET" =~ ^([a-zA-Z0-9_-]+)@([a-zA-Z0-9.-]+):(/[a-zA-Z0-9_./-]+/wp-content/plugins/slug-free-permalinks/?)$ ]]; then
+            echo "TEST_SSH_TARGET must be user@host:/absolute/path/wp-content/plugins/slug-free-permalinks" >&2
+            exit 1
+          fi
+          SSH_USER="${BASH_REMATCH[1]}"
+          SSH_HOST="${BASH_REMATCH[2]}"
+          PLUGIN_DIR="${BASH_REMATCH[3]}"
+          if [[ "/$PLUGIN_DIR/" == *"/../"* ]] || [[ "/$PLUGIN_DIR/" == *"/./"* ]]; then
+            echo "TEST_SSH_TARGET path must not contain traversal segments" >&2
+            exit 1
+          fi
+
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$TEST_SSH_PRIVATE_KEY" > ~/.ssh/test_deploy_key
+          printf '%s\n' "$TEST_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/test_deploy_key ~/.ssh/known_hosts
+          unset TEST_SSH_PRIVATE_KEY TEST_SSH_KNOWN_HOSTS
+
+          SSH_COMMAND="ssh -i $HOME/.ssh/test_deploy_key -p 10022 -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
+
+          # Only create/update the target plugin directory; never delete remote files.
+          $SSH_COMMAND "$SSH_USER@$SSH_HOST" "mkdir -p '$PLUGIN_DIR'"
+          rsync -rlz --no-perms --no-owner --no-group --omit-dir-times \
+            -e "$SSH_COMMAND" \
+            dist/slug-free-permalinks/ \
+            "$SSH_USER@$SSH_HOST:$PLUGIN_DIR/"
+
+          echo "Deployed $(git rev-parse HEAD) to the test plugin directory."
