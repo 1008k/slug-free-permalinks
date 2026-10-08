@@ -78,13 +78,11 @@ Create a GitHub Actions environment named `test` with these settings:
 
 | Setting | Kind | Meaning |
 | --- | --- | --- |
-| `TEST_SSH_HOST` | Environment secret | XServer SSH hostname from the server panel |
-| `TEST_SSH_USER` | Environment secret | XServer SSH login username |
 | `TEST_SSH_PRIVATE_KEY` | Environment secret | Private key for the SSH public key registered on XServer |
 | `TEST_SSH_KNOWN_HOSTS` | Environment secret | Verified SSH host-key entry for the server on port 10022 |
-| `TEST_PLUGIN_DIR` | Environment variable | Absolute server path ending in `wp-content/plugins/slug-free-permalinks` |
+| `TEST_SSH_TARGET` | Environment variable | `user@host:/absolute/path/wp-content/plugins/slug-free-permalinks` |
 
-Enable SSH and register the public key in the XServer panel. Keep the private key only in the GitHub environment secret. Obtain the remote host-key fingerprint through a trusted channel (the server panel or another independently verified connection), then store the corresponding `[hostname]:10022 key-type base64-key` known-hosts line; do not blindly trust an unverified `ssh-keyscan` result. Confirm the absolute deployment path over SSH before running.
+Enable SSH and register the public key in the XServer panel. Keep the private key only in the GitHub environment secret. Obtain the remote host-key fingerprint through a trusted channel (the server panel or another independently verified connection), then store the corresponding `[hostname]:10022 key-type base64-key` known-hosts line; do not blindly trust an unverified `ssh-keyscan` result. Confirm the absolute deployment path over SSH before running. Put the SSH username, hostname, and destination together in `TEST_SSH_TARGET` (for example, `user@example.com:/home/user/example.com/public_html/wp-content/plugins/slug-free-permalinks`).
 
 To deploy, open **Actions → Deploy Test Site → Run workflow**, choose `main`, and run it. The workflow builds `dist/slug-free-permalinks` and transfers it using SSH on port 10022 and rsync. It does not alter the database, change plugin activation state, or delete remote files. No version/tag increment is needed.
 
