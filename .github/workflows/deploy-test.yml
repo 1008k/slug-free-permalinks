@@ -81,4 +81,4 @@ jobs:
             dist/slug-free-permalinks/ \
             "$SSH_USER@$SSH_HOST:$PLUGIN_DIR/"
 
-          echo "Deployed ${GITHUB_SHA} to the test plugin directory."
+          echo "Deployed $(git rev-parse HEAD) to the test plugin directory."
