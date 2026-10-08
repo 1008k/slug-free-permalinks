@@ -36,7 +36,7 @@ What you can configure:
 * Use each selected type's registered rewrite slug for the ID-based route
 * Choose slash or hyphen based ID permalink format
 * Optionally redirect legacy slug URLs to the current ID-based permalink when WordPress can resolve the request
-* Preserve prefixed permalink bases such as `/en/` when another plugin adds them
+* Preserve Polylang language URLs using the language home URLs Polylang actually exposes
 * Flush rewrite rules automatically when settings change
 
 == A focused, predictable change ==
@@ -54,7 +54,7 @@ If your site already has many established slug-based URLs, review existing inbou
 Known limitations:
 
 * The settings screen rejects selected post types or taxonomies with identical registered rewrite slugs.
-* Prefixed ID routes reserve the matching path shape, so language or path prefixes should not overlap existing page routes.
+* Only path prefixes exposed by Polylang language home URLs are registered as prefixed ID routes; arbitrary prefixes are not accepted.
 
 == Installation ==
 
@@ -102,9 +102,9 @@ The settings screen rejects selected post types or taxonomies with identical reg
 
 = Does it work with Polylang or language-directory URLs such as `/en/`? =
 
-Yes. The canonical ID-based permalink stays rooted at the site home, and language-directory plugins can add their own prefix on top of that.
+Yes. Polylang integration uses the language home URL returned by Polylang instead of accepting arbitrary path prefixes.
 
-For example, the plugin keeps using `/post/123/` as the base shape, while Polylang style setups can expose `/en/post/123/` and `/en/category/45/`.
+For example, when Polylang exposes `/en/` as a language path, the plugin registers `/en/post/123/` and `/en/category/45/` alongside the base routes. Domain-based or query-based language modes continue to use the URL returned by Polylang without inventing an extra path prefix.
 
 = How can I deactivate the plugin without changing regular post URLs? =
 

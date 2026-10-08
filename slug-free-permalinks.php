@@ -162,7 +162,7 @@ final class PTID_Permalink_Plugin {
 
 		$post_type_slug = $this->get_post_type_route_slug( $post_context['post_type'] );
 
-		return $this->build_content_permalink( $post_link, $post_type_slug, $post_context['ID'], $this->get_polylang_home_url_for_post( $post_context['ID'] ) );
+		return $this->build_content_permalink( $post_type_slug, $post_context['ID'], $this->get_polylang_home_url_for_post( $post_context['ID'] ) );
 	}
 	/**
 	 * Replaces a term permalink with its configured ID-based form.
@@ -184,7 +184,6 @@ final class PTID_Permalink_Plugin {
 		$taxonomy_slug = $this->get_taxonomy_route_slug( $taxonomy );
 
 		return $this->build_content_permalink(
-			$term_link,
 			$taxonomy_slug,
 			$term->term_id,
 			$this->get_polylang_home_url_for_term( $term->term_id )
@@ -1045,15 +1044,14 @@ final class PTID_Permalink_Plugin {
 	}
 
 	/**
-	 * Builds an ID-based permalink while preserving language and path context.
+	 * Builds an ID-based permalink from the site or language home URL.
 	 *
-	 * @param string $existing_url      Existing content URL.
 	 * @param string $slug              Content type slug.
 	 * @param int    $id                Content object ID.
 	 * @param string $language_home_url Optional language home URL.
 	 * @return string ID-based content permalink.
 	 */
-	private function build_content_permalink( string $existing_url, string $slug, int $id, string $language_home_url = '' ): string {
+	private function build_content_permalink( string $slug, int $id, string $language_home_url = '' ): string {
 		$relative_id_path = user_trailingslashit( $this->build_id_path( $slug, $id ) );
 
 		if ( '' !== $language_home_url ) {
@@ -1063,96 +1061,7 @@ final class PTID_Permalink_Plugin {
 			}
 		}
 
-		$prefix = $this->get_existing_url_prefix( $existing_url, $slug );
-		if ( '' !== $prefix ) {
-			return home_url( $prefix . '/' . $relative_id_path );
-		}
-
 		return home_url( $relative_id_path );
-	}
-
-	/**
-	 * Extracts path prefixes from an existing content URL.
-	 *
-	 * The final path segment is treated as the existing content slug. A
-	 * preceding segment matching the content type is also treated as the
-	 * canonical content base, while any earlier segments are preserved as a
-	 * prefix. Query-style WordPress permalinks use every path segment as the
-	 * prefix. The site's own home path is excluded from the result.
-	 *
-	 * @param string $existing_url Existing content URL.
-	 * @param string $slug         Content type slug.
-	 * @return string Relative path prefix, or an empty string.
-	 */
-	private function get_existing_url_prefix( string $existing_url, string $slug ): string {
-		$existing_parts = wp_parse_url( $existing_url );
-		$home_parts     = wp_parse_url( home_url( '/' ) );
-
-		if ( ! is_array( $existing_parts ) || ! is_array( $home_parts ) ) {
-			return '';
-		}
-
-		$existing_host = isset( $existing_parts['host'] ) ? strtolower( (string) $existing_parts['host'] ) : '';
-		$home_host     = isset( $home_parts['host'] ) ? strtolower( (string) $home_parts['host'] ) : '';
-		if ( '' !== $existing_host && '' !== $home_host && $existing_host !== $home_host ) {
-			return '';
-		}
-
-		$existing_path = trim( isset( $existing_parts['path'] ) ? (string) $existing_parts['path'] : '', '/' );
-		$home_path     = trim( isset( $home_parts['path'] ) ? (string) $home_parts['path'] : '', '/' );
-
-		if ( '' !== $home_path ) {
-			if ( $existing_path === $home_path ) {
-				$existing_path = '';
-			} elseif ( 0 === strpos( $existing_path, $home_path . '/' ) ) {
-				$existing_path = substr( $existing_path, strlen( $home_path ) + 1 );
-			} else {
-				return '';
-			}
-		}
-
-		$segments = array_values(
-			array_filter(
-				explode( '/', $existing_path ),
-				static function ( $segment ): bool {
-					return '' !== $segment;
-				}
-			)
-		);
-
-		$query_args = array();
-		if ( isset( $existing_parts['query'] ) && '' !== (string) $existing_parts['query'] ) {
-			parse_str( (string) $existing_parts['query'], $query_args );
-		}
-
-		foreach ( array( 'p', 'page_id', 'post_type', 'name', 'attachment_id', 'cat', 'tag', 'tag_id', 'taxonomy', 'term' ) as $routing_query_var ) {
-			if ( array_key_exists( $routing_query_var, $query_args ) ) {
-				return implode( '/', $segments );
-			}
-		}
-
-		if ( count( $segments ) < 2 ) {
-			return '';
-		}
-
-		array_pop( $segments );
-
-		$slug_segments = array_values(
-			array_filter(
-				explode( '/', trim( $slug, '/' ) ),
-				static function ( $segment ): bool {
-					return '' !== $segment;
-				}
-			)
-		);
-		$slug_length   = count( $slug_segments );
-		$segment_count = count( $segments );
-
-		if ( 0 < $slug_length && $segment_count >= $slug_length && array_slice( $segments, -$slug_length ) === $slug_segments ) {
-			$segments = array_slice( $segments, 0, $segment_count - $slug_length );
-		}
-
-		return implode( '/', $segments );
 	}
 
 	/**
@@ -1383,6 +1292,78 @@ final class PTID_Permalink_Plugin {
 	}
 
 	/**
+	 * Returns path prefixes that Polylang exposes through language home URLs.
+	 *
+	 * Query-based and domain-based language modes do not need an additional
+	 * rewrite path unless the language home URL also contains a path prefix.
+	 *
+	 * @return array Language path prefixes relative to the WordPress home path.
+	 */
+	private function get_polylang_rewrite_prefixes(): array {
+		if ( ! function_exists( 'pll_languages_list' ) || ! function_exists( 'pll_home_url' ) ) {
+			return array();
+		}
+
+		$languages  = pll_languages_list( array( 'fields' => 'slug' ) );
+		$home_parts = wp_parse_url( (string) get_option( 'home' ) );
+
+		if ( ! is_array( $languages ) || ! is_array( $home_parts ) ) {
+			return array();
+		}
+
+		$home_path = trim( isset( $home_parts['path'] ) ? (string) $home_parts['path'] : '', '/' );
+		$prefixes  = array();
+
+		foreach ( $languages as $language ) {
+			if ( ! is_string( $language ) || '' === $language ) {
+				continue;
+			}
+
+			$language_home_url = pll_home_url( $language );
+			if ( ! is_string( $language_home_url ) || '' === $language_home_url ) {
+				continue;
+			}
+
+			$language_parts = wp_parse_url( $language_home_url );
+			if ( ! is_array( $language_parts ) ) {
+				continue;
+			}
+
+			$language_path = trim( isset( $language_parts['path'] ) ? (string) $language_parts['path'] : '', '/' );
+
+			if ( $language_path === $home_path ) {
+				continue;
+			}
+
+			if ( '' !== $home_path ) {
+				if ( 0 !== strpos( $language_path, $home_path . '/' ) ) {
+					continue;
+				}
+
+				$language_path = substr( $language_path, strlen( $home_path ) + 1 );
+			}
+
+			if ( '' !== $language_path ) {
+				$prefixes[] = $language_path;
+			}
+		}
+
+		$prefixes = array_values( array_unique( $prefixes ) );
+		sort( $prefixes );
+
+		return $prefixes;
+	}
+
+	/**
+	 * Returns the path prefixes accepted by this plugin's rewrite rules.
+	 *
+	 * @return array Relative path prefixes. The empty string is the base route.
+	 */
+	private function get_rewrite_path_prefixes(): array {
+		return array_merge( array( '' ), $this->get_polylang_rewrite_prefixes() );
+	}
+
+	/**
 	 * Registers rewrite rules for configured content types.
 	 *
 	 * @param string $structure  Permalink structure name.
@@ -1397,25 +1378,31 @@ final class PTID_Permalink_Plugin {
 			return;
 		}
 
-		$separator      = 'hyphen' === $structure ? '-' : '/';
-		$prefix_pattern = '^(?:[^/]+/)*';
+		$separator = 'hyphen' === $structure ? '-' : '/';
 
-		foreach ( $post_types as $post_type ) {
-			$route_slug = preg_quote( $this->get_post_type_route_slug( $post_type ), '#' );
-			add_rewrite_rule(
-				$prefix_pattern . $route_slug . $separator . '([0-9]+)/?$',
-				'index.php?post_type=' . $post_type . '&p=$matches[1]&' . self::REWRITE_MARKER,
-				'top'
-			);
-		}
+		foreach ( $this->get_rewrite_path_prefixes() as $path_prefix ) {
+			$prefix_pattern = '^';
+			if ( '' !== $path_prefix ) {
+				$prefix_pattern .= preg_quote( trim( $path_prefix, '/' ), '#' ) . '/';
+			}
 
-		foreach ( $taxonomies as $taxonomy ) {
-			$route_slug = preg_quote( $this->get_taxonomy_route_slug( $taxonomy ), '#' );
-			add_rewrite_rule(
-				$prefix_pattern . $route_slug . $separator . '([0-9]+)/?$',
-				'index.php?ptid_taxonomy=' . $taxonomy . '&ptid_term_id=$matches[1]&' . self::REWRITE_MARKER,
-				'top'
-			);
+			foreach ( $post_types as $post_type ) {
+				$route_slug = preg_quote( $this->get_post_type_route_slug( $post_type ), '#' );
+				add_rewrite_rule(
+					$prefix_pattern . $route_slug . $separator . '([0-9]+)/?$',
+					'index.php?post_type=' . $post_type . '&p=$matches[1]&' . self::REWRITE_MARKER,
+					'top'
+				);
+			}
+
+			foreach ( $taxonomies as $taxonomy ) {
+				$route_slug = preg_quote( $this->get_taxonomy_route_slug( $taxonomy ), '#' );
+				add_rewrite_rule(
+					$prefix_pattern . $route_slug . $separator . '([0-9]+)/?$',
+					'index.php?ptid_taxonomy=' . $taxonomy . '&ptid_term_id=$matches[1]&' . self::REWRITE_MARKER,
+					'top'
+				);
+			}
 		}
 	}
 
@@ -1464,6 +1451,7 @@ final class PTID_Permalink_Plugin {
 				'enabled'         => $enabled,
 				'post_routes'     => $post_routes,
 				'taxonomy_routes' => $taxonomy_routes,
+				'path_prefixes'   => $this->get_rewrite_path_prefixes(),
 			)
 		);
 	}
