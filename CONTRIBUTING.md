@@ -74,7 +74,7 @@ Thanks for contributing to Slug-Free Permalinks.
 
 The **Deploy Test Site** workflow manually deploys the latest `main` distributable to the WordPress test site (https://xs956904.xsrv.jp/wp-admin/). Merging and releasing do not trigger it.
 
-Create a GitHub Actions environment named `test` with these settings:
+Configure repository-level settings under **Settings → Secrets and variables → Actions**:
 
 | Setting | Kind | Meaning |
 | --- | --- | --- |
