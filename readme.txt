@@ -124,7 +124,7 @@ Custom post types and taxonomies have their own rewrite settings and need to be 
 
 = 1.7.0 =
 
-* Improve settings usability and guidance
+* Improve target selection and guidance on the settings screen
 * Refine Polylang language-path handling for more predictable ID URLs
 
 = 1.6.0 =
