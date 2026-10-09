@@ -345,11 +345,19 @@ foreach ( array( '/%year%/%monthnum%/%postname%/', '/%category%/%postname%/' ) a
 		$compat_plugin = new PTID_Permalink_Plugin();
 
 		// Obtain the actual WordPress permalink without the plugin's post_link filter.
-		$original_post_link_filters = $GLOBALS['wp_filter']['post_link'] ?? null;
-		remove_all_filters( 'post_link' );
+		$plugin_post_link_callbacks = array();
+		foreach ( $GLOBALS['wp_filter']['post_link']->callbacks as $priority => $callbacks ) {
+			foreach ( $callbacks as $entry ) {
+				$callback = $entry['function'];
+				if ( is_array( $callback ) && $callback[0] instanceof PTID_Permalink_Plugin ) {
+					$plugin_post_link_callbacks[] = array( $callback, $priority, $entry['accepted_args'] );
+					remove_filter( 'post_link', $callback, $priority );
+				}
+			}
+		}
 		$core_post_url = get_permalink( $created_post );
-		if ( null !== $original_post_link_filters ) {
-			$GLOBALS['wp_filter']['post_link'] = $original_post_link_filters;
+		foreach ( $plugin_post_link_callbacks as $entry ) {
+			add_filter( 'post_link', $entry[0], $entry[1], $entry[2] );
 		}
 
 		ptid_studio_assert_same(
