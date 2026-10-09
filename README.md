@@ -106,7 +106,7 @@ For manual installation, upload the `slug-free-permalinks` folder to `/wp-conten
 
 ## Support
 
-Slug-Free Permalinks is completely free to use, with no payment required. If you find it helpful and would like to support its ongoing development and maintenance, voluntary contributions are always appreciated.
+Slug-Free Permalinks is completely free to use. If you find it useful, you're welcome to support the project on GitHub Sponsors.
 
 [Support the project on GitHub Sponsors](https://github.com/sponsors/1008k)
 
