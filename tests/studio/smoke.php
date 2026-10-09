@@ -334,22 +334,36 @@ ptid_studio_assert_same(
  */
 $original_wp_structure = get_option( 'permalink_structure' );
 foreach ( array( '/%year%/%monthnum%/%postname%/', '/%category%/%postname%/' ) as $wp_structure ) {
-	update_option( 'permalink_structure', $wp_structure );
+	$GLOBALS['wp_rewrite']->set_permalink_structure( $wp_structure );
 
 	foreach ( array( 'slash', 'hyphen' ) as $plugin_structure ) {
-		$compat_settings              = $settings;
-		$compat_settings['structure'] = $plugin_structure;
+		$compat_settings               = $settings;
+		$compat_settings['structure']  = $plugin_structure;
 		$compat_settings['post_types'] = array( 'post', 'studio_book' );
 		$compat_settings['taxonomies'] = array( 'category', 'studio_genre' );
 		update_option( $settings_option, $compat_settings );
 		$compat_plugin = new PTID_Permalink_Plugin();
+
+		// Obtain the actual WordPress permalink without the plugin's post_link filter.
+		$original_post_link_filters = $GLOBALS['wp_filter']['post_link'] ?? null;
+		remove_all_filters( 'post_link' );
+		$core_post_url = get_permalink( $created_post );
+		if ( null !== $original_post_link_filters ) {
+			$GLOBALS['wp_filter']['post_link'] = $original_post_link_filters;
+		}
+
+		ptid_studio_assert_same(
+			true,
+			false !== strpos( $core_post_url, '/' . $created_post->post_name . '/' ),
+			'WordPress must generate a slug-based URL before the plugin replaces it.'
+		);
 
 		$post_path = 'slash' === $plugin_structure
 			? '/post/' . $created_post_id . '/'
 			: '/post-' . $created_post_id . '/';
 		ptid_studio_assert_same(
 			home_url( $post_path ),
-			$compat_plugin->filter_permalink( home_url( '/2026/10/studio-smoke-test-post/' ), $created_post ),
+			$compat_plugin->filter_permalink( $core_post_url, $created_post ),
 			'Selected post URL must remain in the v1 ID format regardless of WordPress structure: ' . $wp_structure . ' / ' . $plugin_structure
 		);
 
@@ -381,7 +395,7 @@ foreach ( array( '/%year%/%monthnum%/%postname%/', '/%category%/%postname%/' ) a
 		);
 	}
 }
-update_option( 'permalink_structure', $original_wp_structure );
+$GLOBALS['wp_rewrite']->set_permalink_structure( $original_wp_structure );
 update_option( $settings_option, $settings );
 
 $legacy_settings = array(
