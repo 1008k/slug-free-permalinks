@@ -105,6 +105,12 @@ Slug-Free Permalinksはパフォーマンスと予測可能な挙動を優先し
 - 接頭辞付きIDルートとして登録するのは、Polylangの言語ホームURLから確認できる実在パスだけです。任意のパス接頭辞は受け付けません。
 - 開発・リリース運用に関するメモは[CONTRIBUTING.md](CONTRIBUTING.md)にまとめています。
 
+## 開発の応援
+
+Slug-Free Permalinksは、すべての機能を無料で利用できます。寄付は必須ではありませんが、開発・メンテナンスを応援していただける方からのご支援は歓迎しています。
+
+[GitHub Sponsorsで応援する](https://github.com/sponsors/1008k)
+
 ## ライセンス
 
 GPL-2.0-or-later. See [LICENSE](LICENSE).

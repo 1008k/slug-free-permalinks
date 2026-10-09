@@ -104,6 +104,12 @@ For manual installation, upload the `slug-free-permalinks` folder to `/wp-conten
 - Only path prefixes exposed by Polylang language home URLs are registered as prefixed ID routes; arbitrary prefixes are not accepted.
 - Contributor and release workflow notes are documented in [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Support
+
+Slug-Free Permalinks is completely free to use, with no payment required. If you find it helpful and would like to support its ongoing development and maintenance, voluntary contributions are always appreciated.
+
+[Support the project on GitHub Sponsors](https://github.com/sponsors/1008k)
+
 ## License
 
 GPL-2.0-or-later. See [LICENSE](LICENSE).

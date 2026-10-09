@@ -51,6 +51,8 @@ If your site already has many established slug-based URLs, review existing inbou
 * [Plugin page (Japanese)](https://happas.jp/slug-free-permalinks/)
 * [Development repository](https://github.com/1008k/slug-free-permalinks)
 
+Slug-Free Permalinks is completely free to use, with no payment required. If you would like to support its ongoing development and maintenance, [voluntary contributions are welcome via GitHub Sponsors](https://github.com/sponsors/1008k).
+
 Known limitations:
 
 * The settings screen rejects selected post types or taxonomies with identical registered rewrite slugs.
