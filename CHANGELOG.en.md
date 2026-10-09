@@ -9,7 +9,7 @@
 
 ## [1.6.0]
 
-- Add pre-deactivation guidance and a copyable WordPress Custom Structure for preserving regular post ID URLs.
+- Add deactivation guidance and a copyable permalink structure to preserve regular post ID URLs.
 - Reduce rewrite checks and permalink processing overhead.
 
 ## [1.5.1]
@@ -19,18 +19,18 @@
 
 ## [1.5.0]
 
-- Use registered rewrite slugs for ID-based post type and taxonomy routes.
-- Reject conflicting selections that share a rewrite slug and disable conflicting saved settings.
+- Support ID-based URLs using registered rewrite slugs for post types and taxonomies.
+- Detect conflicting rewrite slugs and prevent ambiguous URL routes.
 - Improve rewrite-rule refresh after post type and taxonomy registration and remove stale plugin rules.
 - Improve compatibility with language and path-prefixed URLs and existing permalink integrations.
 
 ## [1.4.8]
 
-- Avoid database writes when settings are normalized during public requests.
+- Prevent unnecessary database writes during settings normalization on public requests.
 
 ## [1.4.7]
 
-- Fix sitemap and indexing compatibility so permalink integrations receive canonical ID-based URLs consistently.
+- Fix canonical ID-based URLs in sitemap and indexing integrations.
 
 ## [1.4.6]
 
@@ -42,8 +42,8 @@
 
 ## [1.4.4]
 
-- Keep canonical ID permalinks consistent with or without Polylang.
-- Continue supporting language-directory prefixes such as `/en/`.
+- Unify ID-based URL handling with or without Polylang.
+- Support language-directory URLs such as `/en/`.
 
 ## [1.4.3]
 
@@ -52,12 +52,12 @@
 
 ## [1.4.2]
 
-- Add a guarded Japanese l10n PHP translation file for Plugin Check compatibility.
+- Add Japanese translation support compatible with Plugin Check.
 - Update the distribution package for the latest Plugin Check fixes.
 
 ## [1.4.1]
 
-- Remove unnecessary manual translation loading to satisfy current Plugin Check guidance.
+- Remove unnecessary translation loading for Plugin Check compatibility.
 - Refine the FAQ and release packaging workflow.
 
 ## [1.4.0]
