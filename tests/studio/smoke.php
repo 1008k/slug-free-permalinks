@@ -327,6 +327,63 @@ ptid_studio_assert_same(
 	'Polylang custom taxonomy rewrite rule must use the configured rewrite slug.'
 );
 
+/*
+ * Freeze v1 behavior before introducing configurable permalink structures in v2.
+ * WordPress's permalink setting must not leak date/category prefixes into
+ * selected posts' ID URLs, and both existing plugin formats must stay stable.
+ */
+$original_wp_structure = get_option( 'permalink_structure' );
+foreach ( array( '/%year%/%monthnum%/%postname%/', '/%category%/%postname%/' ) as $wp_structure ) {
+	update_option( 'permalink_structure', $wp_structure );
+
+	foreach ( array( 'slash', 'hyphen' ) as $plugin_structure ) {
+		$compat_settings              = $settings;
+		$compat_settings['structure'] = $plugin_structure;
+		$compat_settings['post_types'] = array( 'post', 'studio_book' );
+		$compat_settings['taxonomies'] = array( 'category', 'studio_genre' );
+		update_option( $settings_option, $compat_settings );
+		$compat_plugin = new PTID_Permalink_Plugin();
+
+		$post_path = 'slash' === $plugin_structure
+			? '/post/' . $created_post_id . '/'
+			: '/post-' . $created_post_id . '/';
+		ptid_studio_assert_same(
+			home_url( $post_path ),
+			$compat_plugin->filter_permalink( home_url( '/2026/10/studio-smoke-test-post/' ), $created_post ),
+			'Selected post URL must remain in the v1 ID format regardless of WordPress structure: ' . $wp_structure . ' / ' . $plugin_structure
+		);
+
+		$book_path = 'slash' === $plugin_structure
+			? '/books/archive/' . $custom_post_id . '/'
+			: '/books/archive-' . $custom_post_id . '/';
+		ptid_studio_assert_same(
+			home_url( $book_path ),
+			$compat_plugin->filter_permalink( home_url( '/books/archive/studio-smoke-test-book/' ), $custom_post ),
+			'Custom post type ID URLs must remain stable: ' . $wp_structure . ' / ' . $plugin_structure
+		);
+
+		$category_path = 'slash' === $plugin_structure
+			? '/category/' . $term_id . '/'
+			: '/category-' . $term_id . '/';
+		ptid_studio_assert_same(
+			home_url( $category_path ),
+			$compat_plugin->filter_term_link( home_url( '/category/studio-smoke-test-category/' ), $created_term, 'category' ),
+			'Selected taxonomy ID URLs must remain stable: ' . $wp_structure . ' / ' . $plugin_structure
+		);
+
+		$genre_path = 'slash' === $plugin_structure
+			? '/genres/archive/' . $custom_term_id . '/'
+			: '/genres/archive-' . $custom_term_id . '/';
+		ptid_studio_assert_same(
+			home_url( $genre_path ),
+			$compat_plugin->filter_term_link( home_url( '/genres/archive/studio-smoke-test-genre/' ), $custom_term, 'studio_genre' ),
+			'Custom taxonomy ID URLs must remain stable: ' . $wp_structure . ' / ' . $plugin_structure
+		);
+	}
+}
+update_option( 'permalink_structure', $original_wp_structure );
+update_option( $settings_option, $settings );
+
 $legacy_settings = array(
 	'structure'       => 'unexpected-format',
 	'post_types'      => 'not-an-array',
