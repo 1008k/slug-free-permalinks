@@ -20,7 +20,7 @@
 ## [1.5.0]
 
 - Support ID-based URLs using registered rewrite slugs for post types and taxonomies.
-- Detect conflicting rewrite slugs and prevent ambiguous URL routes.
+- Reject conflicting rewrite slugs and disable conflicting saved settings.
 - Improve rewrite-rule refresh after post type and taxonomy registration and remove stale plugin rules.
 - Improve compatibility with language and path-prefixed URLs and existing permalink integrations.
 
