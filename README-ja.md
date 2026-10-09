@@ -107,7 +107,7 @@ Slug-Free Permalinksはパフォーマンスと予測可能な挙動を優先し
 
 ## 開発の応援
 
-Slug-Free Permalinksは、すべての機能を無料で利用できます。寄付は必須ではありませんが、開発・メンテナンスを応援していただける方からのご支援は歓迎しています。
+Slug-Free Permalinksは、すべての機能を無料で利用できます。気に入っていただけたら、GitHub Sponsorsから応援してもらえるとうれしいです。
 
 [GitHub Sponsorsで応援する](https://github.com/sponsors/1008k)
 
