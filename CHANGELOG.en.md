@@ -4,7 +4,7 @@
 
 ## [1.7.0]
 
-- Improve settings usability and guidance.
+- Improve target selection and guidance on the settings screen.
 - Refine ID-based URL handling for Polylang language paths.
 
 ## [1.6.0]
