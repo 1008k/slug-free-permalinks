@@ -4,6 +4,8 @@ English: [README.md](README.md)
 
 公式ページ: [English](https://happas.jp/en/slug-free-permalinks/) | [Japanese](https://happas.jp/slug-free-permalinks/)
 
+WordPress.org: [プラグイン公式ディレクトリ](https://ja.wordpress.org/plugins/slug-free-permalinks/)
+
 変更履歴: [日本語](CHANGELOG.md) | [English](CHANGELOG.en.md)
 
 WordPressの投稿タイプとタクソノミーを、スラッグを使わないIDベースのパーマリンクに切り替えるプラグインです。

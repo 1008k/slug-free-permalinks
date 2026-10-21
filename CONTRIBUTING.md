@@ -32,6 +32,8 @@ Thanks for contributing to Slug-Free Permalinks.
 - Older WordPress and PHP versions are outside the support scope. Do not retain or add legacy fallbacks solely for unsupported versions unless a concrete product requirement justifies them.
 - `testedUpTo` records the latest WordPress version tested, not a promise that every intermediate version has been tested.
 - Keep plugin headers, WordPress.org readme, READMEs, Composer platform/lock metadata, and CI aligned with the metadata source of truth when requirements change.
+- Base WordPress support on the current and previous major series, and PHP support on security-supported releases, while considering adoption and maintenance costs. Keep older releases available without promising ongoing maintenance.
+- Review obsolete compatibility code when raising minimum requirements; announce the compatibility change in the corresponding release.
 
 ## Coding Standards
 
@@ -106,9 +108,3 @@ The plugin header version still comes from `plugin-meta.json`, so multiple test 
 - Deployment uses the built artifact in `dist/slug-free-permalinks`, not the repository root.
 - If a post type slug and taxonomy slug are identical, their ID-based rewrite rules can conflict.
 
-## 対応環境
-- WordPressは最新の先頭番号の世代と、その一つ前の世代を基本とする。最低対応バージョンは利用状況、必要なAPI、検証・保守コストを踏まえて決定する。
-- PHPは公式のセキュリティサポート期間内を基本とし、利用状況と互換性維持コストを踏まえて最低対応バージョンを決定する。
-- 古い環境への互換性維持を目的とした追加実装は原則行わない。旧版の提供は継続するが、保守は保証しない。
-- 最低要件の引き上げ時には不要な互換コードを整理する。対応範囲内でも、仕様変更や保守負担の軽減によるメリットが大きい場合は最低要件を引き上げてよい。
-- 最低要件の変更はリリース時に明示する。既存の最低要件は別途見直すまで維持する。
