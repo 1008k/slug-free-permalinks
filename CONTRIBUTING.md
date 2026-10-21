@@ -26,6 +26,13 @@ Thanks for contributing to Slug-Free Permalinks.
 - Build the distributable plugin and versioned ZIP with `node scripts/build-dist.mjs --zip`.
 - Run Plugin Check against `dist/slug-free-permalinks`, not the repository root.
 
+## Supported Environments
+
+- The supported baseline is WordPress 6.4+ and PHP 8.2+ as defined in `plugin-meta.json`.
+- Do not add compatibility fallbacks for older WordPress or PHP versions without an explicit product requirement.
+- `testedUpTo` states the latest verified WordPress version; it is not the same as the minimum supported version.
+- When requirements change, synchronize plugin metadata, the WordPress.org readme, README files, Composer platform/lock metadata, and CI.
+
 ## Coding Standards
 
 - Install the development tools with `composer install`.
@@ -42,7 +49,7 @@ Thanks for contributing to Slug-Free Permalinks.
 ## Studio Smoke Test
 
 - The Studio smoke test builds the shipping artifact, installs it into an isolated Studio site, and checks ID-based post and taxonomy links, rewrite-rule registration, and settings normalization behavior.
-- Create a dedicated Studio site before running it. Studio 1.15 supports PHP 8.2 or newer; the test does not replace PHP 7.4 compatibility checks.
+- Create a dedicated Studio site before running it. Studio 1.15 supports PHP 8.2 or newer; the test does not replace verification against the declared PHP minimum.
 - Run `powershell -ExecutionPolicy Bypass -File scripts/run-studio-smoke.ps1 -SitePath <Studio site path>`.
 - If the WordPress Studio CLI is not the `studio` command on your PATH, also pass `-StudioCommand <path to studio.bat>`.
 
