@@ -26,11 +26,17 @@ Thanks for contributing to Slug-Free Permalinks.
 - Build the distributable plugin and versioned ZIP with `node scripts/build-dist.mjs --zip`.
 - Run Plugin Check against `dist/slug-free-permalinks`, not the repository root.
 
+## Supported Environments
+
+- WordPress 6.4+ / PHP 8.2+ support is defined in `plugin-meta.json` and maintained by using only APIs and syntax compatible with those minimum versions. Local QA does not need to pin every older version; verify the actual compatibility of APIs and language features used.
+- Older WordPress and PHP versions are outside the support scope. Do not retain or add legacy fallbacks solely for unsupported versions unless a concrete product requirement justifies them.
+- `testedUpTo` records the latest WordPress version tested, not a promise that every intermediate version has been tested.
+- Keep plugin headers, WordPress.org readme, READMEs, Composer platform/lock metadata, and CI aligned with the metadata source of truth when requirements change.
+- Base WordPress support on the current and previous major series, and PHP support on security-supported releases, while considering adoption and maintenance costs. Keep older releases available without promising ongoing maintenance.
+- Review obsolete compatibility code when raising minimum requirements; announce the compatibility change in the corresponding release.
+
 ## Coding Standards
 
-- Support WordPress 5.8+ and PHP 7.4+ as declared in `plugin-meta.json`. Maintain compatibility through the WordPress APIs and PHP syntax used in the implementation; local QA does not need to pin every older release.
-- Do not add fallbacks for unsupported versions without a concrete requirement. Raise minimum versions only as a separately reviewed compatibility change, considering existing installations.
-- PHP CI reads `requiresPhp` from `plugin-meta.json`, and Composer's PHP platform must match the declared minimum. `testedUpTo` identifies the latest WordPress version tested, not a guarantee that every version combination was tested.
 - Install the development tools with `composer install`.
 - Check PHP files with `composer check`.
 - Apply automatically fixable formatting changes with `composer fix`, then review the diff and run `composer check` again.
@@ -45,7 +51,7 @@ Thanks for contributing to Slug-Free Permalinks.
 ## Studio Smoke Test
 
 - The Studio smoke test builds the shipping artifact, installs it into an isolated Studio site, and checks ID-based post and taxonomy links, rewrite-rule registration, and settings normalization behavior.
-- Create a dedicated Studio site before running it. Studio 1.15 supports PHP 8.2 or newer; the test does not replace PHP 7.4 compatibility checks.
+- Create a dedicated Studio site before running it. Studio 1.15 supports PHP 8.2 or newer; the test does not replace verification against the declared PHP minimum.
 - Run `powershell -ExecutionPolicy Bypass -File scripts/run-studio-smoke.ps1 -SitePath <Studio site path>`.
 - If the WordPress Studio CLI is not the `studio` command on your PATH, also pass `-StudioCommand <path to studio.bat>`.
 
@@ -102,9 +108,3 @@ The plugin header version still comes from `plugin-meta.json`, so multiple test 
 - Deployment uses the built artifact in `dist/slug-free-permalinks`, not the repository root.
 - If a post type slug and taxonomy slug are identical, their ID-based rewrite rules can conflict.
 
-## 対応環境
-- WordPressは最新の先頭番号の世代と、その一つ前の世代を基本とする。最低対応バージョンは利用状況、必要なAPI、検証・保守コストを踏まえて決定する。
-- PHPは公式のセキュリティサポート期間内を基本とし、利用状況と互換性維持コストを踏まえて最低対応バージョンを決定する。
-- 古い環境への互換性維持を目的とした追加実装は原則行わない。旧版の提供は継続するが、保守は保証しない。
-- 最低要件の引き上げ時には不要な互換コードを整理する。対応範囲内でも、仕様変更や保守負担の軽減によるメリットが大きい場合は最低要件を引き上げてよい。
-- 最低要件の変更はリリース時に明示する。既存の最低要件は別途見直すまで維持する。

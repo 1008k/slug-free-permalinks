@@ -4,6 +4,8 @@ Japanese: [README-ja.md](README-ja.md)
 
 Plugin page: [English](https://happas.jp/en/slug-free-permalinks/) | [Japanese](https://happas.jp/slug-free-permalinks/)
 
+WordPress.org: [Plugin directory](https://wordpress.org/plugins/slug-free-permalinks/)
+
 Changelog: [English](CHANGELOG.en.md) | [Japanese](CHANGELOG.md)
 
 Slug-Free Permalinks is a WordPress plugin that switches selected post types and taxonomies to ID-based permalinks without using slugs.
@@ -82,11 +84,11 @@ The plugin does not change WordPress permalink settings automatically. Custom po
 
 ## Requirements
 
-- WordPress 5.8 or later
+- WordPress 6.4 or later
 - Tested through WordPress 7.1
-- PHP 7.4 or later
+- PHP 8.2 or later
 
-These minimum versions are based on the PHP syntax and WordPress APIs used by the plugin.
+These are the supported minimum versions. Older WordPress and PHP releases are outside the support scope.
 
 ## Installation
 

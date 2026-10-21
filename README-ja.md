@@ -4,6 +4,8 @@ English: [README.md](README.md)
 
 公式ページ: [English](https://happas.jp/en/slug-free-permalinks/) | [Japanese](https://happas.jp/slug-free-permalinks/)
 
+WordPress.org: [プラグイン公式ディレクトリ](https://ja.wordpress.org/plugins/slug-free-permalinks/)
+
 変更履歴: [日本語](CHANGELOG.md) | [English](CHANGELOG.en.md)
 
 WordPressの投稿タイプとタクソノミーを、スラッグを使わないIDベースのパーマリンクに切り替えるプラグインです。
@@ -84,11 +86,11 @@ Slug-Free Permalinksはパフォーマンスと予測可能な挙動を優先し
 
 ## 動作要件
 
-- WordPress 5.8 以上
+- WordPress 6.4 以上
 - WordPress 7.1 まで動作確認済み
-- PHP 7.4 以上
+- PHP 8.2 以上
 
-この下限はコードで利用しているPHP構文とWordPress APIに基づいています。
+これらを最低対応バージョンとし、それより古い環境はサポート対象外です。
 
 ## インストール
 
