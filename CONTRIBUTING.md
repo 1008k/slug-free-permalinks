@@ -28,6 +28,8 @@ Thanks for contributing to Slug-Free Permalinks.
 
 ## Coding Standards
 
+- Support WordPress 5.8+ and PHP 7.4+ as declared in `plugin-meta.json`. Keep these minimums unless a separately reviewed compatibility change is approved; do not infer support for older versions from available development tools.
+- PHP CI reads `requiresPhp` from `plugin-meta.json`; Composer's PHP platform requirement must match this minimum. WordPress compatibility is assessed against the APIs used by the plugin; CI does not exercise every supported WordPress release.
 - Install the development tools with `composer install`.
 - Check PHP files with `composer check`.
 - Apply automatically fixable formatting changes with `composer fix`, then review the diff and run `composer check` again.
