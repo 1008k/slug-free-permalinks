@@ -1004,7 +1004,7 @@ final class PTID_Permalink_Plugin {
 	/**
 	 * Builds permalink context for a valid post.
 	 *
-	 * @param WP_Post|int $post Post object or ID.
+	 * @param WP_Post $post Post object.
 	 * @return array|null Permalink context, or null when unavailable.
 	 */
 	private function get_post_permalink_context( $post ): ?array {
@@ -1040,7 +1040,7 @@ final class PTID_Permalink_Plugin {
 			return $slug . '-' . $id;
 		}
 
-			return $slug . '/' . $id;
+		return $slug . '/' . $id;
 	}
 
 	/**
