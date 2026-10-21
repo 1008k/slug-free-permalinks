@@ -30,10 +30,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v5
 
+      - name: Read PHP requirement
+        id: php
+        run: echo "version=$(jq -r .requiresPhp plugin-meta.json)" >> "$GITHUB_OUTPUT"
+
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '7.4'
+          php-version: ${{ steps.php.outputs.version }}
           coverage: none
           tools: composer:v2
 
