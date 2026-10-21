@@ -28,10 +28,10 @@ Thanks for contributing to Slug-Free Permalinks.
 
 ## Supported Environments
 
-- The supported baseline is WordPress 6.4+ and PHP 8.2+ as defined in `plugin-meta.json`.
-- Do not add compatibility fallbacks for older WordPress or PHP versions without an explicit product requirement.
-- `testedUpTo` states the latest verified WordPress version; it is not the same as the minimum supported version.
-- When requirements change, synchronize plugin metadata, the WordPress.org readme, README files, Composer platform/lock metadata, and CI.
+- WordPress 6.4+ / PHP 8.2+ support is defined in `plugin-meta.json` and maintained by using only APIs and syntax compatible with those minimum versions. Local QA does not need to pin every older version; verify the actual compatibility of APIs and language features used.
+- Older WordPress and PHP versions are outside the support scope. Do not retain or add legacy fallbacks solely for unsupported versions unless a concrete product requirement justifies them.
+- `testedUpTo` records the latest WordPress version tested, not a promise that every intermediate version has been tested.
+- Keep plugin headers, WordPress.org readme, READMEs, Composer platform/lock metadata, and CI aligned with the metadata source of truth when requirements change.
 
 ## Coding Standards
 
