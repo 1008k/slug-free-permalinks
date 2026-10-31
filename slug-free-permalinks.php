@@ -312,6 +312,11 @@ final class PTID_Permalink_Plugin {
 			return $query_vars;
 		}
 
+		$requested_post_type = $query_vars['post_type'] ?? '';
+		if ( is_string( $requested_post_type ) && '' !== $requested_post_type && 'post' !== $requested_post_type ) {
+			return $query_vars;
+		}
+
 		$name = $query_vars['name'] ?? '';
 		if ( ! is_string( $name ) || ! ctype_digit( $name ) ) {
 			return $query_vars;
@@ -1134,7 +1139,59 @@ final class PTID_Permalink_Plugin {
 	}
 
 	/**
+	 * Splits a permalink structure segment into literal and tag tokens.
+	 *
+	 * @param string $segment Structure segment.
+	 * @return array Tokens; tag tokens keep their %tag% spelling.
+	 */
+	private function split_structure_segment( string $segment ): array {
+		$tokens = preg_split( '/(%[a-z_]+%)/', $segment, -1, PREG_SPLIT_DELIM_CAPTURE );
+
+		return is_array( $tokens ) ? $tokens : array( $segment );
+	}
+
+	/**
+	 * Returns the regular expression fragment for a structure tag.
+	 *
+	 * @param string $tag       Structure tag such as %year%.
+	 * @param bool   $capturing Whether the fragment captures its match.
+	 * @return string Regular expression fragment without delimiters.
+	 */
+	private function get_structure_tag_pattern( string $tag, bool $capturing ): string {
+		$pattern = '';
+
+		switch ( $tag ) {
+			case '%year%':
+				$pattern = '[0-9]{4}';
+				break;
+			case '%monthnum%':
+			case '%day%':
+			case '%hour%':
+			case '%minute%':
+			case '%second%':
+				$pattern = '[0-9]{1,2}';
+				break;
+			case '%post_id%':
+			case '%postname%':
+				$pattern = '[0-9]+';
+				break;
+			case '%category%':
+				$pattern = '.+?';
+				break;
+			default:
+				$pattern = '[^/]+';
+				break;
+		}
+
+		return $capturing ? '(' . $pattern . ')' : '(?:' . $pattern . ')';
+	}
+
+	/**
 	 * Replaces the slug in a WordPress structure permalink with the post ID.
+	 *
+	 * The URL segment that holds the slug is located through the segment
+	 * template of the configured structure, so structures that embed
+	 * %postname% inside a segment (such as %post_id%-%postname%) work too.
 	 *
 	 * @param string $post_link    WordPress-generated permalink.
 	 * @param array  $post_context Post permalink context.
@@ -1155,22 +1212,27 @@ final class PTID_Permalink_Plugin {
 			return $post_link;
 		}
 
+		$segment_pattern = $this->get_structure_slug_segment_pattern();
+		if ( '' === $segment_pattern ) {
+			return $post_link;
+		}
+
 		$original_path = (string) $parts['path'];
 		$segments      = explode( '/', trim( $original_path, '/' ) );
 		$replaced      = false;
 
 		for ( $index = count( $segments ) - 1; 0 <= $index; $index-- ) {
-			if ( $segments[ $index ] === $slug ) {
-				$segments[ $index ] = (string) $post_context['ID'];
-				$replaced           = true;
-				break;
+			if ( 1 !== preg_match( $segment_pattern, $segments[ $index ], $matches, PREG_OFFSET_CAPTURE ) ) {
+				continue;
 			}
 
-			if ( 0 === strpos( $segments[ $index ], $slug . '.' ) ) {
-				$segments[ $index ] = (string) $post_context['ID'] . substr( $segments[ $index ], strlen( $slug ) );
-				$replaced           = true;
-				break;
+			if ( ! isset( $matches['slug'] ) || $matches['slug'][0] !== $slug ) {
+				continue;
 			}
+
+			$segments[ $index ] = substr_replace( $segments[ $index ], (string) $post_context['ID'], $matches['slug'][1], strlen( $slug ) );
+			$replaced           = true;
+			break;
 		}
 
 		if ( ! $replaced ) {
@@ -1180,6 +1242,85 @@ final class PTID_Permalink_Plugin {
 		$parts['path'] = '/' . implode( '/', $segments ) . ( '/' === substr( $original_path, -1 ) ? '/' : '' );
 
 		return $this->build_url_from_parts( $parts );
+	}
+
+	/**
+	 * Builds a pattern matching the structure segment that holds the slug.
+	 *
+	 * The slug is exposed as the named capture group "slug"; every other
+	 * structure tag matches without capturing.
+	 *
+	 * @return string Segment pattern with delimiters, or an empty string.
+	 */
+	private function get_structure_slug_segment_pattern(): string {
+		$structure = trim( (string) get_option( 'permalink_structure' ), '/' );
+
+		foreach ( explode( '/', $structure ) as $segment ) {
+			if ( false === strpos( $segment, '%postname%' ) ) {
+				continue;
+			}
+
+			$pattern = '';
+			foreach ( $this->split_structure_segment( $segment ) as $token ) {
+				if ( '%postname%' === $token ) {
+					$pattern .= '(?P<slug>.+)';
+				} elseif ( 1 === preg_match( '/^%[a-z_]+%$/', $token ) ) {
+					$pattern .= $this->get_structure_tag_pattern( $token, false );
+				} else {
+					$pattern .= preg_quote( $token, '#' );
+				}
+			}
+
+			return '#^' . $pattern . '$#';
+		}
+
+		return '';
+	}
+
+	/**
+	 * Builds a numeric-only rewrite rule for structure-based post URLs.
+	 *
+	 * WordPress evaluates its date archive rules before its post rules, so a
+	 * numeric slug segment can be claimed by an archive rule (a date-shaped
+	 * structure, or a four-digit ID under /%postname%/). This rule resolves
+	 * the numeric form directly to the post ID at top priority.
+	 *
+	 * @return array|null Pattern body and query, or null when unavailable.
+	 */
+	private function build_structure_id_rule(): ?array {
+		$structure = trim( (string) get_option( 'permalink_structure' ), '/' );
+		if ( '' === $structure || false === strpos( $structure, '%postname%' ) ) {
+			return null;
+		}
+
+		$group_count   = 0;
+		$id_group      = 0;
+		$pattern_parts = array();
+
+		foreach ( explode( '/', $structure ) as $segment ) {
+			$pattern = '';
+			foreach ( $this->split_structure_segment( $segment ) as $token ) {
+				if ( 1 === preg_match( '/^%[a-z_]+%$/', $token ) ) {
+					$pattern .= $this->get_structure_tag_pattern( $token, true );
+					++$group_count;
+					if ( '%postname%' === $token ) {
+						$id_group = $group_count;
+					}
+				} else {
+					$pattern .= preg_quote( $token, '#' );
+				}
+			}
+			$pattern_parts[] = $pattern;
+		}
+
+		if ( 0 === $id_group ) {
+			return null;
+		}
+
+		return array(
+			'pattern' => implode( '/', $pattern_parts ) . '/?$',
+			'query'   => 'index.php?p=$matches[' . $id_group . ']&' . self::REWRITE_MARKER,
+		);
 	}
 
 	/**
@@ -1561,6 +1702,13 @@ final class PTID_Permalink_Plugin {
 				$prefix_pattern .= preg_quote( trim( $path_prefix, '/' ), '#' ) . '/';
 			}
 
+			if ( $preserve_posts ) {
+				$structure_rule = $this->build_structure_id_rule();
+				if ( null !== $structure_rule ) {
+					add_rewrite_rule( $prefix_pattern . $structure_rule['pattern'], $structure_rule['query'], 'top' );
+				}
+			}
+
 			foreach ( $post_types as $post_type ) {
 				$route_slug = preg_quote( $this->get_post_type_route_slug( $post_type ), '#' );
 				$query      = 'index.php?post_type=' . $post_type . '&p=$matches[1]&' . self::REWRITE_MARKER;
@@ -1680,6 +1828,7 @@ final class PTID_Permalink_Plugin {
 			&& (
 				0 === strpos( $query, 'index.php?ptid_taxonomy=' )
 				|| 0 === strpos( $query, 'index.php?post_type=' )
+				|| 0 === strpos( $query, 'index.php?p=' )
 			);
 	}
 

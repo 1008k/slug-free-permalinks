@@ -658,4 +658,77 @@ update_option( 'permalink_structure', $original_wp_structure );
 $GLOBALS['wp_rewrite']->set_permalink_structure( $original_wp_structure );
 update_option( $settings_option, $settings );
 
+/*
+ * Review follow-ups: numeric structure rules must win over date archive
+ * rules, numeric conversion must not touch other post types, and slugs
+ * embedded in a structure segment must be replaced.
+ */
+$original_wp_structure = get_option( 'permalink_structure' );
+$preserve_settings['redirect_legacy'] = false;
+update_option( $settings_option, $preserve_settings );
+
+update_option( 'permalink_structure', '/%year%/%monthnum%/%postname%/' );
+$GLOBALS['wp_rewrite']->set_permalink_structure( '/%year%/%monthnum%/%postname%/' );
+$review_plugin = new PTID_Permalink_Plugin();
+$review_plugin->register_rewrite_rules();
+$review_rules = $GLOBALS['wp_rewrite']->extra_rules_top;
+
+ptid_studio_assert_same(
+	'index.php?p=$matches[3]&ptid_route=1',
+	$review_rules['^([0-9]{4})/([0-9]{1,2})/([0-9]+)/?$'] ?? '',
+	'Preserve mode must register a numeric rule for date-based structures.'
+);
+
+update_option( 'permalink_structure', '/%postname%/' );
+$GLOBALS['wp_rewrite']->set_permalink_structure( '/%postname%/' );
+$review_plugin = new PTID_Permalink_Plugin();
+$review_plugin->register_rewrite_rules();
+$review_rules = $GLOBALS['wp_rewrite']->extra_rules_top;
+
+ptid_studio_assert_same(
+	'index.php?p=$matches[1]&ptid_route=1',
+	$review_rules['^([0-9]+)/?$'] ?? '',
+	'Preserve mode must register a numeric rule for the postname-only structure.'
+);
+
+ptid_studio_assert_same(
+	array(
+		'post_type' => 'studio_book',
+		'name'      => (string) $created_post_id,
+	),
+	$review_plugin->resolve_structure_post_request(
+		array(
+			'post_type' => 'studio_book',
+			'name'      => (string) $created_post_id,
+		)
+	),
+	'Numeric name conversion must not rewrite requests for other post types.'
+);
+ptid_studio_assert_same(
+	$created_post_id,
+	$review_plugin->resolve_structure_post_request(
+		array(
+			'post_type' => 'post',
+			'name'      => (string) $created_post_id,
+		)
+	)['p'] ?? 0,
+	'Numeric name conversion must accept requests explicitly targeting posts.'
+);
+
+update_option( 'permalink_structure', '/%post_id%-%postname%/' );
+$GLOBALS['wp_rewrite']->set_permalink_structure( '/%post_id%-%postname%/' );
+
+ptid_studio_assert_same(
+	home_url( '/' . $created_post_id . '-' . $created_post_id . '/' ),
+	$review_plugin->filter_permalink(
+		home_url( '/' . $created_post_id . '-' . $created_post->post_name . '/' ),
+		$created_post
+	),
+	'Preserve mode must replace a slug embedded in a structure segment.'
+);
+
+update_option( 'permalink_structure', $original_wp_structure );
+$GLOBALS['wp_rewrite']->set_permalink_structure( $original_wp_structure );
+update_option( $settings_option, $settings );
+
 echo "Slug-Free Permalinks Studio smoke tests passed.\n";
