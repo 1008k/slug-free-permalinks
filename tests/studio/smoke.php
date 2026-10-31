@@ -663,7 +663,7 @@ update_option( $settings_option, $settings );
  * rules, numeric conversion must not touch other post types, and slugs
  * embedded in a structure segment must be replaced.
  */
-$original_wp_structure = get_option( 'permalink_structure' );
+$original_wp_structure                = get_option( 'permalink_structure' );
 $preserve_settings['redirect_legacy'] = false;
 update_option( $settings_option, $preserve_settings );
 
