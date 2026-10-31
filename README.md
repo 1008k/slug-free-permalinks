@@ -34,6 +34,7 @@ If a site already has a large volume of published content and established slug-b
 - Choose `/post/123/` or `/post-123/`
 - Optionally redirect legacy slug URLs to the current ID-based permalink
 - Preserve Polylang language URLs using the language home URLs Polylang actually exposes
+- Keep the WordPress permalink structure for regular posts and replace only the slug with the post ID
 - Flush rewrite rules automatically when settings change
 
 ## FAQ
@@ -73,6 +74,10 @@ The settings screen rejects a selection where a post type and taxonomy share the
 Yes. Polylang integration uses the language home URL returned by Polylang instead of accepting arbitrary path prefixes.
 
 For example, when Polylang exposes `/en/` as a language path, Slug-Free Permalinks registers `/en/post/123/` and `/en/category/45/` alongside the base routes. Domain-based or query-based language modes continue to use the URL returned by Polylang without inventing an extra path prefix.
+
+**Can I keep my permalink structure and only drop the slug?**
+
+Yes, for regular posts. Enable the structure option on the settings screen and the plugin keeps your WordPress permalink structure, replacing only the slug portion with the post ID. The structure must contain `%postname%`. Custom post types and taxonomies keep using the plugin ID formats.
 
 **How can I deactivate the plugin without changing regular post URLs?**
 

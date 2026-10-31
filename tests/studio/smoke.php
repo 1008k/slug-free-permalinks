@@ -91,10 +91,11 @@ register_taxonomy(
 );
 
 $settings = array(
-	'structure'       => 'slash',
-	'post_types'      => array( 'post', 'studio_book' ),
-	'taxonomies'      => array( 'category', 'studio_genre' ),
-	'redirect_legacy' => true,
+	'structure'             => 'slash',
+	'post_types'            => array( 'post', 'studio_book' ),
+	'taxonomies'            => array( 'category', 'studio_genre' ),
+	'redirect_legacy'       => true,
+	'preserve_wp_structure' => false,
 );
 
 update_option( $settings_option, $settings );
@@ -429,10 +430,11 @@ $read_only_plugin->normalize_stored_settings();
 
 ptid_studio_assert_same(
 	array(
-		'structure'       => 'slash',
-		'post_types'      => array(),
-		'taxonomies'      => array( 'category' ),
-		'redirect_legacy' => false,
+		'structure'             => 'slash',
+		'post_types'            => array(),
+		'taxonomies'            => array( 'category' ),
+		'redirect_legacy'       => false,
+		'preserve_wp_structure' => false,
 	),
 	get_option( $settings_option ),
 	'Admin-side normalization must persist the normalized settings.'
@@ -452,10 +454,11 @@ $read_only_plugin->normalize_stored_settings();
 
 ptid_studio_assert_same(
 	array(
-		'structure'       => 'slash',
-		'post_types'      => array(),
-		'taxonomies'      => array(),
-		'redirect_legacy' => false,
+		'structure'             => 'slash',
+		'post_types'            => array(),
+		'taxonomies'            => array(),
+		'redirect_legacy'       => false,
+		'preserve_wp_structure' => false,
 	),
 	get_option( $settings_option ),
 	'Admin-side normalization must disable stored content types with conflicting rewrite slugs.'
@@ -488,10 +491,11 @@ $read_only_plugin->normalize_stored_settings();
 
 ptid_studio_assert_same(
 	array(
-		'structure'       => 'slash',
-		'post_types'      => array( 'post' ),
-		'taxonomies'      => array( 'category' ),
-		'redirect_legacy' => false,
+		'structure'             => 'slash',
+		'post_types'            => array( 'post' ),
+		'taxonomies'            => array( 'category' ),
+		'redirect_legacy'       => false,
+		'preserve_wp_structure' => false,
 	),
 	get_option( $settings_option ),
 	'Admin-side normalization must discard unavailable content types.'
@@ -501,5 +505,157 @@ ptid_studio_assert_same(
 	$get_settings->invoke( $read_only_plugin ),
 	'Admin-side normalization must refresh the request-local settings cache.'
 );
+
+/*
+ * v2 behavior: the non-selected ID format resolves while legacy redirects
+ * are enabled, so format switches can redirect to the canonical URL.
+ */
+$alternate_settings = array(
+	'structure'             => 'slash',
+	'post_types'            => array( 'post' ),
+	'taxonomies'            => array( 'category' ),
+	'redirect_legacy'       => true,
+	'preserve_wp_structure' => false,
+);
+update_option( $settings_option, $alternate_settings );
+$alternate_plugin = new PTID_Permalink_Plugin();
+$alternate_plugin->register_rewrite_rules();
+$alternate_rules = $GLOBALS['wp_rewrite']->extra_rules_top;
+
+ptid_studio_assert_same(
+	true,
+	isset( $alternate_rules['^post-([0-9]+)/?$'] ),
+	'The non-selected post ID format must resolve while legacy redirects are enabled.'
+);
+ptid_studio_assert_same(
+	'index.php?post_type=post&p=$matches[1]&ptid_route=1',
+	$alternate_rules['^post-([0-9]+)/?$'],
+	'Alternate format rules must resolve to the same post query as the canonical format.'
+);
+ptid_studio_assert_same(
+	true,
+	isset( $alternate_rules['^category-([0-9]+)/?$'] ),
+	'The non-selected taxonomy ID format must resolve while legacy redirects are enabled.'
+);
+
+$alternate_settings['redirect_legacy'] = false;
+update_option( $settings_option, $alternate_settings );
+$alternate_plugin = new PTID_Permalink_Plugin();
+$alternate_plugin->register_rewrite_rules();
+$alternate_rules = $GLOBALS['wp_rewrite']->extra_rules_top;
+
+ptid_studio_assert_same(
+	false,
+	isset( $alternate_rules['^post-([0-9]+)/?$'] ),
+	'The non-selected post ID format must not resolve while legacy redirects are disabled.'
+);
+ptid_studio_assert_same(
+	true,
+	isset( $alternate_rules['^post/([0-9]+)/?$'] ),
+	'The selected post ID format must stay registered while legacy redirects are disabled.'
+);
+
+/*
+ * v2 behavior: regular posts can keep the WordPress permalink structure
+ * with only the slug replaced by the post ID.
+ */
+$original_wp_structure = get_option( 'permalink_structure' );
+update_option( 'permalink_structure', '/%year%/%monthnum%/%postname%/' );
+$GLOBALS['wp_rewrite']->set_permalink_structure( '/%year%/%monthnum%/%postname%/' );
+
+$preserve_settings = array(
+	'structure'             => 'slash',
+	'post_types'            => array( 'post', 'studio_book' ),
+	'taxonomies'            => array( 'category' ),
+	'redirect_legacy'       => false,
+	'preserve_wp_structure' => true,
+);
+update_option( $settings_option, $preserve_settings );
+$preserve_plugin = new PTID_Permalink_Plugin();
+
+$post_year  = substr( (string) $created_post->post_date, 0, 4 );
+$post_month = substr( (string) $created_post->post_date, 5, 2 );
+
+ptid_studio_assert_same(
+	home_url( '/' . $post_year . '/' . $post_month . '/' . $created_post_id . '/' ),
+	$preserve_plugin->filter_permalink(
+		home_url( '/' . $post_year . '/' . $post_month . '/' . $created_post->post_name . '/' ),
+		$created_post
+	),
+	'Preserve mode must replace only the slug in a date-based structure.'
+);
+
+update_option( 'permalink_structure', '/%category%/%postname%/' );
+$GLOBALS['wp_rewrite']->set_permalink_structure( '/%category%/%postname%/' );
+
+$created_categories = get_the_category( $created_post_id );
+$created_category   = $created_categories[0];
+
+ptid_studio_assert_same(
+	home_url( '/' . $created_category->slug . '/' . $created_post_id . '/' ),
+	$preserve_plugin->filter_permalink(
+		home_url( '/' . $created_category->slug . '/' . $created_post->post_name . '/' ),
+		$created_post
+	),
+	'Preserve mode must replace only the slug in a category-based structure.'
+);
+
+$resolved_vars = $preserve_plugin->resolve_structure_post_request(
+	array(
+		'name'     => (string) $created_post_id,
+		'year'     => $post_year,
+		'monthnum' => $post_month,
+	)
+);
+ptid_studio_assert_same(
+	$created_post_id,
+	$resolved_vars['p'] ?? 0,
+	'Preserve mode must resolve a numeric name segment to the post ID.'
+);
+ptid_studio_assert_same(
+	false,
+	isset( $resolved_vars['name'] ),
+	'Preserve mode must clear the name query variable after resolving an ID.'
+);
+ptid_studio_assert_same(
+	array( 'name' => $created_post->post_name ),
+	$preserve_plugin->resolve_structure_post_request( array( 'name' => $created_post->post_name ) ),
+	'Preserve mode must leave slug-based requests untouched.'
+);
+
+$preserve_plugin->register_rewrite_rules();
+$preserve_rules = $GLOBALS['wp_rewrite']->extra_rules_top;
+
+ptid_studio_assert_same(
+	false,
+	isset( $preserve_rules['^post/([0-9]+)/?$'] ),
+	'Preserve mode must not register a canonical plugin rule for regular posts.'
+);
+ptid_studio_assert_same(
+	true,
+	isset( $preserve_rules['^books/archive/([0-9]+)/?$'] ),
+	'Preserve mode must keep plugin rules for custom post types.'
+);
+ptid_studio_assert_same(
+	home_url( '/books/archive/' . $custom_post_id . '/' ),
+	$preserve_plugin->filter_permalink( home_url( '/books/archive/studio-smoke-test-book/' ), $custom_post ),
+	'Preserve mode must not change custom post type permalinks.'
+);
+
+$preserve_settings['redirect_legacy'] = true;
+update_option( $settings_option, $preserve_settings );
+$preserve_plugin = new PTID_Permalink_Plugin();
+$preserve_plugin->register_rewrite_rules();
+$preserve_rules = $GLOBALS['wp_rewrite']->extra_rules_top;
+
+ptid_studio_assert_same(
+	true,
+	isset( $preserve_rules['^post/([0-9]+)/?$'] ) && isset( $preserve_rules['^post-([0-9]+)/?$'] ),
+	'Preserve mode must register both plugin formats as legacy redirect sources while legacy redirects are enabled.'
+);
+
+update_option( 'permalink_structure', $original_wp_structure );
+$GLOBALS['wp_rewrite']->set_permalink_structure( $original_wp_structure );
+update_option( $settings_option, $settings );
 
 echo "Slug-Free Permalinks Studio smoke tests passed.\n";
