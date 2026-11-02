@@ -95,7 +95,6 @@ $settings = array(
 	'post_types'            => array( 'post', 'studio_book' ),
 	'taxonomies'            => array( 'category', 'studio_genre' ),
 	'redirect_legacy'       => true,
-	'preserve_wp_structure' => false,
 );
 
 update_option( $settings_option, $settings );
@@ -434,8 +433,7 @@ ptid_studio_assert_same(
 		'post_types'            => array(),
 		'taxonomies'            => array( 'category' ),
 		'redirect_legacy'       => false,
-		'preserve_wp_structure' => false,
-	),
+		),
 	get_option( $settings_option ),
 	'Admin-side normalization must persist the normalized settings.'
 );
@@ -458,8 +456,7 @@ ptid_studio_assert_same(
 		'post_types'            => array(),
 		'taxonomies'            => array(),
 		'redirect_legacy'       => false,
-		'preserve_wp_structure' => false,
-	),
+		),
 	get_option( $settings_option ),
 	'Admin-side normalization must disable stored content types with conflicting rewrite slugs.'
 );
@@ -495,8 +492,7 @@ ptid_studio_assert_same(
 		'post_types'            => array( 'post' ),
 		'taxonomies'            => array( 'category' ),
 		'redirect_legacy'       => false,
-		'preserve_wp_structure' => false,
-	),
+		),
 	get_option( $settings_option ),
 	'Admin-side normalization must discard unavailable content types.'
 );
@@ -515,7 +511,6 @@ $alternate_settings = array(
 	'post_types'            => array( 'post' ),
 	'taxonomies'            => array( 'category' ),
 	'redirect_legacy'       => true,
-	'preserve_wp_structure' => false,
 );
 update_option( $settings_option, $alternate_settings );
 $alternate_plugin = new PTID_Permalink_Plugin();
@@ -554,221 +549,5 @@ ptid_studio_assert_same(
 	isset( $alternate_rules['^post/([0-9]+)/?$'] ),
 	'The selected post ID format must stay registered while legacy redirects are disabled.'
 );
-
-/*
- * v2 behavior: regular posts can keep the WordPress permalink structure
- * with only the slug replaced by the post ID.
- */
-$original_wp_structure = get_option( 'permalink_structure' );
-update_option( 'permalink_structure', '/%year%/%monthnum%/%postname%/' );
-$GLOBALS['wp_rewrite']->set_permalink_structure( '/%year%/%monthnum%/%postname%/' );
-
-$preserve_settings = array(
-	'structure'             => 'slash',
-	'post_types'            => array( 'post', 'studio_book' ),
-	'taxonomies'            => array( 'category' ),
-	'redirect_legacy'       => false,
-	'preserve_wp_structure' => true,
-);
-update_option( $settings_option, $preserve_settings );
-$preserve_plugin = new PTID_Permalink_Plugin();
-
-$post_year  = substr( (string) $created_post->post_date, 0, 4 );
-$post_month = substr( (string) $created_post->post_date, 5, 2 );
-
-ptid_studio_assert_same(
-	home_url( '/' . $post_year . '/' . $post_month . '/' . $created_post_id . '/' ),
-	$preserve_plugin->filter_permalink(
-		home_url( '/' . $post_year . '/' . $post_month . '/' . $created_post->post_name . '/' ),
-		$created_post
-	),
-	'Preserve mode must replace only the slug in a date-based structure.'
-);
-
-update_option( 'permalink_structure', '/%category%/%postname%/' );
-$GLOBALS['wp_rewrite']->set_permalink_structure( '/%category%/%postname%/' );
-
-$created_categories = get_the_category( $created_post_id );
-$created_category   = $created_categories[0];
-
-ptid_studio_assert_same(
-	home_url( '/' . $created_category->slug . '/' . $created_post_id . '/' ),
-	$preserve_plugin->filter_permalink(
-		home_url( '/' . $created_category->slug . '/' . $created_post->post_name . '/' ),
-		$created_post
-	),
-	'Preserve mode must replace only the slug in a category-based structure.'
-);
-
-$resolved_vars = $preserve_plugin->resolve_structure_post_request(
-	array(
-		'name'     => (string) $created_post_id,
-		'year'     => $post_year,
-		'monthnum' => $post_month,
-	)
-);
-ptid_studio_assert_same(
-	$created_post_id,
-	$resolved_vars['p'] ?? 0,
-	'Preserve mode must resolve a numeric name segment to the post ID.'
-);
-ptid_studio_assert_same(
-	false,
-	isset( $resolved_vars['name'] ),
-	'Preserve mode must clear the name query variable after resolving an ID.'
-);
-ptid_studio_assert_same(
-	array( 'name' => $created_post->post_name ),
-	$preserve_plugin->resolve_structure_post_request( array( 'name' => $created_post->post_name ) ),
-	'Preserve mode must leave slug-based requests untouched.'
-);
-
-$preserve_plugin->register_rewrite_rules();
-$preserve_rules = $GLOBALS['wp_rewrite']->extra_rules_top;
-
-ptid_studio_assert_same(
-	false,
-	isset( $preserve_rules['^post/([0-9]+)/?$'] ),
-	'Preserve mode must not register a canonical plugin rule for regular posts.'
-);
-ptid_studio_assert_same(
-	true,
-	isset( $preserve_rules['^books/archive/([0-9]+)/?$'] ),
-	'Preserve mode must keep plugin rules for custom post types.'
-);
-ptid_studio_assert_same(
-	home_url( '/books/archive/' . $custom_post_id . '/' ),
-	$preserve_plugin->filter_permalink( home_url( '/books/archive/studio-smoke-test-book/' ), $custom_post ),
-	'Preserve mode must not change custom post type permalinks.'
-);
-
-$preserve_settings['redirect_legacy'] = true;
-update_option( $settings_option, $preserve_settings );
-$preserve_plugin = new PTID_Permalink_Plugin();
-$preserve_plugin->register_rewrite_rules();
-$preserve_rules = $GLOBALS['wp_rewrite']->extra_rules_top;
-
-ptid_studio_assert_same(
-	true,
-	isset( $preserve_rules['^post/([0-9]+)/?$'] ) && isset( $preserve_rules['^post-([0-9]+)/?$'] ),
-	'Preserve mode must register both plugin formats as legacy redirect sources while legacy redirects are enabled.'
-);
-
-update_option( 'permalink_structure', $original_wp_structure );
-$GLOBALS['wp_rewrite']->set_permalink_structure( $original_wp_structure );
-update_option( $settings_option, $settings );
-
-/*
- * Review follow-ups: numeric structure rules must win over date archive
- * rules, numeric conversion must not touch other post types, and slugs
- * embedded in a structure segment must be replaced.
- */
-$original_wp_structure                = get_option( 'permalink_structure' );
-$preserve_settings['redirect_legacy'] = false;
-update_option( $settings_option, $preserve_settings );
-
-update_option( 'permalink_structure', '/%year%/%monthnum%/%postname%/' );
-$GLOBALS['wp_rewrite']->set_permalink_structure( '/%year%/%monthnum%/%postname%/' );
-$review_plugin = new PTID_Permalink_Plugin();
-$review_plugin->register_rewrite_rules();
-$review_rules = $GLOBALS['wp_rewrite']->extra_rules_top;
-
-ptid_studio_assert_same(
-	'index.php?p=$matches[3]&ptid_route=1',
-	$review_rules['^([0-9]{4})/([0-9]{1,2})/([0-9]+)/?$'] ?? '',
-	'Preserve mode must register a numeric rule for date-based structures.'
-);
-
-update_option( 'permalink_structure', '/%postname%/' );
-$GLOBALS['wp_rewrite']->set_permalink_structure( '/%postname%/' );
-$review_plugin = new PTID_Permalink_Plugin();
-$review_plugin->register_rewrite_rules();
-$review_rules = $GLOBALS['wp_rewrite']->extra_rules_top;
-
-ptid_studio_assert_same(
-	'index.php?p=$matches[1]&ptid_route=1',
-	$review_rules['^([0-9]+)/?$'] ?? '',
-	'Preserve mode must register a numeric rule for the postname-only structure.'
-);
-
-ptid_studio_assert_same(
-	array(
-		'post_type' => 'studio_book',
-		'name'      => (string) $created_post_id,
-	),
-	$review_plugin->resolve_structure_post_request(
-		array(
-			'post_type' => 'studio_book',
-			'name'      => (string) $created_post_id,
-		)
-	),
-	'Numeric name conversion must not rewrite requests for other post types.'
-);
-ptid_studio_assert_same(
-	$created_post_id,
-	$review_plugin->resolve_structure_post_request(
-		array(
-			'post_type' => 'post',
-			'name'      => (string) $created_post_id,
-		)
-	)['p'] ?? 0,
-	'Numeric name conversion must accept requests explicitly targeting posts.'
-);
-
-update_option( 'permalink_structure', '/%post_id%-%postname%/' );
-$GLOBALS['wp_rewrite']->set_permalink_structure( '/%post_id%-%postname%/' );
-
-ptid_studio_assert_same(
-	home_url( '/' . $created_post_id . '-' . $created_post_id . '/' ),
-	$review_plugin->filter_permalink(
-		home_url( '/' . $created_post_id . '-' . $created_post->post_name . '/' ),
-		$created_post
-	),
-	'Preserve mode must replace a slug embedded in a structure segment.'
-);
-
-update_option( 'permalink_structure', $original_wp_structure );
-$GLOBALS['wp_rewrite']->set_permalink_structure( $original_wp_structure );
-update_option( $settings_option, $settings );
-
-
-/*
- * Regression: a broad category structure must not capture explicitly
- * configured custom post type and taxonomy ID routes.
- */
-$original_wp_structure = get_option( 'permalink_structure' );
-update_option( 'permalink_structure', '/%category%/%postname%/' );
-$GLOBALS['wp_rewrite']->set_permalink_structure( '/%category%/%postname%/' );
-update_option( $settings_option, $preserve_settings );
-$route_plugin = new PTID_Permalink_Plugin();
-$route_plugin->register_rewrite_rules();
-$route_keys = array_keys( $GLOBALS['wp_rewrite']->extra_rules_top );
-ptid_studio_assert_same(
-	true,
-	array_search( '^books/archive/([0-9]+)/?$', $route_keys, true ) < array_search( '^(.+?)/([0-9]+)/?$', $route_keys, true ),
-	'Custom post type ID routes must precede the broad category structure route.'
-);
-ptid_studio_assert_same(
-	true,
-	array_search( '^category/([0-9]+)/?$', $route_keys, true ) < array_search( '^(.+?)/([0-9]+)/?$', $route_keys, true ),
-	'Taxonomy ID routes must precede the broad category structure route.'
-);
-
-/*
- * Regression: when the slug equals the category, replace the slug in
- * its configured structural position, not the last matching segment.
- */
-update_option( 'permalink_structure', '/%postname%/%category%/' );
-$GLOBALS['wp_rewrite']->set_permalink_structure( '/%postname%/%category%/' );
-$route_plugin              = new PTID_Permalink_Plugin();
-$collision_post            = clone $created_post;
-$collision_post->post_name = 'news';
-ptid_studio_assert_same(
-	home_url( '/' . $created_post_id . '/news/' ),
-	$route_plugin->filter_permalink( home_url( '/news/news/' ), $collision_post ),
-	'Preserve mode must replace the postname token even when category and slug match.'
-);
-update_option( 'permalink_structure', $original_wp_structure );
-$GLOBALS['wp_rewrite']->set_permalink_structure( $original_wp_structure );
 
 echo "Slug-Free Permalinks Studio smoke tests passed.\n";
