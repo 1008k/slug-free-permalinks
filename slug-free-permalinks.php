@@ -1706,13 +1706,13 @@ final class PTID_Permalink_Plugin {
 				}
 			}
 
-
 			if ( $preserve_posts ) {
 				$structure_rule = $this->build_structure_id_rule();
 				if ( null !== $structure_rule ) {
 					add_rewrite_rule( $prefix_pattern . $structure_rule['pattern'], $structure_rule['query'], 'top' );
 				}
-			}		}
+			}
+		}
 	}
 
 	/**
