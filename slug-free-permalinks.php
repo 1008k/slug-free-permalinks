@@ -101,12 +101,12 @@ final class PTID_Permalink_Plugin {
 		add_filter( 'post_type_link', array( $instance, 'filter_permalink' ), 10, 2 );
 		add_filter( 'term_link', array( $instance, 'filter_term_link' ), 10, 3 );
 		add_filter( 'query_vars', array( $instance, 'register_query_vars' ) );
-		add_filter( 'request', array( $instance, 'resolve_structure_post_request' ) );
 		add_action( 'parse_request', array( $instance, 'resolve_term_request' ) );
 		add_action( 'template_redirect', array( $instance, 'redirect_legacy_permalink' ) );
 		add_action( 'admin_init', array( $instance, 'register_settings' ) );
 		add_action( 'admin_init', array( $instance, 'normalize_stored_settings' ) );
 		add_action( 'admin_menu', array( $instance, 'register_settings_page' ) );
+		add_action( 'admin_post_ptid_migrate_post_structure', array( $instance, 'migrate_post_structure' ) );
 		add_action( 'admin_enqueue_scripts', array( $instance, 'enqueue_admin_assets' ) );
 		add_filter(
 			'plugin_action_links_' . plugin_basename( __FILE__ ),
@@ -161,10 +161,6 @@ final class PTID_Permalink_Plugin {
 			return $post_link;
 		}
 
-		if ( 'post' === $post_context['post_type'] && $this->is_preserve_wp_structure_active() ) {
-			return $this->build_structure_permalink( $post_link, $post_context );
-		}
-
 		$post_type_slug = $this->get_post_type_route_slug( $post_context['post_type'] );
 
 		return $this->build_content_permalink( $post_type_slug, $post_context['ID'], $this->get_polylang_home_url_for_post( $post_context['ID'] ) );
@@ -204,9 +200,9 @@ final class PTID_Permalink_Plugin {
 		$taxonomies = $this->get_enabled_taxonomies();
 		$enabled    = array() !== $post_types || array() !== $taxonomies;
 		$settings   = $this->get_settings();
-		$signature  = $this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled, ! empty( $settings['redirect_legacy'] ), ! empty( $settings['preserve_wp_structure'] ) );
+		$signature  = $this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled, ! empty( $settings['redirect_legacy'] ) );
 
-		$this->register_rewrite_rules_for( $structure, $post_types, $taxonomies, $enabled, ! empty( $settings['redirect_legacy'] ), ! empty( $settings['preserve_wp_structure'] ) );
+		$this->register_rewrite_rules_for( $structure, $post_types, $taxonomies, $enabled, ! empty( $settings['redirect_legacy'] ) );
 		$this->rewrite_rules_registered = true;
 
 		if (
@@ -297,41 +293,6 @@ final class PTID_Permalink_Plugin {
 		}
 	}
 
-	/**
-	 * Resolves a numeric post segment in a structure permalink to its post ID.
-	 *
-	 * WordPress maps the %postname% segment of the configured permalink
-	 * structure to the name query variable. When the segment is a post ID,
-	 * resolve it directly so structure-based ID URLs work without a slug.
-	 *
-	 * @param array $query_vars Matched rewrite query variables.
-	 * @return array Filtered query variables.
-	 */
-	public function resolve_structure_post_request( array $query_vars ): array {
-		if ( ! $this->is_feature_enabled() || ! $this->is_preserve_wp_structure_active() ) {
-			return $query_vars;
-		}
-
-		$requested_post_type = $query_vars['post_type'] ?? '';
-		if ( is_string( $requested_post_type ) && '' !== $requested_post_type && 'post' !== $requested_post_type ) {
-			return $query_vars;
-		}
-
-		$name = $query_vars['name'] ?? '';
-		if ( ! is_string( $name ) || ! ctype_digit( $name ) ) {
-			return $query_vars;
-		}
-
-		$post = get_post( (int) $name );
-		if ( ! ( $post instanceof WP_Post ) || 'post' !== $post->post_type ) {
-			return $query_vars;
-		}
-
-		unset( $query_vars['name'] );
-		$query_vars['p'] = (int) $name;
-
-		return $query_vars;
-	}
 
 	/**
 	 * Registers the plugin setting and its sanitizer.
@@ -369,8 +330,7 @@ final class PTID_Permalink_Plugin {
 				$normalized['post_types'],
 				$normalized['taxonomies'],
 				$this->has_enabled_targets( $normalized ),
-				$normalized['redirect_legacy'],
-				$normalized['preserve_wp_structure']
+				$normalized['redirect_legacy']
 			);
 			flush_rewrite_rules();
 			$this->prime_settings_cache( $normalized );
@@ -389,6 +349,41 @@ final class PTID_Permalink_Plugin {
 			self::MENU_SLUG,
 			array( $this, 'render_settings_page' )
 		);
+	}
+
+	/**
+	 * Moves regular post URL handling to the WordPress permalink setting.
+	 */
+	public function migrate_post_structure(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to change permalink settings.', 'slug-free-permalinks' ) );
+		}
+
+		check_admin_referer( 'ptid_migrate_post_structure' );
+
+		$settings = $this->get_settings();
+		if ( ! in_array( 'post', $settings['post_types'], true ) ) {
+			wp_safe_redirect( admin_url( 'options-general.php?page=' . self::MENU_SLUG ) );
+			exit;
+		}
+
+		$structure = '/' . user_trailingslashit(
+			'hyphen' === $settings['structure'] ? 'post-%post_id%' : 'post/%post_id%',
+			'single'
+		);
+
+		global $wp_rewrite;
+		$wp_rewrite->set_permalink_structure( $structure );
+
+		$settings['post_types'] = array_values( array_diff( $settings['post_types'], array( 'post' ) ) );
+		update_option( self::OPTION_NAME, $settings );
+		$this->prime_settings_cache( $settings );
+		$this->register_rewrite_rules();
+		flush_rewrite_rules();
+		$this->persist_rewrite_state();
+
+		wp_safe_redirect( admin_url( 'options-general.php?page=' . self::MENU_SLUG ) );
+		exit;
 	}
 
 	/**
@@ -453,7 +448,6 @@ final class PTID_Permalink_Plugin {
 				array_keys( $this->get_available_taxonomies() )
 			),
 			'redirect_legacy'       => ! empty( $input['redirect_legacy'] ),
-			'preserve_wp_structure' => ! empty( $input['preserve_wp_structure'] ),
 		);
 		$conflicts = $this->get_route_slug_conflicts( $settings['post_types'], $settings['taxonomies'] );
 
@@ -469,8 +463,7 @@ final class PTID_Permalink_Plugin {
 				$settings['post_types'],
 				$settings['taxonomies'],
 				$this->has_enabled_targets( $settings ),
-				$settings['redirect_legacy'],
-				$settings['preserve_wp_structure']
+				$settings['redirect_legacy']
 			);
 			flush_rewrite_rules();
 		}
@@ -504,13 +497,6 @@ final class PTID_Permalink_Plugin {
 			'hyphen' === $settings['structure'] ? 'post-%post_id%' : 'post/%post_id%',
 			'single'
 		);
-		if ( ! empty( $settings['preserve_wp_structure'] ) && $post_enabled ) {
-			$wp_permalink_structure = '/' . user_trailingslashit(
-				ltrim( str_replace( '%postname%', '%post_id%', (string) get_option( 'permalink_structure' ) ), '/' ),
-				'single'
-			);
-		}
-		$preserve_available = $this->wp_structure_supports_preserve_mode();
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'Slug-Free Permalinks', 'slug-free-permalinks' ); ?></h1>
@@ -538,28 +524,6 @@ final class PTID_Permalink_Plugin {
 									<?php echo esc_html__( '{type} is replaced with the post type or taxonomy rewrite slug.', 'slug-free-permalinks' ); ?>
 									<?php echo esc_html__( ' Example: /post/123/ or /post-123/.', 'slug-free-permalinks' ); ?>
 								</p>
-							</td>
-						</tr>
-						<tr>
-							<th scope="row"><?php echo esc_html__( 'Regular posts structure', 'slug-free-permalinks' ); ?></th>
-							<td>
-								<label>
-									<input
-										name="<?php echo esc_attr( self::OPTION_NAME ); ?>[preserve_wp_structure]"
-										type="checkbox"
-										value="1"
-									<?php checked( ! empty( $settings['preserve_wp_structure'] ) ); ?>
-									/>
-								<?php echo esc_html__( 'Keep the WordPress permalink structure for regular posts and replace only the slug with the post ID.', 'slug-free-permalinks' ); ?>
-								</label>
-								<p class="description">
-									<?php echo esc_html__( 'Applies only when Post is selected as a target post type. The permalink format above does not apply to regular posts while this is on. Example: with /%year%/%monthnum%/%postname%/, a post URL becomes /2026/10/123/.', 'slug-free-permalinks' ); ?>
-								</p>
-								<?php if ( ! $preserve_available ) : ?>
-								<p class="description">
-									<strong><?php echo esc_html__( 'The current WordPress permalink structure does not contain %postname%, so this option currently has no effect.', 'slug-free-permalinks' ); ?></strong>
-								</p>
-								<?php endif; ?>
 							</td>
 						</tr>
 						<tr>
@@ -649,6 +613,14 @@ final class PTID_Permalink_Plugin {
 								<a class="button" href="<?php echo esc_url( admin_url( 'options-permalink.php' ) ); ?>">
 									<?php echo esc_html__( 'Open Permalink Settings', 'slug-free-permalinks' ); ?>
 								</a>
+							</p>
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+								<input type="hidden" name="action" value="ptid_migrate_post_structure" />
+								<?php wp_nonce_field( 'ptid_migrate_post_structure' ); ?>
+								<?php submit_button( __( 'Migrate regular posts to WordPress permalinks', 'slug-free-permalinks' ), 'secondary', 'submit', false ); ?>
+							</form>
+							<p class="description">
+								<?php echo esc_html__( 'This explicitly sets the WordPress permalink structure above and stops plugin URL rewriting for regular posts. Back up your site and check for URL conflicts before proceeding. Custom post types and taxonomies keep their plugin settings.', 'slug-free-permalinks' ); ?>
 							</p>
 						<?php endif; ?>
 
@@ -803,7 +775,6 @@ final class PTID_Permalink_Plugin {
 			'post_types'            => array(),
 			'taxonomies'            => array(),
 			'redirect_legacy'       => false,
-			'preserve_wp_structure' => false,
 		);
 	}
 
@@ -1075,7 +1046,6 @@ final class PTID_Permalink_Plugin {
 				array_keys( $this->get_available_taxonomies() )
 			),
 			'redirect_legacy'       => ! empty( $settings['redirect_legacy'] ),
-			'preserve_wp_structure' => ! empty( $settings['preserve_wp_structure'] ),
 		);
 	}
 
@@ -1106,203 +1076,6 @@ final class PTID_Permalink_Plugin {
 		);
 	}
 
-	/**
-	 * Determines whether the preserve-structure option is switched on for posts.
-	 *
-	 * @param array $settings Normalized settings.
-	 * @return bool Whether the option applies to regular posts.
-	 */
-	private function is_preserve_mode_applicable( array $settings ): bool {
-		return ! empty( $settings['preserve_wp_structure'] )
-			&& in_array( 'post', $settings['post_types'], true )
-			&& $this->wp_structure_supports_preserve_mode();
-	}
-
-	/**
-	 * Determines whether regular posts keep the WordPress permalink structure.
-	 *
-	 * @return bool Whether structure-preserving post permalinks are active.
-	 */
-	private function is_preserve_wp_structure_active(): bool {
-		return $this->is_preserve_mode_applicable( $this->get_settings() );
-	}
-
-	/**
-	 * Determines whether the site permalink structure can keep its shape.
-	 *
-	 * The slug can only be replaced when the structure contains %postname%.
-	 *
-	 * @return bool Whether the structure contains %postname%.
-	 */
-	private function wp_structure_supports_preserve_mode(): bool {
-		return false !== strpos( (string) get_option( 'permalink_structure' ), '%postname%' );
-	}
-
-	/**
-	 * Splits a permalink structure segment into literal and tag tokens.
-	 *
-	 * @param string $segment Structure segment.
-	 * @return array Tokens; tag tokens keep their %tag% spelling.
-	 */
-	private function split_structure_segment( string $segment ): array {
-		$tokens = preg_split( '/(%[a-z_]+%)/', $segment, -1, PREG_SPLIT_DELIM_CAPTURE );
-
-		return is_array( $tokens ) ? $tokens : array( $segment );
-	}
-
-	/**
-	 * Returns the regular expression fragment for a structure tag.
-	 *
-	 * @param string $tag       Structure tag such as %year%.
-	 * @param bool   $capturing Whether the fragment captures its match.
-	 * @return string Regular expression fragment without delimiters.
-	 */
-	private function get_structure_tag_pattern( string $tag, bool $capturing ): string {
-		$pattern = '';
-
-		switch ( $tag ) {
-			case '%year%':
-				$pattern = '[0-9]{4}';
-				break;
-			case '%monthnum%':
-			case '%day%':
-			case '%hour%':
-			case '%minute%':
-			case '%second%':
-				$pattern = '[0-9]{1,2}';
-				break;
-			case '%post_id%':
-			case '%postname%':
-				$pattern = '[0-9]+';
-				break;
-			case '%category%':
-				$pattern = '.+?';
-				break;
-			default:
-				$pattern = '[^/]+';
-				break;
-		}
-
-		return $capturing ? '(' . $pattern . ')' : '(?:' . $pattern . ')';
-	}
-
-	/**
-	 * Replaces the slug in a WordPress structure permalink with the post ID.
-	 *
-	 * The URL segment that holds the slug is located through the segment
-	 * template of the configured structure, so structures that embed
-	 * %postname% inside a segment (such as %post_id%-%postname%) work too.
-	 *
-	 * @param string $post_link    WordPress-generated permalink.
-	 * @param array  $post_context Post permalink context.
-	 * @return string Structure-preserving ID permalink.
-	 */
-	private function build_structure_permalink( string $post_link, array $post_context ): string {
-		if ( false !== strpos( $post_link, '%postname%' ) ) {
-			return str_replace( '%postname%', (string) $post_context['ID'], $post_link );
-		}
-
-		$slug = (string) ( $post_context['post_name'] ?? '' );
-		if ( '' === $slug ) {
-			return $post_link;
-		}
-
-		$parts = wp_parse_url( $post_link );
-		if ( ! is_array( $parts ) || empty( $parts['path'] ) ) {
-			return $post_link;
-		}
-
-		$path_pattern = $this->get_structure_slug_segment_pattern();
-		if ( '' === $path_pattern ) {
-			return $post_link;
-		}
-
-		$original_path = (string) $parts['path'];
-		if ( 1 !== preg_match( $path_pattern, $original_path, $matches, PREG_OFFSET_CAPTURE )
-			|| ! isset( $matches['slug'] )
-			|| $matches['slug'][0] !== $slug
-		) {
-			return $post_link;
-		}
-
-		$parts['path'] = substr_replace( $original_path, (string) $post_context['ID'], $matches['slug'][1], strlen( $slug ) );
-
-		return $this->build_url_from_parts( $parts );
-	}
-
-	/**
-	 * Builds a pattern matching the structure segment that holds the slug.
-	 *
-	 * The slug is exposed as the named capture group "slug"; every other
-	 * structure tag matches without capturing.
-	 *
-	 * @return string Segment pattern with delimiters, or an empty string.
-	 */
-	private function get_structure_slug_segment_pattern(): string {
-		$structure = trim( (string) get_option( 'permalink_structure' ), '/' );
-		if ( false === strpos( $structure, '%postname%' ) ) {
-			return '';
-		}
-
-		$pattern = '';
-		foreach ( $this->split_structure_segment( $structure ) as $token ) {
-			if ( '%postname%' === $token ) {
-				$pattern .= '(?P<slug>[^/]+)';
-			} elseif ( 1 === preg_match( '/^%[a-z_]+%$/', $token ) ) {
-				$pattern .= $this->get_structure_tag_pattern( $token, false );
-			} else {
-				$pattern .= preg_quote( $token, '#' );
-			}
-		}
-
-		return '#(?:^|/)' . $pattern . '/?$#';
-	}
-
-	/**
-	 * Builds a numeric-only rewrite rule for structure-based post URLs.
-	 *
-	 * WordPress evaluates its date archive rules before its post rules, so a
-	 * numeric slug segment can be claimed by an archive rule (a date-shaped
-	 * structure, or a four-digit ID under /%postname%/). This rule resolves
-	 * the numeric form directly to the post ID at top priority.
-	 *
-	 * @return array|null Pattern body and query, or null when unavailable.
-	 */
-	private function build_structure_id_rule(): ?array {
-		$structure = trim( (string) get_option( 'permalink_structure' ), '/' );
-		if ( '' === $structure || false === strpos( $structure, '%postname%' ) ) {
-			return null;
-		}
-
-		$group_count   = 0;
-		$id_group      = 0;
-		$pattern_parts = array();
-
-		foreach ( explode( '/', $structure ) as $segment ) {
-			$pattern = '';
-			foreach ( $this->split_structure_segment( $segment ) as $token ) {
-				if ( 1 === preg_match( '/^%[a-z_]+%$/', $token ) ) {
-					$pattern .= $this->get_structure_tag_pattern( $token, true );
-					++$group_count;
-					if ( '%postname%' === $token ) {
-						$id_group = $group_count;
-					}
-				} else {
-					$pattern .= preg_quote( $token, '#' );
-				}
-			}
-			$pattern_parts[] = $pattern;
-		}
-
-		if ( 0 === $id_group ) {
-			return null;
-		}
-
-		return array(
-			'pattern' => implode( '/', $pattern_parts ) . '/?$',
-			'query'   => 'index.php?p=$matches[' . $id_group . ']&' . self::REWRITE_MARKER,
-		);
-	}
 
 	/**
 	 * Builds an ID-based path segment.
@@ -1654,9 +1427,8 @@ final class PTID_Permalink_Plugin {
 	 * @param array  $taxonomies             Enabled taxonomy names.
 	 * @param bool   $enabled                Whether routing is enabled.
 	 * @param bool   $redirect_legacy        Whether legacy redirects are enabled.
-	 * @param bool   $preserve_wp_structure  Whether posts keep the WordPress structure.
-	 */
-	private function register_rewrite_rules_for( string $structure, array $post_types, array $taxonomies, bool $enabled, bool $redirect_legacy = false, bool $preserve_wp_structure = false ): void {
+		 */
+	private function register_rewrite_rules_for( string $structure, array $post_types, array $taxonomies, bool $enabled, bool $redirect_legacy = false ): void {
 		$this->remove_plugin_rewrite_rules();
 
 		if ( ! $enabled ) {
@@ -1665,10 +1437,6 @@ final class PTID_Permalink_Plugin {
 
 		$current_separator = 'hyphen' === $structure ? '-' : '/';
 		$legacy_separator  = 'hyphen' === $structure ? '/' : '-';
-		$preserve_posts    = $preserve_wp_structure
-			&& in_array( 'post', $post_types, true )
-			&& $this->wp_structure_supports_preserve_mode();
-
 		foreach ( $this->get_rewrite_path_prefixes() as $path_prefix ) {
 			$prefix_pattern = '^';
 			if ( '' !== $path_prefix ) {
@@ -1678,14 +1446,6 @@ final class PTID_Permalink_Plugin {
 			foreach ( $post_types as $post_type ) {
 				$route_slug = preg_quote( $this->get_post_type_route_slug( $post_type ), '#' );
 				$query      = 'index.php?post_type=' . $post_type . '&p=$matches[1]&' . self::REWRITE_MARKER;
-
-				if ( $preserve_posts && 'post' === $post_type ) {
-					if ( $redirect_legacy ) {
-						add_rewrite_rule( $prefix_pattern . $route_slug . '/([0-9]+)/?$', $query, 'top' );
-						add_rewrite_rule( $prefix_pattern . $route_slug . '-([0-9]+)/?$', $query, 'top' );
-					}
-					continue;
-				}
 
 				add_rewrite_rule( $prefix_pattern . $route_slug . $current_separator . '([0-9]+)/?$', $query, 'top' );
 
@@ -1705,12 +1465,7 @@ final class PTID_Permalink_Plugin {
 				}
 			}
 
-			if ( $preserve_posts ) {
-				$structure_rule = $this->build_structure_id_rule();
-				if ( null !== $structure_rule ) {
-					add_rewrite_rule( $prefix_pattern . $structure_rule['pattern'], $structure_rule['query'], 'top' );
-				}
-			}
+
 		}
 	}
 
@@ -1741,10 +1496,9 @@ final class PTID_Permalink_Plugin {
 	 * @param array  $taxonomies Enabled taxonomy names.
 	 * @param bool   $enabled                Whether routing is enabled.
 	 * @param bool   $redirect_legacy        Whether legacy redirects are enabled.
-	 * @param bool   $preserve_wp_structure  Whether posts keep the WordPress structure.
-	 * @return string Rewrite signature.
+		 * @return string Rewrite signature.
 	 */
-	private function build_rewrite_signature( string $structure, array $post_types, array $taxonomies, bool $enabled, bool $redirect_legacy = false, bool $preserve_wp_structure = false ): string {
+	private function build_rewrite_signature( string $structure, array $post_types, array $taxonomies, bool $enabled, bool $redirect_legacy = false ): string {
 		$post_routes = array();
 		foreach ( $post_types as $post_type ) {
 			$post_routes[ $post_type ] = $this->get_post_type_route_slug( $post_type );
@@ -1760,7 +1514,6 @@ final class PTID_Permalink_Plugin {
 				'structure'             => $structure,
 				'enabled'               => $enabled,
 				'redirect_legacy'       => $redirect_legacy,
-				'preserve_wp_structure' => $preserve_wp_structure,
 				'post_routes'           => $post_routes,
 				'taxonomy_routes'       => $taxonomy_routes,
 				'path_prefixes'         => $this->get_rewrite_path_prefixes(),
@@ -1781,7 +1534,7 @@ final class PTID_Permalink_Plugin {
 		update_option( self::REWRITE_MARKER_VERSION_OPTION, self::REWRITE_MARKER_VERSION, true );
 		update_option(
 			self::REWRITE_SIGNATURE_OPTION,
-			$this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled, ! empty( $settings['redirect_legacy'] ), ! empty( $settings['preserve_wp_structure'] ) ),
+			$this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled, ! empty( $settings['redirect_legacy'] ) ),
 			true
 		);
 	}
@@ -1801,7 +1554,6 @@ final class PTID_Permalink_Plugin {
 			&& (
 				0 === strpos( $query, 'index.php?ptid_taxonomy=' )
 				|| 0 === strpos( $query, 'index.php?post_type=' )
-				|| 0 === strpos( $query, 'index.php?p=' )
 			);
 	}
 
