@@ -361,10 +361,19 @@ final class PTID_Permalink_Plugin {
 
 		check_admin_referer( 'ptid_migrate_post_structure' );
 
+		$this->apply_post_structure_migration();
+
+		wp_safe_redirect( admin_url( 'options-general.php?page=' . self::MENU_SLUG ) );
+		exit;
+	}
+
+	/**
+	 * Applies the explicitly requested migration while keeping custom targets.
+	 */
+	private function apply_post_structure_migration(): void {
 		$settings = $this->get_settings();
 		if ( ! in_array( 'post', $settings['post_types'], true ) ) {
-			wp_safe_redirect( admin_url( 'options-general.php?page=' . self::MENU_SLUG ) );
-			exit;
+			return;
 		}
 
 		$structure = '/' . user_trailingslashit(
@@ -381,9 +390,6 @@ final class PTID_Permalink_Plugin {
 		$this->register_rewrite_rules();
 		flush_rewrite_rules();
 		$this->persist_rewrite_state();
-
-		wp_safe_redirect( admin_url( 'options-general.php?page=' . self::MENU_SLUG ) );
-		exit;
 	}
 
 	/**
