@@ -438,16 +438,16 @@ final class PTID_Permalink_Plugin {
 		$previous = $this->get_settings();
 
 		$settings  = array(
-			'structure'             => $this->sanitize_structure( $input['structure'] ?? '' ),
-			'post_types'            => $this->sanitize_enabled_items(
+			'structure'       => $this->sanitize_structure( $input['structure'] ?? '' ),
+			'post_types'      => $this->sanitize_enabled_items(
 				$input['post_types'] ?? array(),
 				array_keys( $this->get_available_post_types() )
 			),
-			'taxonomies'            => $this->sanitize_enabled_items(
+			'taxonomies'      => $this->sanitize_enabled_items(
 				$input['taxonomies'] ?? array(),
 				array_keys( $this->get_available_taxonomies() )
 			),
-			'redirect_legacy'       => ! empty( $input['redirect_legacy'] ),
+			'redirect_legacy' => ! empty( $input['redirect_legacy'] ),
 		);
 		$conflicts = $this->get_route_slug_conflicts( $settings['post_types'], $settings['taxonomies'] );
 
@@ -771,10 +771,10 @@ final class PTID_Permalink_Plugin {
 	 */
 	private static function default_settings(): array {
 		return array(
-			'structure'             => 'slash',
-			'post_types'            => array(),
-			'taxonomies'            => array(),
-			'redirect_legacy'       => false,
+			'structure'       => 'slash',
+			'post_types'      => array(),
+			'taxonomies'      => array(),
+			'redirect_legacy' => false,
 		);
 	}
 
@@ -1036,16 +1036,16 @@ final class PTID_Permalink_Plugin {
 		$defaults = self::default_settings();
 
 		return array(
-			'structure'             => $this->sanitize_structure( $settings['structure'] ?? $defaults['structure'] ),
-			'post_types'            => $this->sanitize_enabled_items(
+			'structure'       => $this->sanitize_structure( $settings['structure'] ?? $defaults['structure'] ),
+			'post_types'      => $this->sanitize_enabled_items(
 				$settings['post_types'] ?? $defaults['post_types'],
 				array_keys( $this->get_available_post_types() )
 			),
-			'taxonomies'            => $this->sanitize_enabled_items(
+			'taxonomies'      => $this->sanitize_enabled_items(
 				$settings['taxonomies'] ?? $defaults['taxonomies'],
 				array_keys( $this->get_available_taxonomies() )
 			),
-			'redirect_legacy'       => ! empty( $settings['redirect_legacy'] ),
+			'redirect_legacy' => ! empty( $settings['redirect_legacy'] ),
 		);
 	}
 
@@ -1464,8 +1464,6 @@ final class PTID_Permalink_Plugin {
 					add_rewrite_rule( $prefix_pattern . $route_slug . $legacy_separator . '([0-9]+)/?$', $query, 'top' );
 				}
 			}
-
-
 		}
 	}
 
@@ -1511,12 +1509,12 @@ final class PTID_Permalink_Plugin {
 
 		return (string) wp_json_encode(
 			array(
-				'structure'             => $structure,
-				'enabled'               => $enabled,
-				'redirect_legacy'       => $redirect_legacy,
-				'post_routes'           => $post_routes,
-				'taxonomy_routes'       => $taxonomy_routes,
-				'path_prefixes'         => $this->get_rewrite_path_prefixes(),
+				'structure'       => $structure,
+				'enabled'         => $enabled,
+				'redirect_legacy' => $redirect_legacy,
+				'post_routes'     => $post_routes,
+				'taxonomy_routes' => $taxonomy_routes,
+				'path_prefixes'   => $this->get_rewrite_path_prefixes(),
 			)
 		);
 	}
