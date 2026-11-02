@@ -1256,7 +1256,6 @@ final class PTID_Permalink_Plugin {
 		}
 
 		return '#(?:^|/)' . $pattern . '/?$#';
-
 	}
 
 	/**
