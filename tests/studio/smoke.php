@@ -745,16 +745,12 @@ $route_plugin->register_rewrite_rules();
 $route_keys = array_keys( $GLOBALS['wp_rewrite']->extra_rules_top );
 ptid_studio_assert_same(
 	true,
-	array_search( '^books/archive/([0-9]+)/?$',
- $route_keys, true ) < array_search( '^(.+?)/([0-9]+)/?$',
- $route_keys, true ),
+	array_search( '^books/archive/([0-9]+)/?$', $route_keys, true ) < array_search( '^(.+?)/([0-9]+)/?$', $route_keys, true ),
 	'Custom post type ID routes must precede the broad category structure route.'
 );
 ptid_studio_assert_same(
 	true,
-	array_search( '^category/([0-9]+)/?$',
- $route_keys, true ) < array_search( '^(.+?)/([0-9]+)/?$',
- $route_keys, true ),
+	array_search( '^category/([0-9]+)/?$', $route_keys, true ) < array_search( '^(.+?)/([0-9]+)/?$', $route_keys, true ),
 	'Taxonomy ID routes must precede the broad category structure route.'
 );
 
