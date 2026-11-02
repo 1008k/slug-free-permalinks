@@ -4,9 +4,9 @@
 
 ## [2.0.0]
 
-- Add an option for regular posts to keep the WordPress permalink structure and replace only the slug with the post ID.
+- Add an explicit migration from regular post ID URLs to native WordPress permalink settings.
 - While legacy redirects are enabled, URLs in the non-selected ID format (slash or hyphen) now redirect to the current format.
-- Show the matching WordPress structure in the pre-deactivation guidance when the structure option is used for regular posts.
+- Add a native permalink migration action to the pre-deactivation guide.
 
 ## [1.7.0]
 
