@@ -91,10 +91,10 @@ register_taxonomy(
 );
 
 $settings = array(
-	'structure'             => 'slash',
-	'post_types'            => array( 'post', 'studio_book' ),
-	'taxonomies'            => array( 'category', 'studio_genre' ),
-	'redirect_legacy'       => true,
+	'structure'       => 'slash',
+	'post_types'      => array( 'post', 'studio_book' ),
+	'taxonomies'      => array( 'category', 'studio_genre' ),
+	'redirect_legacy' => true,
 );
 
 update_option( $settings_option, $settings );
@@ -429,11 +429,11 @@ $read_only_plugin->normalize_stored_settings();
 
 ptid_studio_assert_same(
 	array(
-		'structure'             => 'slash',
-		'post_types'            => array(),
-		'taxonomies'            => array( 'category' ),
-		'redirect_legacy'       => false,
-		),
+		'structure'       => 'slash',
+		'post_types'      => array(),
+		'taxonomies'      => array( 'category' ),
+		'redirect_legacy' => false,
+	),
 	get_option( $settings_option ),
 	'Admin-side normalization must persist the normalized settings.'
 );
@@ -452,11 +452,11 @@ $read_only_plugin->normalize_stored_settings();
 
 ptid_studio_assert_same(
 	array(
-		'structure'             => 'slash',
-		'post_types'            => array(),
-		'taxonomies'            => array(),
-		'redirect_legacy'       => false,
-		),
+		'structure'       => 'slash',
+		'post_types'      => array(),
+		'taxonomies'      => array(),
+		'redirect_legacy' => false,
+	),
 	get_option( $settings_option ),
 	'Admin-side normalization must disable stored content types with conflicting rewrite slugs.'
 );
@@ -488,11 +488,11 @@ $read_only_plugin->normalize_stored_settings();
 
 ptid_studio_assert_same(
 	array(
-		'structure'             => 'slash',
-		'post_types'            => array( 'post' ),
-		'taxonomies'            => array( 'category' ),
-		'redirect_legacy'       => false,
-		),
+		'structure'       => 'slash',
+		'post_types'      => array( 'post' ),
+		'taxonomies'      => array( 'category' ),
+		'redirect_legacy' => false,
+	),
 	get_option( $settings_option ),
 	'Admin-side normalization must discard unavailable content types.'
 );
@@ -507,10 +507,10 @@ ptid_studio_assert_same(
  * are enabled, so format switches can redirect to the canonical URL.
  */
 $alternate_settings = array(
-	'structure'             => 'slash',
-	'post_types'            => array( 'post' ),
-	'taxonomies'            => array( 'category' ),
-	'redirect_legacy'       => true,
+	'structure'       => 'slash',
+	'post_types'      => array( 'post' ),
+	'taxonomies'      => array( 'category' ),
+	'redirect_legacy' => true,
 );
 update_option( $settings_option, $alternate_settings );
 $alternate_plugin = new PTID_Permalink_Plugin();
