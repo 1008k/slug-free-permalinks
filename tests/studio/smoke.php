@@ -760,9 +760,9 @@ ptid_studio_assert_same(
  */
 update_option( 'permalink_structure', '/%postname%/%category%/' );
 $GLOBALS['wp_rewrite']->set_permalink_structure( '/%postname%/%category%/' );
-$route_plugin = new PTID_Permalink_Plugin();
-$collision_post            = clone $created_post;
-$collision_post->post_name = 'news';
+$route_plugin               = new PTID_Permalink_Plugin();
+$collision_post             = clone $created_post;
+$collision_post->post_name  = 'news';
 ptid_studio_assert_same(
 	home_url( '/' . $created_post_id . '/news/' ),
 	$route_plugin->filter_permalink( home_url( '/news/news/' ), $collision_post ),
