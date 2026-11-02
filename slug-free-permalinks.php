@@ -1494,7 +1494,7 @@ final class PTID_Permalink_Plugin {
 	 * @param array  $taxonomies Enabled taxonomy names.
 	 * @param bool   $enabled                Whether routing is enabled.
 	 * @param bool   $redirect_legacy        Whether legacy redirects are enabled.
-		 * @return string Rewrite signature.
+	 * @return string Rewrite signature.
 	 */
 	private function build_rewrite_signature( string $structure, array $post_types, array $taxonomies, bool $enabled, bool $redirect_legacy = false ): string {
 		$post_routes = array();
