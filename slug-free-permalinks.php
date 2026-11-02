@@ -1417,17 +1417,15 @@ final class PTID_Permalink_Plugin {
 	 * Registers rewrite rules for configured content types.
 	 *
 	 * The non-selected ID format is also registered while legacy redirects
-	 * are enabled, so requests in the previous format resolve and can be
-	 * redirected to the canonical URL. Regular posts in preserve-structure
-	 * mode resolve through WordPress rules instead; both plugin formats are
-	 * then registered only as legacy redirect sources.
+	 * are enabled, so requests in the previous format can be redirected
+	 * to the canonical URL.
 	 *
 	 * @param string $structure              Permalink structure name.
 	 * @param array  $post_types             Enabled post type names.
 	 * @param array  $taxonomies             Enabled taxonomy names.
 	 * @param bool   $enabled                Whether routing is enabled.
 	 * @param bool   $redirect_legacy        Whether legacy redirects are enabled.
-		 */
+	 */
 	private function register_rewrite_rules_for( string $structure, array $post_types, array $taxonomies, bool $enabled, bool $redirect_legacy = false ): void {
 		$this->remove_plugin_rewrite_rules();
 
