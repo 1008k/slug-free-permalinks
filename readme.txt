@@ -37,12 +37,12 @@ What you can configure:
 * Choose slash or hyphen based ID permalink format
 * Optionally redirect legacy slug URLs to the current ID-based permalink when WordPress can resolve the request
 * Preserve Polylang language URLs using the language home URLs Polylang actually exposes
-* Keep the WordPress permalink structure for regular posts and replace only the slug with the post ID
+* Explicitly migrate regular post ID URLs to WordPress's native permalink settings
 * Flush rewrite rules automatically when settings change
 
 == A focused, predictable change ==
 
-Legacy slug redirects are optional and only run when WordPress can already resolve the request. While legacy redirects are enabled, URLs written in the non-selected ID format also resolve and redirect to the current format, and the previous plugin formats redirect to structure-based post URLs when the structure option is used. Slug-Free Permalinks does not guess at every 404, so it avoids turning an ID-based permalink plugin into a site-wide slug lookup system.
+Legacy slug redirects are optional and only run when WordPress can already resolve the request. While legacy redirects are enabled, URLs written in the non-selected ID format also resolve and redirect to the current format, without changing the WordPress permalink structure until migration. Slug-Free Permalinks does not guess at every 404, so it avoids turning an ID-based permalink plugin into a site-wide slug lookup system.
 
 The plugin is intended for new sites, structured-content sites, or projects that are still defining a permalink policy.
 
@@ -58,7 +58,6 @@ Known limitations:
 
 * The settings screen rejects selected post types or taxonomies with identical registered rewrite slugs.
 * Only path prefixes exposed by Polylang language home URLs are registered as prefixed ID routes; arbitrary prefixes are not accepted.
-* With the structure option, numeric URL segments are resolved as post IDs, so a regular post whose slug consists only of numbers cannot be reached through its slug URL.
 
 == Installation ==
 
@@ -110,23 +109,19 @@ Yes. Polylang integration uses the language home URL returned by Polylang instea
 
 For example, when Polylang exposes `/en/` as a language path, the plugin registers `/en/post/123/` and `/en/category/45/` alongside the base routes. Domain-based or query-based language modes continue to use the URL returned by Polylang without inventing an extra path prefix.
 
-= Can I keep my permalink structure and only drop the slug? =
+= Can I move regular post ID URLs to WordPress native permalinks? =
 
-Yes, for regular posts. Enable the structure option on the settings screen and the plugin keeps your WordPress permalink structure, replacing only the slug portion with the post ID. For example, `/%year%/%monthnum%/%postname%/` produces `/2026/10/123/`. The structure must contain `%postname%`. Custom post types and taxonomies keep using the plugin ID formats.
-
-= How is the structure option different from using %post_id% in WordPress settings? =
-
-WordPress can already build ID URLs when you edit the permalink structure itself. The plugin option leaves your structure setting untouched, applies only to the regular posts you selected, and keeps the plugin behavior for other post types and taxonomies, including legacy redirects and the deactivation guidance.
+Yes. Use the explicit migration action in the plugin settings. It sets WordPress's native `%post_id%` permalink structure while preserving the current slash or hyphen form, then deselects regular posts from plugin routing. Custom post types and taxonomies retain their plugin configuration.
 
 = What happens to old URLs when I switch between /post/123/ and /post-123/? =
 
-When legacy redirects are enabled, the non-selected format also resolves and redirects to the current format with a 301 redirect. The same applies when regular posts move between the plugin formats and the structure option.
+When legacy redirects are enabled, the non-selected format also resolves and redirects to the current format with a 301 redirect. The plugin does not change WordPress native permalink settings until you explicitly migrate regular posts.
 
 = How can I deactivate the plugin without changing regular post URLs? =
 
 When regular posts are enabled, the settings screen shows the equivalent WordPress Custom Structure for the current ID URL format. The displayed value follows the site's current trailing-slash policy.
 
-Copy that value to `Settings > Permalinks` before deactivating the plugin. Slug-Free Permalinks does not change WordPress permalink settings automatically.
+Use the migration action to apply that structure and disable plugin routing for regular posts, or copy the value to `Settings > Permalinks` and deselect regular posts manually. Standard WordPress permalink settings are not changed automatically during updates.
 
 Custom post types and taxonomies have their own rewrite settings and need to be checked separately before deactivation.
 
@@ -138,9 +133,9 @@ Custom post types and taxonomies have their own rewrite settings and need to be 
 
 = 2.0.0 =
 
-* Add an option for regular posts to keep the WordPress permalink structure and replace only the slug with the post ID.
+* Add an explicit migration of regular post ID URLs to native WordPress permalink settings.
 * While legacy redirects are enabled, URLs in the non-selected ID format (slash or hyphen) now redirect to the current format.
-* Show the matching WordPress structure in the pre-deactivation guidance when the structure option is used for regular posts.
+* Offer direct migration of regular posts from the deactivation guide.
 
 = 1.7.0 =
 
