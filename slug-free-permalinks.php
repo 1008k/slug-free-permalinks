@@ -1212,34 +1212,20 @@ final class PTID_Permalink_Plugin {
 			return $post_link;
 		}
 
-		$segment_pattern = $this->get_structure_slug_segment_pattern();
-		if ( '' === $segment_pattern ) {
+		$path_pattern = $this->get_structure_slug_segment_pattern();
+		if ( '' === $path_pattern ) {
 			return $post_link;
 		}
 
 		$original_path = (string) $parts['path'];
-		$segments      = explode( '/', trim( $original_path, '/' ) );
-		$replaced      = false;
-
-		for ( $index = count( $segments ) - 1; 0 <= $index; $index-- ) {
-			if ( 1 !== preg_match( $segment_pattern, $segments[ $index ], $matches, PREG_OFFSET_CAPTURE ) ) {
-				continue;
-			}
-
-			if ( ! isset( $matches['slug'] ) || $matches['slug'][0] !== $slug ) {
-				continue;
-			}
-
-			$segments[ $index ] = substr_replace( $segments[ $index ], (string) $post_context['ID'], $matches['slug'][1], strlen( $slug ) );
-			$replaced           = true;
-			break;
-		}
-
-		if ( ! $replaced ) {
+		if ( 1 !== preg_match( $path_pattern, $original_path, $matches, PREG_OFFSET_CAPTURE )
+			|| ! isset( $matches['slug'] )
+			|| $matches['slug'][0] !== $slug
+		) {
 			return $post_link;
 		}
 
-		$parts['path'] = '/' . implode( '/', $segments ) . ( '/' === substr( $original_path, -1 ) ? '/' : '' );
+		$parts['path'] = substr_replace( $original_path, (string) $post_context['ID'], $matches['slug'][1], strlen( $slug ) );
 
 		return $this->build_url_from_parts( $parts );
 	}
@@ -1254,27 +1240,23 @@ final class PTID_Permalink_Plugin {
 	 */
 	private function get_structure_slug_segment_pattern(): string {
 		$structure = trim( (string) get_option( 'permalink_structure' ), '/' );
-
-		foreach ( explode( '/', $structure ) as $segment ) {
-			if ( false === strpos( $segment, '%postname%' ) ) {
-				continue;
-			}
-
-			$pattern = '';
-			foreach ( $this->split_structure_segment( $segment ) as $token ) {
-				if ( '%postname%' === $token ) {
-					$pattern .= '(?P<slug>.+)';
-				} elseif ( 1 === preg_match( '/^%[a-z_]+%$/', $token ) ) {
-					$pattern .= $this->get_structure_tag_pattern( $token, false );
-				} else {
-					$pattern .= preg_quote( $token, '#' );
-				}
-			}
-
-			return '#^' . $pattern . '$#';
+		if ( false === strpos( $structure, '%postname%' ) ) {
+			return '';
 		}
 
-		return '';
+		$pattern = '';
+		foreach ( $this->split_structure_segment( $structure ) as $token ) {
+			if ( '%postname%' === $token ) {
+				$pattern .= '(?P<slug>[^/]+)';
+			} elseif ( 1 === preg_match( '/^%[a-z_]+%$/', $token ) ) {
+				$pattern .= $this->get_structure_tag_pattern( $token, false );
+			} else {
+				$pattern .= preg_quote( $token, '#' );
+			}
+		}
+
+		return '#(?:^|/)' . $pattern . '/?$#';
+
 	}
 
 	/**
@@ -1662,14 +1644,6 @@ final class PTID_Permalink_Plugin {
 	/**
 	 * Registers rewrite rules for configured content types.
 	 *
-	 * @param string $structure  Permalink structure name.
-	 * @param array  $post_types Enabled post type names.
-	 * @param array  $taxonomies Enabled taxonomy names.
-	 * @param bool   $enabled    Whether routing is enabled.
-	 */
-	/**
-	 * Registers rewrite rules for configured content types.
-	 *
 	 * The non-selected ID format is also registered while legacy redirects
 	 * are enabled, so requests in the previous format resolve and can be
 	 * redirected to the canonical URL. Regular posts in preserve-structure
@@ -1702,13 +1676,6 @@ final class PTID_Permalink_Plugin {
 				$prefix_pattern .= preg_quote( trim( $path_prefix, '/' ), '#' ) . '/';
 			}
 
-			if ( $preserve_posts ) {
-				$structure_rule = $this->build_structure_id_rule();
-				if ( null !== $structure_rule ) {
-					add_rewrite_rule( $prefix_pattern . $structure_rule['pattern'], $structure_rule['query'], 'top' );
-				}
-			}
-
 			foreach ( $post_types as $post_type ) {
 				$route_slug = preg_quote( $this->get_post_type_route_slug( $post_type ), '#' );
 				$query      = 'index.php?post_type=' . $post_type . '&p=$matches[1]&' . self::REWRITE_MARKER;
@@ -1738,7 +1705,14 @@ final class PTID_Permalink_Plugin {
 					add_rewrite_rule( $prefix_pattern . $route_slug . $legacy_separator . '([0-9]+)/?$', $query, 'top' );
 				}
 			}
-		}
+
+
+			if ( $preserve_posts ) {
+				$structure_rule = $this->build_structure_id_rule();
+				if ( null !== $structure_rule ) {
+					add_rewrite_rule( $prefix_pattern . $structure_rule['pattern'], $structure_rule['query'], 'top' );
+				}
+			}		}
 	}
 
 	/**
