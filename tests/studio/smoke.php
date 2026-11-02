@@ -731,4 +731,48 @@ update_option( 'permalink_structure', $original_wp_structure );
 $GLOBALS['wp_rewrite']->set_permalink_structure( $original_wp_structure );
 update_option( $settings_option, $settings );
 
+
+/*
+ * Regression: a broad category structure must not capture explicitly
+ * configured custom post type and taxonomy ID routes.
+ */
+$original_wp_structure = get_option( 'permalink_structure' );
+update_option( 'permalink_structure', '/%category%/%postname%/' );
+$GLOBALS['wp_rewrite']->set_permalink_structure( '/%category%/%postname%/' );
+update_option( $settings_option, $preserve_settings );
+$route_plugin = new PTID_Permalink_Plugin();
+$route_plugin->register_rewrite_rules();
+$route_keys = array_keys( $GLOBALS['wp_rewrite']->extra_rules_top );
+ptid_studio_assert_same(
+	true,
+	array_search( '^books/archive/([0-9]+)/?
+, $route_keys, true ) < array_search( '^(.+?)/([0-9]+)/?
+, $route_keys, true ),
+	'Custom post type ID routes must precede the broad category structure route.'
+);
+ptid_studio_assert_same(
+	true,
+	array_search( '^category/([0-9]+)/?
+, $route_keys, true ) < array_search( '^(.+?)/([0-9]+)/?
+, $route_keys, true ),
+	'Taxonomy ID routes must precede the broad category structure route.'
+);
+
+/*
+ * Regression: when the slug equals the category, replace the slug in
+ * its configured structural position, not the last matching segment.
+ */
+update_option( 'permalink_structure', '/%postname%/%category%/' );
+$GLOBALS['wp_rewrite']->set_permalink_structure( '/%postname%/%category%/' );
+$route_plugin = new PTID_Permalink_Plugin();
+$collision_post = clone $created_post;
+$collision_post->post_name = 'news';
+ptid_studio_assert_same(
+	home_url( '/' . $created_post_id . '/news/' ),
+	$route_plugin->filter_permalink( home_url( '/news/news/' ), $collision_post ),
+	'Preserve mode must replace the postname token even when category and slug match.'
+);
+update_option( 'permalink_structure', $original_wp_structure );
+$GLOBALS['wp_rewrite']->set_permalink_structure( $original_wp_structure );
+
 echo "Slug-Free Permalinks Studio smoke tests passed.\n";
