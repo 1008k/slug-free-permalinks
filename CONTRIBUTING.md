@@ -102,6 +102,8 @@ The plugin header version still comes from `plugin-meta.json`, so multiple test 
 - Optional WordPress.org assets live in `.wordpress-org/`.
 - Common filenames are `icon-128x128.png`, `icon-256x256.png`, `banner-772x250.png`, `banner-1544x500.png`, and `screenshot-1.png`.
 - The release workflow syncs `.wordpress-org/` to the WordPress.org `assets/` directory when those files exist.
+- Changes under `.wordpress-org/` on `main` also trigger **Update WordPress.org Assets**, which publishes assets without a plugin release. The workflow can be run manually.
+- Live Preview uses `.wordpress-org/blueprints/blueprint.json`. It installs the published WordPress.org plugin and opens its settings screen in Playground. After syncing, test it from the plugin's WordPress.org Advanced View, then set the preview visibility to `public` only after it works. Do not publish a Live Preview link in the readme or website until the public preview has been verified.
 
 ## Notes
 
