@@ -1,0 +1,39 @@
+name: Update WordPress.org Assets
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .wordpress-org/**
+      - .github/workflows/update-wordpress-org-assets.yml
+  workflow_dispatch:
+
+concurrency:
+  group: update-wordpress-org-assets-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Publish WordPress.org assets
+        shell: bash
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          svn checkout https://plugins.svn.wordpress.org/slug-free-permalinks/assets svn-assets
+          rsync -a --exclude=.svn/ .wordpress-org/ svn-assets/
+          svn add --force svn-assets
+          if [[ -n "$(svn status svn-assets)" ]]; then
+            svn commit svn-assets -m "Update plugin assets" --username "$SVN_USERNAME" --password "$SVN_PASSWORD" --non-interactive --no-auth-cache
+          fi

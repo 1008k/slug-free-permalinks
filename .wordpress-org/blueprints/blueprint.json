@@ -1,0 +1,28 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "landingPage": "/wp-admin/options-general.php?page=ptid-permalink-settings",
+  "preferredVersions": {
+    "php": "8.3",
+    "wp": "latest"
+  },
+  "phpExtensionBundles": [
+    "kitchen-sink"
+  ],
+  "steps": [
+    {
+      "step": "installPlugin",
+      "pluginData": {
+        "resource": "wordpress.org/plugins",
+        "slug": "slug-free-permalinks"
+      },
+      "options": {
+        "activate": true
+      }
+    },
+    {
+      "step": "login",
+      "username": "admin",
+      "password": "password"
+    }
+  ]
+}
