@@ -24,10 +24,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Update WordPress.org assets
-        uses: 10up/action-wordpress-plugin-asset-update@2480306f6f693672726d08b5917ea114cb2825f7 # stable / 2.2.0
+      - name: Publish WordPress.org assets
+        shell: bash
         env:
-          SLUG: slug-free-permalinks
-          IGNORE_OTHER_FILES: true
           SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
           SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          svn checkout https://plugins.svn.wordpress.org/slug-free-permalinks/assets svn-assets
+          rsync -a --exclude=.svn/ .wordpress-org/ svn-assets/
+          svn add --force svn-assets
+          if [[ -n "$(svn status svn-assets)" ]]; then
+            svn commit svn-assets -m "Update plugin assets" --username "$SVN_USERNAME" --password "$SVN_PASSWORD" --non-interactive --no-auth-cache
+          fi
