@@ -109,9 +109,13 @@ Yes. Polylang integration uses the language home URL returned by Polylang instea
 
 For example, when Polylang exposes `/en/` as a language path, the plugin registers `/en/post/123/` and `/en/category/45/` alongside the base routes. Domain-based or query-based language modes continue to use the URL returned by Polylang without inventing an extra path prefix.
 
+= Will updating to 2.0 change existing post URLs? =
+
+No. Updating alone does not change existing post URLs or WordPress's permalink settings. The native migration is an explicit administrator action.
+
 = Can I move regular post ID URLs to WordPress native permalinks? =
 
-Yes. Use the explicit migration action in the plugin settings. It sets WordPress's native `%post_id%` permalink structure while preserving the current slash or hyphen form, then deselects regular posts from plugin routing. Custom post types and taxonomies retain their plugin configuration.
+Yes. Use the explicit migration action in the plugin settings. It sets WordPress's native `%post_id%` permalink structure while preserving the current slash or hyphen form, then deselects regular posts from plugin routing. Custom post types and taxonomies retain their plugin configuration. Because this changes the site-wide permalink structure, custom post type URLs may also be affected. Back up the site and check existing URLs and redirects before migrating.
 
 = What happens to old URLs when I switch between /post/123/ and /post-123/? =
 
@@ -133,9 +137,8 @@ Custom post types and taxonomies have their own rewrite settings and need to be 
 
 = 2.0.0 =
 
-* Add an explicit migration of regular post ID URLs to native WordPress permalink settings.
-* While legacy redirects are enabled, URLs in the non-selected ID format (slash or hyphen) now redirect to the current format.
-* Offer direct migration of regular posts from the deactivation guide.
+* Let administrators explicitly migrate regular post ID URLs to native WordPress permalink settings without changing URLs on upgrade.
+* Redirect URLs in the non-selected ID format (slash or hyphen) when legacy redirects are enabled.
 
 = 1.7.0 =
 
