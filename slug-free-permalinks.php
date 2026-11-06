@@ -387,9 +387,8 @@ final class PTID_Permalink_Plugin {
 		$settings['post_types'] = array_values( array_diff( $settings['post_types'], array( 'post' ) ) );
 		update_option( self::OPTION_NAME, $settings );
 		$this->prime_settings_cache( $settings );
-		$this->register_rewrite_rules();
-		flush_rewrite_rules();
-		$this->persist_rewrite_state();
+		// Refresh after a fresh request registers CPT rewrite rules with the new front.
+		delete_option( self::REWRITE_SIGNATURE_OPTION );
 	}
 
 	/**
