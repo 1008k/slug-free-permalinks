@@ -567,6 +567,7 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 		'redirect_legacy' => false,
 	);
 	update_option( $settings_option, $migration_settings );
+	update_option( 'ptid_rewrite_signature', 'pre-migration-signature' );
 	$migration_plugin = new PTID_Permalink_Plugin();
 	$migrate_method->invoke( $migration_plugin );
 
@@ -575,6 +576,11 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 		$expected_structure,
 		get_option( 'permalink_structure' ),
 		'Migration must set the matching WordPress native post ID structure.'
+	);
+	ptid_studio_assert_same(
+		false,
+		get_option( 'ptid_rewrite_signature', false ),
+		'Migration must defer rewriting until the next request can rebuild CPT routes with the new permalink front.'
 	);
 	$migrated_settings = get_option( $settings_option );
 	ptid_studio_assert_same(
