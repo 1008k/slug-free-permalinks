@@ -138,12 +138,12 @@ Custom post types and taxonomies have their own rewrite settings and need to be 
 
 = 1.7.0 =
 
-* Improve target selection and guidance on the settings screen
-* Refine Polylang language-path handling for more predictable ID URLs
+* Make post type and taxonomy selection easier on the settings screen
+* Improve ID-based URL handling for Polylang language paths
 
 = 1.6.0 =
 
-* Add pre-deactivation guidance for preserving regular post ID URLs
-* Reduce rewrite checks and permalink processing overhead
+* Add deactivation guidance and a copyable permalink structure for keeping regular post ID URLs
+* Reduce overhead in permalink processing and rewrite-rule checks
 
 For the complete release history, see the [English changelog](https://happas.jp/en/slug-free-permalinks/).
