@@ -75,10 +75,6 @@ Yes. Polylang integration uses the language home URL returned by Polylang instea
 
 For example, when Polylang exposes `/en/` as a language path, Slug-Free Permalinks registers `/en/post/123/` and `/en/category/45/` alongside the base routes. Domain-based or query-based language modes continue to use the URL returned by Polylang without inventing an extra path prefix.
 
-**Will updating to v2.0 change existing post URLs?**
-
-No. Updating alone does not change existing post URLs or WordPress's native permalink settings.
-
 **Can I let WordPress manage regular post ID URLs?**
 
 Yes. The pre-deactivation guide offers an explicit migration to WordPress's native permalink structure using `%post_id%`. The migration preserves the current slash or hyphen ID URL format and removes regular posts from the plugin's selected targets. Custom post types and taxonomies remain under their existing plugin settings. **The action changes the site-wide WordPress permalink structure**, which can also affect custom post type URLs. Back up the site and verify existing URLs and redirects before migrating.
@@ -87,7 +83,7 @@ Yes. The pre-deactivation guide offers an explicit migration to WordPress's nati
 
 When regular posts are enabled, the settings screen shows the equivalent WordPress Custom Structure for the current ID URL format, such as `/post/%post_id%/` or `/post-%post_id%/`. The displayed value follows the site's current trailing-slash policy. You can apply it using the migration button, or copy it to `Settings > Permalinks` and then deselect regular posts in the plugin before deactivation.
 
-Plugin updates do not change WordPress permalink settings; only the explicit migration action does. Custom post types and taxonomies have their own rewrite settings and need to be checked separately before deactivation.
+Custom post types and taxonomies have their own rewrite settings and need to be checked separately before deactivation.
 
 ---
 
