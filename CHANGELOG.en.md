@@ -4,7 +4,7 @@
 
 ## [2.0.0]
 
-- Let administrators explicitly migrate regular post ID URLs to native WordPress permalink settings without changing URLs on upgrade.
+- Let administrators explicitly migrate regular post ID URLs to native WordPress permalink settings.
 - Redirect URLs in the non-selected ID format (slash or hyphen) when legacy redirects are enabled.
 
 ## [1.7.0]
