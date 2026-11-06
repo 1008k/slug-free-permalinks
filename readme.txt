@@ -4,7 +4,7 @@ Tags: permalinks, slugs, custom post types, taxonomy, urls
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 1.7.0
+Stable tag: 2.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,11 +37,12 @@ What you can configure:
 * Choose slash or hyphen based ID permalink format
 * Optionally redirect legacy slug URLs to the current ID-based permalink when WordPress can resolve the request
 * Preserve Polylang language URLs using the language home URLs Polylang actually exposes
+* Explicitly migrate regular post ID URLs to WordPress's native permalink settings
 * Flush rewrite rules automatically when settings change
 
 == A focused, predictable change ==
 
-Legacy slug redirects are optional and only run when WordPress can already resolve the request. Slug-Free Permalinks does not guess at every 404, so it avoids turning an ID-based permalink plugin into a site-wide slug lookup system.
+Legacy slug redirects are optional and only run when WordPress can already resolve the request. While legacy redirects are enabled, URLs written in the non-selected ID format also resolve and redirect to the current format, without changing the WordPress permalink structure until migration. Slug-Free Permalinks does not guess at every 404, so it avoids turning an ID-based permalink plugin into a site-wide slug lookup system.
 
 The plugin is intended for new sites, structured-content sites, or projects that are still defining a permalink policy.
 
@@ -108,11 +109,19 @@ Yes. Polylang integration uses the language home URL returned by Polylang instea
 
 For example, when Polylang exposes `/en/` as a language path, the plugin registers `/en/post/123/` and `/en/category/45/` alongside the base routes. Domain-based or query-based language modes continue to use the URL returned by Polylang without inventing an extra path prefix.
 
+= Can I move regular post ID URLs to WordPress native permalinks? =
+
+Yes. Use the explicit migration action in the plugin settings. It sets WordPress's native `%post_id%` permalink structure while preserving the current slash or hyphen form, then deselects regular posts from plugin routing. Custom post types and taxonomies retain their plugin configuration. Because this changes the site-wide permalink structure, custom post type URLs may also be affected. Back up the site and check existing URLs and redirects before migrating.
+
+= What happens to old URLs when I switch between /post/123/ and /post-123/? =
+
+When legacy redirects are enabled, the non-selected format also resolves and redirects to the current format with a 301 redirect. The plugin does not change WordPress native permalink settings until you explicitly migrate regular posts.
+
 = How can I deactivate the plugin without changing regular post URLs? =
 
 When regular posts are enabled, the settings screen shows the equivalent WordPress Custom Structure for the current ID URL format. The displayed value follows the site's current trailing-slash policy.
 
-Copy that value to `Settings > Permalinks` before deactivating the plugin. Slug-Free Permalinks does not change WordPress permalink settings automatically.
+Use the migration action to apply that structure and disable plugin routing for regular posts, or copy the value to `Settings > Permalinks` and deselect regular posts manually.
 
 Custom post types and taxonomies have their own rewrite settings and need to be checked separately before deactivation.
 
@@ -122,19 +131,19 @@ Custom post types and taxonomies have their own rewrite settings and need to be 
 
 == Changelog ==
 
+= 2.0.0 =
+
+* Let administrators explicitly migrate regular post ID URLs to native WordPress permalink settings.
+* Redirect URLs in the non-selected ID format (slash or hyphen) when legacy redirects are enabled.
+
 = 1.7.0 =
 
-* Improve target selection and guidance on the settings screen
-* Refine Polylang language-path handling for more predictable ID URLs
+* Make post type and taxonomy selection easier on the settings screen
+* Improve ID-based URL handling for Polylang language paths
 
 = 1.6.0 =
 
-* Add pre-deactivation guidance for preserving regular post ID URLs
-* Reduce rewrite checks and permalink processing overhead
-
-= 1.5.1 =
-
-* Update compatibility metadata for WordPress 7.1
-* Improve CI and distribution validation
+* Add deactivation guidance and a copyable permalink structure for keeping regular post ID URLs
+* Reduce overhead in permalink processing and rewrite-rule checks
 
 For the complete release history, see the [English changelog](https://happas.jp/en/slug-free-permalinks/).

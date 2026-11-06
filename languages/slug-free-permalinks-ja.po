@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Slug-Free Permalinks 1.7.0\n"
+"Project-Id-Version: Slug-Free Permalinks 2.0.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-03-16 00:00+0000\n"
 "PO-Revision-Date: 2026-03-16 00:00+0000\n"
@@ -95,3 +95,12 @@ msgstr "{type} は投稿タイプまたはタクソノミーの rewrite slug に
 
 msgid " Example: /post/123/ or /post-123/."
 msgstr " 例: /post/123/ または /post-123/。"
+
+msgid "You are not allowed to change permalink settings."
+msgstr "パーマリンク設定を変更する権限がありません。"
+
+msgid "Migrate regular posts to WordPress permalinks"
+msgstr "通常投稿をWordPress標準のパーマリンクに移行"
+
+msgid "This explicitly sets the WordPress permalink structure above and stops plugin URL rewriting for regular posts. Back up your site and check for URL conflicts before proceeding. Custom post types and taxonomies keep their plugin settings."
+msgstr "WordPressのパーマリンク構造を上記の設定に変更し、通常投稿のURL書き換えを停止します。実行前にバックアップを取り、URLの競合がないか確認してください。カスタム投稿タイプとタクソノミーの設定は維持されます。"

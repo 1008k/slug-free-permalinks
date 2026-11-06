@@ -8,7 +8,7 @@ return array(
     'x-generator' => 'slug-free-permalinks',
     'translation-revision-date' => '2026-09-18 00:00+0000',
     'plural-forms' => 'nplurals=1; plural=0;',
-    'project-id-version' => 'Slug-Free Permalinks 1.7.0',
+    'project-id-version' => 'Slug-Free Permalinks 2.0.0',
     'language' => 'ja',
     'messages' => array(
         'Slug-Free Permalinks' => 'Slug-Free Permalinks',
@@ -38,5 +38,8 @@ return array(
         'Open reviews' => 'レビューを見る',
         '{type} is replaced with the post type or taxonomy rewrite slug.' => '{type} は投稿タイプまたはタクソノミーの rewrite slug に置き換わります。',
         ' Example: /post/123/ or /post-123/.' => ' 例: /post/123/ または /post-123/。',
+        'You are not allowed to change permalink settings.' => 'パーマリンク設定を変更する権限がありません。',
+        'Migrate regular posts to WordPress permalinks' => '通常投稿をWordPress標準のパーマリンクに移行',
+        'This explicitly sets the WordPress permalink structure above and stops plugin URL rewriting for regular posts. Back up your site and check for URL conflicts before proceeding. Custom post types and taxonomies keep their plugin settings.' => 'WordPressのパーマリンク構造を上記の設定に変更し、通常投稿のURL書き換えを停止します。実行前にバックアップを取り、URLの競合がないか確認してください。カスタム投稿タイプとタクソノミーの設定は維持されます。',
     ),
 );

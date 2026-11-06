@@ -34,6 +34,7 @@ If a site already has a large volume of published content and established slug-b
 - Choose `/post/123/` or `/post-123/`
 - Optionally redirect legacy slug URLs to the current ID-based permalink
 - Preserve Polylang language URLs using the language home URLs Polylang actually exposes
+- Explicitly migrate regular post ID URLs to WordPress's native permalink settings
 - Flush rewrite rules automatically when settings change
 
 ## FAQ
@@ -74,11 +75,15 @@ Yes. Polylang integration uses the language home URL returned by Polylang instea
 
 For example, when Polylang exposes `/en/` as a language path, Slug-Free Permalinks registers `/en/post/123/` and `/en/category/45/` alongside the base routes. Domain-based or query-based language modes continue to use the URL returned by Polylang without inventing an extra path prefix.
 
+**Can I let WordPress manage regular post ID URLs?**
+
+Yes. The pre-deactivation guide offers an explicit migration to WordPress's native permalink structure using `%post_id%`. The migration preserves the current slash or hyphen ID URL format and removes regular posts from the plugin's selected targets. Custom post types and taxonomies remain under their existing plugin settings. **The action changes the site-wide WordPress permalink structure**, which can also affect custom post type URLs. Back up the site and verify existing URLs and redirects before migrating.
+
 **How can I deactivate the plugin without changing regular post URLs?**
 
-When regular posts are enabled, the settings screen shows the equivalent WordPress Custom Structure for the current ID URL format, such as `/post/%post_id%/` or `/post-%post_id%/`. The displayed value follows the site's current trailing-slash policy. Copy it to `Settings > Permalinks` before deactivating the plugin.
+When regular posts are enabled, the settings screen shows the equivalent WordPress Custom Structure for the current ID URL format, such as `/post/%post_id%/` or `/post-%post_id%/`. The displayed value follows the site's current trailing-slash policy. You can apply it using the migration button, or copy it to `Settings > Permalinks` and then deselect regular posts in the plugin before deactivation.
 
-The plugin does not change WordPress permalink settings automatically. Custom post types and taxonomies have their own rewrite settings and need to be checked separately before deactivation.
+Custom post types and taxonomies have their own rewrite settings and need to be checked separately before deactivation.
 
 ---
 

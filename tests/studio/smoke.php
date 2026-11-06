@@ -502,4 +502,109 @@ ptid_studio_assert_same(
 	'Admin-side normalization must refresh the request-local settings cache.'
 );
 
+/*
+ * v2 behavior: the non-selected ID format resolves while legacy redirects
+ * are enabled, so format switches can redirect to the canonical URL.
+ */
+$alternate_settings = array(
+	'structure'       => 'slash',
+	'post_types'      => array( 'post' ),
+	'taxonomies'      => array( 'category' ),
+	'redirect_legacy' => true,
+);
+update_option( $settings_option, $alternate_settings );
+$alternate_plugin = new PTID_Permalink_Plugin();
+$alternate_plugin->register_rewrite_rules();
+$alternate_rules = $GLOBALS['wp_rewrite']->extra_rules_top;
+
+ptid_studio_assert_same(
+	true,
+	isset( $alternate_rules['^post-([0-9]+)/?$'] ),
+	'The non-selected post ID format must resolve while legacy redirects are enabled.'
+);
+ptid_studio_assert_same(
+	'index.php?post_type=post&p=$matches[1]&ptid_route=1',
+	$alternate_rules['^post-([0-9]+)/?$'],
+	'Alternate format rules must resolve to the same post query as the canonical format.'
+);
+ptid_studio_assert_same(
+	true,
+	isset( $alternate_rules['^category-([0-9]+)/?$'] ),
+	'The non-selected taxonomy ID format must resolve while legacy redirects are enabled.'
+);
+
+$alternate_settings['redirect_legacy'] = false;
+update_option( $settings_option, $alternate_settings );
+$alternate_plugin = new PTID_Permalink_Plugin();
+$alternate_plugin->register_rewrite_rules();
+$alternate_rules = $GLOBALS['wp_rewrite']->extra_rules_top;
+
+ptid_studio_assert_same(
+	false,
+	isset( $alternate_rules['^post-([0-9]+)/?$'] ),
+	'The non-selected post ID format must not resolve while legacy redirects are disabled.'
+);
+ptid_studio_assert_same(
+	true,
+	isset( $alternate_rules['^post/([0-9]+)/?$'] ),
+	'The selected post ID format must stay registered while legacy redirects are disabled.'
+);
+
+/*
+ * Native WordPress migration keeps regular-post ID URLs and leaves custom
+ * post types and taxonomies under the plugin's existing rewrite rules.
+ */
+$previous_wp_structure = get_option( 'permalink_structure' );
+$migrate_method        = new ReflectionMethod( PTID_Permalink_Plugin::class, 'apply_post_structure_migration' );
+$migrate_method->setAccessible( true );
+
+foreach ( array( 'slash', 'hyphen' ) as $format ) {
+	$GLOBALS['wp_rewrite']->set_permalink_structure( '/%postname%/' );
+	$migration_settings = array(
+		'structure'       => $format,
+		'post_types'      => array( 'post', 'studio_book' ),
+		'taxonomies'      => array( 'category', 'studio_genre' ),
+		'redirect_legacy' => false,
+	);
+	update_option( $settings_option, $migration_settings );
+	update_option( 'ptid_rewrite_signature', 'pre-migration-signature' );
+	$migration_plugin = new PTID_Permalink_Plugin();
+	$migrate_method->invoke( $migration_plugin );
+
+	$expected_structure = 'hyphen' === $format ? '/post-%post_id%/' : '/post/%post_id%/';
+	ptid_studio_assert_same(
+		$expected_structure,
+		get_option( 'permalink_structure' ),
+		'Migration must set the matching WordPress native post ID structure.'
+	);
+	ptid_studio_assert_same(
+		false,
+		get_option( 'ptid_rewrite_signature', false ),
+		'Migration must defer rewriting until the next request can rebuild CPT routes with the new permalink front.'
+	);
+	$migrated_settings = get_option( $settings_option );
+	ptid_studio_assert_same(
+		array( 'studio_book' ),
+		$migrated_settings['post_types'],
+		'Migration must only deselect regular posts.'
+	);
+	ptid_studio_assert_same(
+		array( 'category', 'studio_genre' ),
+		$migrated_settings['taxonomies'],
+		'Migration must preserve taxonomy settings.'
+	);
+	ptid_studio_assert_same(
+		home_url( 'hyphen' === $format ? '/post-' . $created_post_id . '/' : '/post/' . $created_post_id . '/' ),
+		$migration_plugin->filter_permalink( home_url( 'hyphen' === $format ? '/post-' . $created_post_id . '/' : '/post/' . $created_post_id . '/' ), $created_post ),
+		'Plugin must not rewrite native regular post ID URLs after migration.'
+	);
+	ptid_studio_assert_same(
+		home_url( 'hyphen' === $format ? '/books/archive-' . $custom_post_id . '/' : '/books/archive/' . $custom_post_id . '/' ),
+		$migration_plugin->filter_permalink( home_url( '/books/archive/book/' ), $custom_post ),
+		'Migration must retain custom post type ID URLs.'
+	);
+}
+$GLOBALS['wp_rewrite']->set_permalink_structure( $previous_wp_structure );
+update_option( $settings_option, $settings );
+
 echo "Slug-Free Permalinks Studio smoke tests passed.\n";

@@ -3,7 +3,7 @@
  * Plugin Name: Slug-Free Permalinks
  * Plugin URI: https://happas.jp/en/slug-free-permalinks/
  * Description: Use ID-based permalinks for selected post types and taxonomies without managing slugs.
- * Version: 1.7.0
+ * Version: 2.0.0
  * Requires at least: 6.4
  * Requires PHP: 8.2
  * Author: Kodo
@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class PTID_Permalink_Plugin {
 
-	private const PLUGIN_VERSION                = '1.7.0';
+	private const PLUGIN_VERSION                = '2.0.0';
 	private const OPTION_NAME                   = 'ptid_permalink_settings';
 	private const MENU_SLUG                     = 'ptid-permalink-settings';
 	private const REWRITE_MARKER                = 'ptid_route=1';
@@ -106,6 +106,7 @@ final class PTID_Permalink_Plugin {
 		add_action( 'admin_init', array( $instance, 'register_settings' ) );
 		add_action( 'admin_init', array( $instance, 'normalize_stored_settings' ) );
 		add_action( 'admin_menu', array( $instance, 'register_settings_page' ) );
+		add_action( 'admin_post_ptid_migrate_post_structure', array( $instance, 'migrate_post_structure' ) );
 		add_action( 'admin_enqueue_scripts', array( $instance, 'enqueue_admin_assets' ) );
 		add_filter(
 			'plugin_action_links_' . plugin_basename( __FILE__ ),
@@ -198,9 +199,10 @@ final class PTID_Permalink_Plugin {
 		$post_types = $this->get_enabled_post_types();
 		$taxonomies = $this->get_enabled_taxonomies();
 		$enabled    = array() !== $post_types || array() !== $taxonomies;
-		$signature  = $this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled );
+		$settings   = $this->get_settings();
+		$signature  = $this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled, ! empty( $settings['redirect_legacy'] ) );
 
-		$this->register_rewrite_rules_for( $structure, $post_types, $taxonomies, $enabled );
+		$this->register_rewrite_rules_for( $structure, $post_types, $taxonomies, $enabled, ! empty( $settings['redirect_legacy'] ) );
 		$this->rewrite_rules_registered = true;
 
 		if (
@@ -291,6 +293,7 @@ final class PTID_Permalink_Plugin {
 		}
 	}
 
+
 	/**
 	 * Registers the plugin setting and its sanitizer.
 	 */
@@ -326,7 +329,8 @@ final class PTID_Permalink_Plugin {
 				$normalized['structure'],
 				$normalized['post_types'],
 				$normalized['taxonomies'],
-				$this->has_enabled_targets( $normalized )
+				$this->has_enabled_targets( $normalized ),
+				$normalized['redirect_legacy']
 			);
 			flush_rewrite_rules();
 			$this->prime_settings_cache( $normalized );
@@ -345,6 +349,46 @@ final class PTID_Permalink_Plugin {
 			self::MENU_SLUG,
 			array( $this, 'render_settings_page' )
 		);
+	}
+
+	/**
+	 * Moves regular post URL handling to the WordPress permalink setting.
+	 */
+	public function migrate_post_structure(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to change permalink settings.', 'slug-free-permalinks' ) );
+		}
+
+		check_admin_referer( 'ptid_migrate_post_structure' );
+
+		$this->apply_post_structure_migration();
+
+		wp_safe_redirect( admin_url( 'options-general.php?page=' . self::MENU_SLUG ) );
+		exit;
+	}
+
+	/**
+	 * Applies the explicitly requested migration while keeping custom targets.
+	 */
+	private function apply_post_structure_migration(): void {
+		$settings = $this->get_settings();
+		if ( ! in_array( 'post', $settings['post_types'], true ) ) {
+			return;
+		}
+
+		$structure = '/' . user_trailingslashit(
+			'hyphen' === $settings['structure'] ? 'post-%post_id%' : 'post/%post_id%',
+			'single'
+		);
+
+		global $wp_rewrite;
+		$wp_rewrite->set_permalink_structure( $structure );
+
+		$settings['post_types'] = array_values( array_diff( $settings['post_types'], array( 'post' ) ) );
+		update_option( self::OPTION_NAME, $settings );
+		$this->prime_settings_cache( $settings );
+		// Refresh after a fresh request registers CPT rewrite rules with the new front.
+		delete_option( self::REWRITE_SIGNATURE_OPTION );
 	}
 
 	/**
@@ -423,7 +467,8 @@ final class PTID_Permalink_Plugin {
 				$settings['structure'],
 				$settings['post_types'],
 				$settings['taxonomies'],
-				$this->has_enabled_targets( $settings )
+				$this->has_enabled_targets( $settings ),
+				$settings['redirect_legacy']
 			);
 			flush_rewrite_rules();
 		}
@@ -573,6 +618,14 @@ final class PTID_Permalink_Plugin {
 								<a class="button" href="<?php echo esc_url( admin_url( 'options-permalink.php' ) ); ?>">
 									<?php echo esc_html__( 'Open Permalink Settings', 'slug-free-permalinks' ); ?>
 								</a>
+							</p>
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+								<input type="hidden" name="action" value="ptid_migrate_post_structure" />
+								<?php wp_nonce_field( 'ptid_migrate_post_structure' ); ?>
+								<?php submit_button( __( 'Migrate regular posts to WordPress permalinks', 'slug-free-permalinks' ), 'secondary', 'submit', false ); ?>
+							</form>
+							<p class="description">
+								<?php echo esc_html__( 'This explicitly sets the WordPress permalink structure above and stops plugin URL rewriting for regular posts. Back up your site and check for URL conflicts before proceeding. Custom post types and taxonomies keep their plugin settings.', 'slug-free-permalinks' ); ?>
 							</p>
 						<?php endif; ?>
 
@@ -1024,8 +1077,10 @@ final class PTID_Permalink_Plugin {
 			'ID'          => $post_id,
 			'post_type'   => $post_type,
 			'post_status' => $post_status,
+			'post_name'   => isset( $post->post_name ) ? (string) $post->post_name : '',
 		);
 	}
+
 
 	/**
 	 * Builds an ID-based path segment.
@@ -1366,20 +1421,25 @@ final class PTID_Permalink_Plugin {
 	/**
 	 * Registers rewrite rules for configured content types.
 	 *
-	 * @param string $structure  Permalink structure name.
-	 * @param array  $post_types Enabled post type names.
-	 * @param array  $taxonomies Enabled taxonomy names.
-	 * @param bool   $enabled    Whether routing is enabled.
+	 * The non-selected ID format is also registered while legacy redirects
+	 * are enabled, so requests in the previous format can be redirected
+	 * to the canonical URL.
+	 *
+	 * @param string $structure              Permalink structure name.
+	 * @param array  $post_types             Enabled post type names.
+	 * @param array  $taxonomies             Enabled taxonomy names.
+	 * @param bool   $enabled                Whether routing is enabled.
+	 * @param bool   $redirect_legacy        Whether legacy redirects are enabled.
 	 */
-	private function register_rewrite_rules_for( string $structure, array $post_types, array $taxonomies, bool $enabled ): void {
+	private function register_rewrite_rules_for( string $structure, array $post_types, array $taxonomies, bool $enabled, bool $redirect_legacy = false ): void {
 		$this->remove_plugin_rewrite_rules();
 
 		if ( ! $enabled ) {
 			return;
 		}
 
-		$separator = 'hyphen' === $structure ? '-' : '/';
-
+		$current_separator = 'hyphen' === $structure ? '-' : '/';
+		$legacy_separator  = 'hyphen' === $structure ? '/' : '-';
 		foreach ( $this->get_rewrite_path_prefixes() as $path_prefix ) {
 			$prefix_pattern = '^';
 			if ( '' !== $path_prefix ) {
@@ -1388,20 +1448,24 @@ final class PTID_Permalink_Plugin {
 
 			foreach ( $post_types as $post_type ) {
 				$route_slug = preg_quote( $this->get_post_type_route_slug( $post_type ), '#' );
-				add_rewrite_rule(
-					$prefix_pattern . $route_slug . $separator . '([0-9]+)/?$',
-					'index.php?post_type=' . $post_type . '&p=$matches[1]&' . self::REWRITE_MARKER,
-					'top'
-				);
+				$query      = 'index.php?post_type=' . $post_type . '&p=$matches[1]&' . self::REWRITE_MARKER;
+
+				add_rewrite_rule( $prefix_pattern . $route_slug . $current_separator . '([0-9]+)/?$', $query, 'top' );
+
+				if ( $redirect_legacy ) {
+					add_rewrite_rule( $prefix_pattern . $route_slug . $legacy_separator . '([0-9]+)/?$', $query, 'top' );
+				}
 			}
 
 			foreach ( $taxonomies as $taxonomy ) {
 				$route_slug = preg_quote( $this->get_taxonomy_route_slug( $taxonomy ), '#' );
-				add_rewrite_rule(
-					$prefix_pattern . $route_slug . $separator . '([0-9]+)/?$',
-					'index.php?ptid_taxonomy=' . $taxonomy . '&ptid_term_id=$matches[1]&' . self::REWRITE_MARKER,
-					'top'
-				);
+				$query      = 'index.php?ptid_taxonomy=' . $taxonomy . '&ptid_term_id=$matches[1]&' . self::REWRITE_MARKER;
+
+				add_rewrite_rule( $prefix_pattern . $route_slug . $current_separator . '([0-9]+)/?$', $query, 'top' );
+
+				if ( $redirect_legacy ) {
+					add_rewrite_rule( $prefix_pattern . $route_slug . $legacy_separator . '([0-9]+)/?$', $query, 'top' );
+				}
 			}
 		}
 	}
@@ -1431,10 +1495,11 @@ final class PTID_Permalink_Plugin {
 	 * @param string $structure  Permalink structure name.
 	 * @param array  $post_types Enabled post type names.
 	 * @param array  $taxonomies Enabled taxonomy names.
-	 * @param bool   $enabled    Whether routing is enabled.
+	 * @param bool   $enabled                Whether routing is enabled.
+	 * @param bool   $redirect_legacy        Whether legacy redirects are enabled.
 	 * @return string Rewrite signature.
 	 */
-	private function build_rewrite_signature( string $structure, array $post_types, array $taxonomies, bool $enabled ): string {
+	private function build_rewrite_signature( string $structure, array $post_types, array $taxonomies, bool $enabled, bool $redirect_legacy = false ): string {
 		$post_routes = array();
 		foreach ( $post_types as $post_type ) {
 			$post_routes[ $post_type ] = $this->get_post_type_route_slug( $post_type );
@@ -1449,6 +1514,7 @@ final class PTID_Permalink_Plugin {
 			array(
 				'structure'       => $structure,
 				'enabled'         => $enabled,
+				'redirect_legacy' => $redirect_legacy,
 				'post_routes'     => $post_routes,
 				'taxonomy_routes' => $taxonomy_routes,
 				'path_prefixes'   => $this->get_rewrite_path_prefixes(),
@@ -1464,11 +1530,12 @@ final class PTID_Permalink_Plugin {
 		$post_types = $this->get_enabled_post_types();
 		$taxonomies = $this->get_enabled_taxonomies();
 		$enabled    = array() !== $post_types || array() !== $taxonomies;
+		$settings   = $this->get_settings();
 
 		update_option( self::REWRITE_MARKER_VERSION_OPTION, self::REWRITE_MARKER_VERSION, true );
 		update_option(
 			self::REWRITE_SIGNATURE_OPTION,
-			$this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled ),
+			$this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled, ! empty( $settings['redirect_legacy'] ) ),
 			true
 		);
 	}
