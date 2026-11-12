@@ -457,7 +457,9 @@ final class PTID_Permalink_Plugin {
 		// Only the explicit migration may remove legacy post routing.
 		if ( in_array( 'post', $previous['post_types'], true ) ) {
 			$settings['structure'] = $previous['structure'];
-			$settings['post_types'][] = 'post';
+			if ( ! in_array( 'post', $settings['post_types'], true ) ) {
+				array_unshift( $settings['post_types'], 'post' );
+			}
 		} else {
 			$settings['post_types'] = array_diff( $settings['post_types'], array( 'post' ) );
 		}
