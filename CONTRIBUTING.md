@@ -81,7 +81,7 @@ Thanks for contributing to Slug-Free Permalinks.
 
 ## Manual test-site deployment
 
-The **Deploy Test Site** workflow manually deploys the latest `main` distributable to the WordPress test site (https://xs956904.xsrv.jp/wp-admin/). Merging and releasing do not trigger it.
+The **Deploy Test Site** workflow manually deploys the selected branch's distributable to the WordPress test site (https://xs956904.xsrv.jp/wp-admin/). Merging and releasing do not trigger it.
 
 Configure repository-level settings under **Settings → Secrets and variables → Actions**:
 
@@ -93,9 +93,9 @@ Configure repository-level settings under **Settings → Secrets and variables �
 
 Enable SSH and register the public key in the XServer panel. Keep the private key only in the GitHub repository secret. Obtain the remote host-key fingerprint through a trusted channel (the server panel or another independently verified connection), then store the corresponding `[hostname]:10022 key-type base64-key` known-hosts line; do not blindly trust an unverified `ssh-keyscan` result. Confirm the absolute deployment path over SSH before running. Put the SSH username, hostname, and destination together in `TEST_SSH_TARGET` (for example, `user@example.com:/home/user/example.com/public_html/wp-content/plugins/slug-free-permalinks`).
 
-To deploy, open **Actions → Deploy Test Site → Run workflow**, choose `main`, and run it. The workflow builds `dist/slug-free-permalinks` and transfers it using SSH on port 10022 and rsync. It does not alter the database, change plugin activation state, or delete remote files. No version/tag increment is needed.
+To deploy, open **Actions → Deploy Test Site → Run workflow**, choose the branch to test (such as a pull request branch or `main`), and run it. The selected branch's source is built and deployed; this does not publish a release. The workflow builds `dist/slug-free-permalinks` and transfers it using SSH on port 10022 and rsync. It does not alter the database, change plugin activation state, or delete remote files. No version/tag increment is needed.
 
-The plugin header version still comes from `plugin-meta.json`, so multiple test deployments of `main` can share the same displayed WordPress version. If the plugin is active, reload WordPress after deployment and check the target pages manually.
+The plugin header version still comes from `plugin-meta.json`, so multiple test deployments of a branch can share the same displayed WordPress version. If the plugin is active, reload WordPress after deployment and check the target pages manually.
 
 ## WordPress.org Assets
 
