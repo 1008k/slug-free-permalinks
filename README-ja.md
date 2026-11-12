@@ -75,7 +75,7 @@ Slug-Free Permalinksはパフォーマンスと予測可能な挙動を優先し
 
 はい。Polylang連携では、任意のパスプレフィックスを許可せず、Polylangが返す言語ホームURLを基準にURLとrewrite ruleを構成します。
 
-たとえばPolylangが`/en/`を言語パスとして公開している場合は、基本形の`/post/123/`に加えて`/en/post/123/`や`/en/category/45/`を登録します。別ドメイン方式やクエリ方式では、Polylangが返すURLをそのまま利用し、不要なパスプレフィックスは追加しません。
+たとえばPolylangが`/en/`を言語パスとして公開している場合、選択したカスタム投稿タイプや分類の`/en/books/123/`、`/en/category/45/`などのURLに対応します。別ドメイン方式やクエリ方式では、Polylangが返すURLをそのまま利用し、不要なパスプレフィックスは追加しません。
 
 **通常投稿のID URLをWordPress標準設定に移行できますか？**
 
