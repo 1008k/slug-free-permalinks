@@ -107,15 +107,15 @@ The settings screen rejects selected post types or taxonomies with identical reg
 
 Yes. Polylang integration uses the language home URL returned by Polylang instead of accepting arbitrary path prefixes.
 
-For example, when Polylang exposes `/en/` as a language path, the plugin registers `/en/post/123/` and `/en/category/45/` alongside the base routes. Domain-based or query-based language modes continue to use the URL returned by Polylang without inventing an extra path prefix.
+For example, when Polylang exposes `/en/` as a language path, selected custom content can use `/en/books/123/` and `/en/category/45/` alongside the base routes. Domain-based or query-based language modes continue to use the URL returned by Polylang without inventing an extra path prefix.
 
 = Can I move regular post ID URLs to WordPress native permalinks? =
 
 Yes. Sites still using legacy regular post URL handling can use the migration action in the Regular posts section. It sets WordPress's native `%post_id%` permalink structure while preserving the current slash or hyphen form, then deselects regular posts from plugin routing. Custom post types and taxonomies retain their plugin configuration. Because this changes the site-wide permalink structure, custom post type URLs may also be affected. Back up the site and check existing URLs and redirects before migrating.
 
-= What happens to old URLs when I switch between /post/123/ and /post-123/? =
+= What happens to old URLs when I switch between /book/123/ and /book-123/? =
 
-When legacy redirects are enabled, the non-selected format also resolves and redirects to the current format with a 301 redirect. The plugin does not change WordPress native permalink settings until you explicitly migrate regular posts.
+When legacy redirects are enabled, the non-selected plugin-managed ID format also resolves and redirects to the selected format with a 301 redirect.
 
 = How can I deactivate the plugin without changing regular post URLs? =
 
