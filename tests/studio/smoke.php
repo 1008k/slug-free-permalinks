@@ -571,6 +571,20 @@ ptid_studio_assert_same(
  * Native WordPress migration keeps regular-post ID URLs and leaves custom
  * post types and taxonomies under the plugin's existing rewrite rules.
  */
+// Render the settings screen as an administrator to verify its visible layout.
+require_once ABSPATH . 'wp-admin/includes/plugin.php';
+require_once ABSPATH . 'wp-admin/includes/template.php';
+$studio_admins = get_users(
+	array(
+		'role'   => 'administrator',
+		'number' => 1,
+		'fields' => 'ids',
+	)
+);
+ptid_studio_assert_same( true, ! empty( $studio_admins ), 'Studio must provide an administrator for settings UI tests.' );
+$original_user_id = get_current_user_id();
+wp_set_current_user( (int) $studio_admins[0] );
+
 $previous_wp_structure = get_option( 'permalink_structure' );
 $migrate_method        = new ReflectionMethod( PTID_Permalink_Plugin::class, 'apply_post_structure_migration' );
 $migrate_method->setAccessible( true );
@@ -586,7 +600,38 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 	update_option( $settings_option, $migration_settings );
 	update_option( 'ptid_rewrite_signature', 'pre-migration-signature' );
 	$migration_plugin = new PTID_Permalink_Plugin();
+	ob_start();
+	$migration_plugin->render_settings_page();
+	$legacy_ui = ob_get_clean();
+	ptid_studio_assert_same(
+		true,
+		false !== strpos( $legacy_ui, 'name="action" value="ptid_migrate_post_structure"' ),
+		'Legacy sites must show an explicit migration action in the regular-post section.'
+	);
+	ptid_studio_assert_same(
+		true,
+		false !== strpos( $legacy_ui, 'name="ptid_permalink_settings[post_types][]" value="post"' ),
+		'Legacy regular post routing must be preserved as a hidden option in the custom-target form.'
+	);
+	ptid_studio_assert_same(
+		false,
+		false !== strpos( $legacy_ui, 'type="checkbox" value="post"' ),
+		'Regular posts must not appear as a selectable plugin target.'
+	);
 	$migrate_method->invoke( $migration_plugin );
+	ob_start();
+	$migration_plugin->render_settings_page();
+	$native_ui = ob_get_clean();
+	ptid_studio_assert_same(
+		false,
+		false !== strpos( $native_ui, 'name="action" value="ptid_migrate_post_structure"' ),
+		'Native regular post settings must not show the legacy migration action.'
+	);
+	ptid_studio_assert_same(
+		true,
+		false !== strpos( $native_ui, 'options-permalink.php' ),
+		'Native regular post settings must link to WordPress permalink settings.'
+	);
 
 	$expected_structure = 'hyphen' === $format ? '/post-%post_id%/' : '/post/%post_id%/';
 	ptid_studio_assert_same(
@@ -634,6 +679,7 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 		'Migration must retain custom post type ID URLs.'
 	);
 }
+wp_set_current_user( $original_user_id );
 $GLOBALS['wp_rewrite']->set_permalink_structure( $previous_wp_structure );
 update_option( $settings_option, $settings );
 
