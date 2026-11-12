@@ -34,7 +34,7 @@ If a site already has a large volume of published content and established slug-b
 - Choose slash or hyphen ID URLs for custom post types and taxonomies
 - Optionally redirect legacy slug URLs to the current ID-based permalink
 - Preserve Polylang language URLs using the language home URLs Polylang actually exposes
-- View WordPress's native post permalink structure and explicitly migrate legacy regular post ID URLs
+- Build native regular-post permalink structures in one editable field using presets and WordPress tags; explicitly migrate legacy ID URLs
 - Flush rewrite rules automatically when settings change
 
 ## FAQ
