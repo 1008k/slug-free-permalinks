@@ -26,6 +26,30 @@
 	overflow-wrap: anywhere;
 }
 
+.ptid-permalink-presets,
+.ptid-permalink-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.ptid-permalink-presets {
+	margin: 12px 0;
+}
+
+.ptid-permalink-tags {
+	margin-bottom: 12px;
+}
+
+.ptid-permalink-tags .button code {
+	background: transparent;
+	padding: 0;
+}
+
+#ptid-post-structure {
+	max-width: 720px;
+}
+
 .ptid-admin-sidebar {
 	margin-top: 16px;
 }
