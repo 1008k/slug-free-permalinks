@@ -511,7 +511,9 @@ final class PTID_Permalink_Plugin {
 				<div class="ptid-admin-main">
 					<section class="ptid-settings-section" aria-labelledby="ptid-regular-posts-title">
 						<h2 id="ptid-regular-posts-title"><?php echo esc_html__( 'Regular posts', 'slug-free-permalinks' ); ?></h2>
-						<p><?php echo esc_html__( 'WordPress manages regular post permalinks. Change their structure in WordPress permalink settings.', 'slug-free-permalinks' ); ?></p>
+						<?php if ( ! $post_enabled ) : ?>
+							<p><?php echo esc_html__( 'WordPress manages regular post permalinks. Change their structure in WordPress permalink settings.', 'slug-free-permalinks' ); ?></p>
+						<?php endif; ?>
 						<p>
 							<strong><?php echo esc_html__( 'Current WordPress structure', 'slug-free-permalinks' ); ?>:</strong>
 							<code><?php echo esc_html( '' !== $current_wp_structure ? $current_wp_structure : __( 'Plain', 'slug-free-permalinks' ) ); ?></code>
