@@ -614,8 +614,8 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 		'Legacy regular post routing must be preserved as a hidden option in the custom-target form.'
 	);
 	ptid_studio_assert_same(
-		false,
-		false !== strpos( $legacy_ui, 'type="checkbox" value="post"' ),
+		0,
+		preg_match( '/<input\\b(?=[^>]*\\btype="checkbox")(?=[^>]*\\bvalue="post")[^>]*>/s', $legacy_ui ),
 		'Regular posts must not appear as a selectable plugin target.'
 	);
 	$migrate_method->invoke( $migration_plugin );
