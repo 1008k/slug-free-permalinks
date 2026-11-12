@@ -566,6 +566,7 @@ final class PTID_Permalink_Plugin {
 								</p>
 							</td>
 						</tr>
+						<?php if ( ! empty( $post_types ) ) : ?>
 						<tr>
 							<th scope="row"><?php echo esc_html__( 'Target post types', 'slug-free-permalinks' ); ?></th>
 							<td>
@@ -584,6 +585,7 @@ final class PTID_Permalink_Plugin {
 								</fieldset>
 							</td>
 						</tr>
+						<?php endif; ?>
 						<tr>
 							<th scope="row"><?php echo esc_html__( 'Target taxonomies', 'slug-free-permalinks' ); ?></th>
 							<td>
