@@ -408,13 +408,6 @@ final class PTID_Permalink_Plugin {
 			self::PLUGIN_VERSION
 		);
 
-		wp_enqueue_script(
-			'slug-free-permalinks-admin',
-			plugins_url( 'assets/admin.js', __FILE__ ),
-			array(),
-			self::PLUGIN_VERSION,
-			true
-		);
 	}
 
 	/**
