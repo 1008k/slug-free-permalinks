@@ -407,7 +407,6 @@ final class PTID_Permalink_Plugin {
 			array(),
 			self::PLUGIN_VERSION
 		);
-
 	}
 
 	/**
@@ -435,7 +434,7 @@ final class PTID_Permalink_Plugin {
 	public function sanitize_settings( $input ): array {
 		$previous = $this->get_settings();
 
-		$settings  = array(
+		$settings = array(
 			'structure'       => $this->sanitize_structure( $input['structure'] ?? '' ),
 			'post_types'      => $this->sanitize_enabled_items(
 				$input['post_types'] ?? array(),
@@ -457,6 +456,7 @@ final class PTID_Permalink_Plugin {
 			$settings['post_types'] = array_diff( $settings['post_types'], array( 'post' ) );
 		}
 		$settings['post_types'] = array_values( array_unique( $settings['post_types'] ) );
+
 		$conflicts = $this->get_route_slug_conflicts( $settings['post_types'], $settings['taxonomies'] );
 
 		if ( array() !== $conflicts ) {
@@ -493,10 +493,10 @@ final class PTID_Permalink_Plugin {
 			return;
 		}
 
-		$settings               = $this->get_settings();
-		$post_types             = $this->get_available_post_types();
-		$taxonomies             = $this->get_available_taxonomies();
-		$post_enabled           = in_array( 'post', $settings['post_types'], true );
+		$settings     = $this->get_settings();
+		$post_types   = $this->get_available_post_types();
+		$taxonomies   = $this->get_available_taxonomies();
+		$post_enabled = in_array( 'post', $settings['post_types'], true );
 		unset( $post_types['post'] );
 		$current_wp_structure   = (string) get_option( 'permalink_structure', '' );
 		$wp_permalink_structure = '/' . user_trailingslashit(
