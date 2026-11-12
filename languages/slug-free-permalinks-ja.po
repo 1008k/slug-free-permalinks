@@ -104,3 +104,30 @@ msgstr "通常投稿をWordPress標準のパーマリンクに移行"
 
 msgid "This explicitly sets the WordPress permalink structure above and stops plugin URL rewriting for regular posts. Back up your site and check for URL conflicts before proceeding. Custom post types and taxonomies keep their plugin settings."
 msgstr "WordPressのパーマリンク構造を上記の設定に変更し、通常投稿のURL書き換えを停止します。実行前にバックアップを取り、URLの競合がないか確認してください。カスタム投稿タイプとタクソノミーの設定は維持されます。"
+
+msgid "Regular posts"
+msgstr "通常投稿"
+
+msgid "WordPress manages regular post permalinks. Change their structure in WordPress permalink settings."
+msgstr "通常投稿のパーマリンクはWordPress標準設定で管理します。変更はWordPressのパーマリンク設定から行ってください。"
+
+msgid "Current WordPress structure"
+msgstr "現在のWordPressパーマリンク構造"
+
+msgid "Plain"
+msgstr "基本（クエリ形式）"
+
+msgid "Regular posts still use the legacy plugin URL format. Migrate them explicitly to use WordPress settings."
+msgstr "通常投稿は旧方式で管理されています。WordPress標準設定へ移行する場合は、以下の移行操作を実行してください。"
+
+msgid "Custom post types and taxonomies"
+msgstr "カスタム投稿タイプとタクソノミー"
+
+msgid "Select content types for plugin-managed ID URLs. These settings do not change regular post permalinks."
+msgstr "IDベースURLにする対象を選択します。通常投稿のパーマリンク設定は変更しません。"
+
+msgid "Migrate legacy regular posts before changing the ID URL format."
+msgstr "ID URL形式を変更するには、先に通常投稿を標準設定へ移行してください。"
+
+msgid " Example: /book/123/ or /book-123/."
+msgstr " 例: /book/123/ または /book-123/。"
