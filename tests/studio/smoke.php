@@ -114,6 +114,23 @@ ptid_studio_assert_same(
 	'Conflicting rewrite slugs must keep the previous settings.'
 );
 
+/*
+ * Saving custom-target settings must not silently change legacy regular
+ * post URLs or remove the post target before an explicit migration.
+ */
+ptid_studio_assert_same(
+	$settings,
+	$smoke_plugin->sanitize_settings(
+		array(
+			'structure'       => 'hyphen',
+			'post_types'      => array( 'studio_book' ),
+			'taxonomies'      => array( 'category', 'studio_genre' ),
+			'redirect_legacy' => true,
+		)
+	),
+	'Saving custom-target settings must preserve the legacy post URL format and target.'
+);
+
 $settings['post_types'][] = 'studio_late_book';
 update_option( $settings_option, $settings );
 register_post_type(
@@ -581,6 +598,19 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 		false,
 		get_option( 'ptid_rewrite_signature', false ),
 		'Migration must defer rewriting until the next request can rebuild CPT routes with the new permalink front.'
+	);
+	$no_reenable_settings = $migration_plugin->sanitize_settings(
+		array(
+			'structure'       => $format,
+			'post_types'      => array( 'post', 'studio_book' ),
+			'taxonomies'      => array( 'category', 'studio_genre' ),
+			'redirect_legacy' => false,
+		)
+	);
+	ptid_studio_assert_same(
+		false,
+		in_array( 'post', $no_reenable_settings['post_types'], true ),
+		'Plugin settings must not re-enable regular post routing after migration.'
 	);
 	$migrated_settings = get_option( $settings_option );
 	ptid_studio_assert_same(
