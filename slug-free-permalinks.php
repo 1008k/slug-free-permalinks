@@ -454,13 +454,14 @@ final class PTID_Permalink_Plugin {
 			),
 			'redirect_legacy' => ! empty( $input['redirect_legacy'] ),
 		);
-		// Keep legacy regular-post URLs stable until the explicit migration.
+		// Only the explicit migration may remove legacy post routing.
 		if ( in_array( 'post', $previous['post_types'], true ) ) {
 			$settings['structure'] = $previous['structure'];
-			if ( ! in_array( 'post', $settings['post_types'], true ) ) {
-				$settings['post_types'][] = 'post';
-			}
+			$settings['post_types'][] = 'post';
+		} else {
+			$settings['post_types'] = array_diff( $settings['post_types'], array( 'post' ) );
 		}
+		$settings['post_types'] = array_values( array_unique( $settings['post_types'] ) );
 		$conflicts = $this->get_route_slug_conflicts( $settings['post_types'], $settings['taxonomies'] );
 
 		if ( array() !== $conflicts ) {
