@@ -618,6 +618,26 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 		preg_match( '/<input\\b(?=[^>]*\\btype="checkbox")(?=[^>]*\\bvalue="post")[^>]*>/s', $legacy_ui ),
 		'Regular posts must not appear as a selectable plugin target.'
 	);
+	ptid_studio_assert_same(
+		true,
+		false !== strpos( $legacy_ui, 'name="ptid_post_structure"' ),
+		'Legacy migration must use the same editable WordPress structure field.'
+	);
+	ptid_studio_assert_same(
+		true,
+		false !== strpos( $legacy_ui, 'data-ptid-preset="/post/%post_id%/"' ),
+		'The permalink builder must provide WordPress-native presets.'
+	);
+	ptid_studio_assert_same(
+		true,
+		false !== strpos( $legacy_ui, 'data-ptid-tag="%post_id%"' ),
+		'The permalink builder must offer token insertion into the structure input.'
+	);
+	ptid_studio_assert_same(
+		1,
+		preg_match_all( '/<input\\b[^>]*\\btype="text"[^>]*>/s', $legacy_ui ),
+		'The permalink builder must show only one editable text input.'
+	);
 	$migrate_method->invoke( $migration_plugin );
 	ob_start();
 	$migration_plugin->render_settings_page();
@@ -633,6 +653,16 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 		'Native regular post settings must link to WordPress permalink settings.'
 	);
 
+	ptid_studio_assert_same(
+		true,
+		false !== strpos( $native_ui, 'name="action" value="ptid_save_post_structure"' ),
+		'Native posts must provide an explicit save action.'
+	);
+	ptid_studio_assert_same(
+		1,
+		preg_match_all( '/<input\\b[^>]*\\btype="text"[^>]*>/s', $native_ui ),
+		'The native permalink editor must use one text field.'
+	);
 	$expected_structure = 'hyphen' === $format ? '/post-%post_id%/' : '/post/%post_id%/';
 	ptid_studio_assert_same(
 		$expected_structure,
@@ -677,6 +707,25 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 		home_url( 'hyphen' === $format ? '/books/archive-' . $custom_post_id . '/' : '/books/archive/' . $custom_post_id . '/' ),
 		$migration_plugin->filter_permalink( home_url( '/books/archive/book/' ), $custom_post ),
 		'Migration must retain custom post type ID URLs.'
+	);
+	// WordPress-native edits must not recreate plugin regular-post routing.
+	$native_edit = new ReflectionMethod( PTID_Permalink_Plugin::class, 'apply_native_post_structure' );
+	$native_edit->setAccessible( true );
+	$native_edit->invoke( $migration_plugin, '/%year%/%monthnum%/%post_id%/' );
+	ptid_studio_assert_same(
+		'/%year%/%monthnum%/%post_id%/',
+		get_option( 'permalink_structure' ),
+		'Editing the structure must update the WordPress native permalink option.'
+	);
+	ptid_studio_assert_same(
+		false,
+		get_option( 'ptid_rewrite_signature', false ),
+		'Changing the native structure must defer rebuilding CPT rewrite rules.'
+	);
+	ptid_studio_assert_same(
+		array( 'studio_book' ),
+		get_option( $settings_option )['post_types'],
+		'Editing WordPress permalinks must not restore regular-post plugin routing.'
 	);
 }
 wp_set_current_user( $original_user_id );
