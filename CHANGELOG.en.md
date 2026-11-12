@@ -4,7 +4,7 @@
 
 ## [2.0.0]
 
-- Separate regular post and custom content settings, using native WordPress permalinks for regular posts with an explicit legacy migration.
+- Build native WordPress post permalinks using presets and editable tags, with separate custom content settings and legacy migration.
 - Redirect URLs in the non-selected ID format (slash or hyphen) when legacy redirects are enabled.
 
 ## [1.7.0]
