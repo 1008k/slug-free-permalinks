@@ -8,7 +8,7 @@ WordPress.org: [Plugin directory](https://wordpress.org/plugins/slug-free-permal
 
 Changelog: [English](CHANGELOG.en.md) | [Japanese](CHANGELOG.md)
 
-Slug-Free Permalinks is a WordPress plugin that switches selected post types and taxonomies to ID-based permalinks without using slugs.
+Slug-Free Permalinks uses WordPress's native permalinks for regular posts and adds ID-based URLs for selected custom post types and taxonomies.
 
 ## Why This Plugin Exists
 
@@ -20,7 +20,7 @@ This plugin is aimed at sites where:
 - multibyte characters can make URLs long and hard to read when they are encoded
 - changing a title later should not leave the URL and the content title out of sync
 
-Slug-Free Permalinks switches selected post types and taxonomies to stable ID-based URLs, so permalink management stays simple and less dependent on titles or language-specific slugs.
+Slug-Free Permalinks uses native WordPress permalink settings for regular posts and lets you give selected custom post types and taxonomies stable ID-based URLs.
 
 It is a better fit for new sites, structured-content setups, or projects that are still deciding their permalink policy.
 
@@ -28,13 +28,13 @@ If a site already has a large volume of published content and established slug-b
 
 ## Features
 
-- Select individual public post types with UI support
+- Select individual public custom post types with UI support
 - Select individual public taxonomies with UI support
 - Use each selected type's registered rewrite slug for the ID-based route
-- Choose `/post/123/` or `/post-123/`
+- Choose slash or hyphen ID URLs for custom post types and taxonomies
 - Optionally redirect legacy slug URLs to the current ID-based permalink
 - Preserve Polylang language URLs using the language home URLs Polylang actually exposes
-- Explicitly migrate regular post ID URLs to WordPress's native permalink settings
+- View WordPress's native post permalink structure and explicitly migrate legacy regular post ID URLs
 - Flush rewrite rules automatically when settings change
 
 ## FAQ
@@ -43,7 +43,7 @@ If a site already has a large volume of published content and established slug-b
 
 No. Pages are intentionally excluded to avoid conflicts with common WordPress page structures and existing permalink configurations.
 
-The plugin focuses on posts, custom post types, and taxonomies where ID-based permalinks are more predictable.
+Regular posts use WordPress's own permalink settings. The plugin provides ID-based URLs for custom post types and taxonomies.
 
 ---
 
@@ -77,11 +77,11 @@ For example, when Polylang exposes `/en/` as a language path, Slug-Free Permalin
 
 **Can I let WordPress manage regular post ID URLs?**
 
-Yes. The pre-deactivation guide offers an explicit migration to WordPress's native permalink structure using `%post_id%`. The migration preserves the current slash or hyphen ID URL format and removes regular posts from the plugin's selected targets. Custom post types and taxonomies remain under their existing plugin settings. **The action changes the site-wide WordPress permalink structure**, which can also affect custom post type URLs. Back up the site and verify existing URLs and redirects before migrating.
+Yes. The Regular posts section offers an explicit migration for sites still using the legacy plugin URL format, moving to WordPress's native permalink structure using `%post_id%`. The migration preserves the current slash or hyphen ID URL format and removes regular posts from the plugin's selected targets. Custom post types and taxonomies remain under their existing plugin settings. **The action changes the site-wide WordPress permalink structure**, which can also affect custom post type URLs. Back up the site and verify existing URLs and redirects before migrating.
 
 **How can I deactivate the plugin without changing regular post URLs?**
 
-When regular posts are enabled, the settings screen shows the equivalent WordPress Custom Structure for the current ID URL format, such as `/post/%post_id%/` or `/post-%post_id%/`. The displayed value follows the site's current trailing-slash policy. You can apply it using the migration button, or copy it to `Settings > Permalinks` and then deselect regular posts in the plugin before deactivation.
+When regular posts are enabled, the settings screen shows the equivalent WordPress Custom Structure for the current ID URL format, such as `/post/%post_id%/` or `/post-%post_id%/`. The displayed value follows the site's current trailing-slash policy. Use the migration button to switch to WordPress's native structure before deactivating the plugin.
 
 Custom post types and taxonomies have their own rewrite settings and need to be checked separately before deactivation.
 
@@ -101,7 +101,7 @@ These are the supported minimum versions. Older WordPress and PHP releases are o
 2. Search for `Slug-Free Permalinks`.
 3. Click `Install Now`, then activate the plugin.
 4. Go to `Settings > Slug-Free Permalinks`.
-5. Choose the permalink format and the target post types or taxonomies.
+5. Use WordPress permalink settings for regular posts. In the plugin settings, choose the ID format and custom post types or taxonomies to convert.
 
 For manual installation, upload the `slug-free-permalinks` folder to `/wp-content/plugins/` and activate it from the `Plugins` screen.
 
