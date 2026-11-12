@@ -8,13 +8,13 @@ Stable tag: 2.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Use ID-based permalinks for selected post types and taxonomies without managing slugs.
+Use native WordPress permalinks for posts and ID-based URLs for selected custom post types and taxonomies.
 
 == Description ==
 
 Choosing a new slug for every post, term, or language version is extra URL design work. Slug-Free Permalinks lets you move that work out of the publishing flow by using an item's ID in the permalink instead.
 
-Select the public post types and taxonomies you want to change, choose a URL format, and keep the rest of your site on its existing permalink structure. The plugin is intentionally focused: it changes URL structure without adding content features or front-end UI.
+Regular posts use WordPress's native permalink settings. Select custom post types and taxonomies for plugin-managed ID URLs, and choose their URL format. The plugin is intentionally focused: it changes URL structure without adding content features or front-end UI.
 
 == Why use ID-based permalinks? ==
 
@@ -24,20 +24,20 @@ Select the public post types and taxonomies you want to change, choose a URL for
 
 You can choose between:
 
-* `/post/123/`
-* `/post-123/`
+* `/book/123/`
+* `/book-123/`
 
-The plugin only affects the post types and taxonomies you enable in the settings screen.
+The plugin-managed format applies only to the custom post types and taxonomies you select.
 
 What you can configure:
 
-* Select individual public post types
+* Select individual public custom post types
 * Select individual public taxonomies
 * Use each selected type's registered rewrite slug for the ID-based route
 * Choose slash or hyphen based ID permalink format
 * Optionally redirect legacy slug URLs to the current ID-based permalink when WordPress can resolve the request
 * Preserve Polylang language URLs using the language home URLs Polylang actually exposes
-* Explicitly migrate regular post ID URLs to WordPress's native permalink settings
+* Show the native permalink setting for regular posts and explicitly migrate legacy regular post ID URLs
 * Flush rewrite rules automatically when settings change
 
 == A focused, predictable change ==
@@ -65,8 +65,8 @@ Known limitations:
 2. Search for `Slug-Free Permalinks`.
 3. Click `Install Now`, then activate the plugin.
 4. Go to `Settings > Slug-Free Permalinks`.
-5. Choose a permalink format.
-6. Check the post types and taxonomies you want to convert to ID-based permalinks.
+5. Set regular post URLs in WordPress's own Permalink Settings.
+6. In the plugin settings, choose the ID URL format and the custom post types or taxonomies to convert.
 7. Optionally enable legacy permalink redirects.
 8. Save changes.
 
@@ -76,7 +76,7 @@ If you prefer manual installation, upload the plugin folder to `/wp-content/plug
 
 = Does this change every post type automatically? =
 
-No. Only the post types and taxonomies you check in the settings screen are affected.
+No. Regular posts use WordPress's permalink settings. Only the selected custom post types and taxonomies use plugin-managed ID URLs.
 
 = Does it redirect every old slug URL? =
 
@@ -111,7 +111,7 @@ For example, when Polylang exposes `/en/` as a language path, the plugin registe
 
 = Can I move regular post ID URLs to WordPress native permalinks? =
 
-Yes. Use the explicit migration action in the plugin settings. It sets WordPress's native `%post_id%` permalink structure while preserving the current slash or hyphen form, then deselects regular posts from plugin routing. Custom post types and taxonomies retain their plugin configuration. Because this changes the site-wide permalink structure, custom post type URLs may also be affected. Back up the site and check existing URLs and redirects before migrating.
+Yes. Sites still using legacy regular post URL handling can use the migration action in the Regular posts section. It sets WordPress's native `%post_id%` permalink structure while preserving the current slash or hyphen form, then deselects regular posts from plugin routing. Custom post types and taxonomies retain their plugin configuration. Because this changes the site-wide permalink structure, custom post type URLs may also be affected. Back up the site and check existing URLs and redirects before migrating.
 
 = What happens to old URLs when I switch between /post/123/ and /post-123/? =
 
@@ -121,19 +121,19 @@ When legacy redirects are enabled, the non-selected format also resolves and red
 
 When regular posts are enabled, the settings screen shows the equivalent WordPress Custom Structure for the current ID URL format. The displayed value follows the site's current trailing-slash policy.
 
-Use the migration action to apply that structure and disable plugin routing for regular posts, or copy the value to `Settings > Permalinks` and deselect regular posts manually.
+Use the migration action to apply that structure and stop plugin routing for regular posts.
 
 Custom post types and taxonomies have their own rewrite settings and need to be checked separately before deactivation.
 
 == Screenshots ==
 
-1. Settings screen for choosing the ID permalink format, target post types, target taxonomies, and optional legacy redirect behavior.
+1. Settings screen separating WordPress-managed regular posts from custom post type and taxonomy ID URLs.
 
 == Changelog ==
 
 = 2.0.0 =
 
-* Let administrators explicitly migrate regular post ID URLs to native WordPress permalink settings.
+* Separate native WordPress permalink settings for regular posts from custom post type and taxonomy ID URL settings, with an explicit legacy-post migration.
 * Redirect URLs in the non-selected ID format (slash or hyphen) when legacy redirects are enabled.
 
 = 1.7.0 =
