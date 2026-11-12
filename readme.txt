@@ -37,7 +37,7 @@ What you can configure:
 * Choose slash or hyphen based ID permalink format
 * Optionally redirect legacy slug URLs to the current ID-based permalink when WordPress can resolve the request
 * Preserve Polylang language URLs using the language home URLs Polylang actually exposes
-* Show the native permalink setting for regular posts and explicitly migrate legacy regular post ID URLs
+* Build WordPress-native post permalinks with presets, insertable tags, and one editable structure field; explicitly migrate legacy post ID URLs
 * Flush rewrite rules automatically when settings change
 
 == A focused, predictable change ==
@@ -133,7 +133,7 @@ Custom post types and taxonomies have their own rewrite settings and need to be 
 
 = 2.0.0 =
 
-* Separate native WordPress permalink settings for regular posts from custom post type and taxonomy ID URL settings, with an explicit legacy-post migration.
+* Build WordPress-native post permalinks with presets and editable tags, while keeping custom post type and taxonomy ID URL settings separate.
 * Redirect URLs in the non-selected ID format (slash or hyphen) when legacy redirects are enabled.
 
 = 1.7.0 =
