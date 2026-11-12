@@ -107,6 +107,7 @@ final class PTID_Permalink_Plugin {
 		add_action( 'admin_init', array( $instance, 'normalize_stored_settings' ) );
 		add_action( 'admin_menu', array( $instance, 'register_settings_page' ) );
 		add_action( 'admin_post_ptid_migrate_post_structure', array( $instance, 'migrate_post_structure' ) );
+		add_action( 'admin_post_ptid_save_post_structure', array( $instance, 'save_post_structure' ) );
 		add_action( 'admin_enqueue_scripts', array( $instance, 'enqueue_admin_assets' ) );
 		add_filter(
 			'plugin_action_links_' . plugin_basename( __FILE__ ),
@@ -361,6 +362,19 @@ final class PTID_Permalink_Plugin {
 
 		check_admin_referer( 'ptid_migrate_post_structure' );
 
+		$settings = $this->get_settings();
+		$expected_structure = '/' . user_trailingslashit(
+			'hyphen' === $settings['structure'] ? 'post-%post_id%' : 'post/%post_id%',
+			'single'
+		);
+		$submitted_structure = isset( $_POST['ptid_post_structure'] ) && is_string( $_POST['ptid_post_structure'] )
+			? sanitize_text_field( wp_unslash( $_POST['ptid_post_structure'] ) )
+			: '';
+
+		if ( $expected_structure !== $submitted_structure ) {
+			wp_die( esc_html__( 'To preserve existing post URLs, migrate using the current legacy structure before editing it.', 'slug-free-permalinks' ) );
+		}
+
 		$this->apply_post_structure_migration();
 
 		wp_safe_redirect( admin_url( 'options-general.php?page=' . self::MENU_SLUG ) );
@@ -392,6 +406,52 @@ final class PTID_Permalink_Plugin {
 	}
 
 	/**
+	 * Saves the standard WordPress permalink structure when regular posts
+	 * are no longer routed by this plugin.
+	 */
+	public function save_post_structure(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to change permalink settings.', 'slug-free-permalinks' ) );
+		}
+
+		check_admin_referer( 'ptid_save_post_structure' );
+
+		if ( in_array( 'post', $this->get_settings()['post_types'], true ) ) {
+			wp_die( esc_html__( 'Migrate legacy regular posts before changing the WordPress permalink structure.', 'slug-free-permalinks' ) );
+		}
+
+		$structure = isset( $_POST['ptid_post_structure'] ) && is_string( $_POST['ptid_post_structure'] )
+			? sanitize_text_field( wp_unslash( $_POST['ptid_post_structure'] ) )
+			: '';
+
+		if ( '' !== $structure && ( '/' !== substr( $structure, 0, 1 ) || false !== strpbrk( $structure, '?#' ) ) ) {
+			wp_die( esc_html__( 'Enter a valid WordPress permalink structure starting with a slash.', 'slug-free-permalinks' ) );
+		}
+
+		$this->apply_native_post_structure( $structure );
+		wp_safe_redirect( admin_url( 'options-general.php?page=' . self::MENU_SLUG ) );
+		exit;
+	}
+
+	/**
+	 * Applies a WordPress-native post permalink structure without creating
+	 * additional plugin settings.
+	 *
+	 * @param string $structure Native permalink structure, or empty for plain.
+	 */
+	private function apply_native_post_structure( string $structure ): void {
+		global $wp_rewrite;
+
+		if ( (string) get_option( 'permalink_structure', '' ) === $structure ) {
+			return;
+		}
+
+		$wp_rewrite->set_permalink_structure( $structure );
+		// Rebuild after CPT rewrite registrations have picked up the new front.
+		delete_option( self::REWRITE_SIGNATURE_OPTION );
+	}
+
+	/**
 	 * Enqueues assets only on the plugin settings screen.
 	 *
 	 * @param string $hook_suffix Current admin page hook suffix.
@@ -406,6 +466,14 @@ final class PTID_Permalink_Plugin {
 			plugins_url( 'assets/admin.css', __FILE__ ),
 			array(),
 			self::PLUGIN_VERSION
+		);
+
+		wp_enqueue_script(
+			'slug-free-permalinks-admin',
+			plugins_url( 'assets/admin.js', __FILE__ ),
+			array(),
+			self::PLUGIN_VERSION,
+			true
 		);
 	}
 
@@ -511,29 +579,46 @@ final class PTID_Permalink_Plugin {
 				<div class="ptid-admin-main">
 					<section class="ptid-settings-section" aria-labelledby="ptid-regular-posts-title">
 						<h2 id="ptid-regular-posts-title"><?php echo esc_html__( 'Regular posts', 'slug-free-permalinks' ); ?></h2>
-						<?php if ( ! $post_enabled ) : ?>
-							<p><?php echo esc_html__( 'WordPress manages regular post permalinks. Change their structure in WordPress permalink settings.', 'slug-free-permalinks' ); ?></p>
-						<?php endif; ?>
-						<p>
-							<strong><?php echo esc_html__( 'Current WordPress structure', 'slug-free-permalinks' ); ?>:</strong>
-							<code><?php echo esc_html( '' !== $current_wp_structure ? $current_wp_structure : __( 'Plain', 'slug-free-permalinks' ) ); ?></code>
-							<a href="<?php echo esc_url( admin_url( 'options-permalink.php' ) ); ?>"><?php echo esc_html__( 'Open Permalink Settings', 'slug-free-permalinks' ); ?></a>
-						</p>
 						<?php if ( $post_enabled ) : ?>
 							<div class="notice notice-warning inline">
 								<p><?php echo esc_html__( 'Regular posts still use the legacy plugin URL format. Migrate them explicitly to use WordPress settings.', 'slug-free-permalinks' ); ?></p>
 							</div>
-							<p>
-								<strong><?php echo esc_html__( 'WordPress custom structure', 'slug-free-permalinks' ); ?>:</strong>
-								<code><?php echo esc_html( $wp_permalink_structure ); ?></code>
-							</p>
-							<p class="description"><?php echo esc_html__( 'This explicitly sets the WordPress permalink structure above and stops plugin URL rewriting for regular posts. Back up your site and check for URL conflicts before proceeding. Custom post types and taxonomies keep their plugin settings.', 'slug-free-permalinks' ); ?></p>
-							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-								<input type="hidden" name="action" value="ptid_migrate_post_structure" />
-								<?php wp_nonce_field( 'ptid_migrate_post_structure' ); ?>
-								<?php submit_button( __( 'Migrate regular posts to WordPress permalinks', 'slug-free-permalinks' ), 'secondary', 'submit', false ); ?>
-							</form>
 						<?php endif; ?>
+						<p><?php echo esc_html__( 'Choose a preset or insert WordPress permalink tags, then edit the resulting structure directly.', 'slug-free-permalinks' ); ?></p>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="ptid-native-permalink-form">
+							<input type="hidden" name="action" value="<?php echo esc_attr( $post_enabled ? 'ptid_migrate_post_structure' : 'ptid_save_post_structure' ); ?>" />
+							<?php wp_nonce_field( $post_enabled ? 'ptid_migrate_post_structure' : 'ptid_save_post_structure' ); ?>
+							<div class="ptid-permalink-presets" role="group" aria-label="<?php echo esc_attr__( 'Permalink presets', 'slug-free-permalinks' ); ?>">
+							<?php
+							$presets = array(
+								'/%post_id%/'                     => __( 'Post ID', 'slug-free-permalinks' ),
+								'/post/%post_id%/'                => __( 'Post / ID', 'slug-free-permalinks' ),
+								'/%year%/%monthnum%/%post_id%/'   => __( 'Year / Month / ID', 'slug-free-permalinks' ),
+								'/%category%/%post_id%/'          => __( 'Category / ID', 'slug-free-permalinks' ),
+							);
+							foreach ( $presets as $preset => $label ) :
+							?>
+								<button type="button" class="button" data-ptid-preset="<?php echo esc_attr( $preset ); ?>"><?php echo esc_html( $label ); ?></button>
+							<?php endforeach; ?>
+						</div>
+						<p>
+							<label for="ptid-post-structure"><strong><?php echo esc_html__( 'WordPress custom structure', 'slug-free-permalinks' ); ?></strong></label>
+							<input type="text" id="ptid-post-structure" name="ptid_post_structure" class="large-text code" value="<?php echo esc_attr( $post_enabled ? $wp_permalink_structure : $current_wp_structure ); ?>" spellcheck="false" autocomplete="off" />
+						</p>
+						<div class="ptid-permalink-tags" role="group" aria-label="<?php echo esc_attr__( 'Insert permalink tags', 'slug-free-permalinks' ); ?>">
+							<?php foreach ( array( '%post_id%', '%postname%', '%category%', '%year%', '%monthnum%', '%day%' ) as $tag ) : ?>
+								<button type="button" class="button button-small" data-ptid-tag="<?php echo esc_attr( $tag ); ?>"><code><?php echo esc_html( $tag ); ?></code></button>
+							<?php endforeach; ?>
+						</div>
+						<?php if ( $post_enabled ) : ?>
+							<p class="description"><?php echo esc_html__( 'Migration preserves the existing regular post URLs. The structure must match the legacy format shown when this page loaded. After migration, you can customize it.', 'slug-free-permalinks' ); ?></p>
+							<p class="description"><?php echo esc_html__( 'Changing WordPress permalinks can affect custom post type URLs. Back up the site and check for URL conflicts first.', 'slug-free-permalinks' ); ?></p>
+							<?php submit_button( __( 'Migrate regular posts to WordPress permalinks', 'slug-free-permalinks' ), 'secondary', 'submit', false ); ?>
+						<?php else : ?>
+							<p class="description"><?php echo esc_html__( 'Saving changes the WordPress permalink structure for regular posts and may also affect custom post type URLs.', 'slug-free-permalinks' ); ?></p>
+							<?php submit_button( __( 'Save WordPress permalinks', 'slug-free-permalinks' ), 'primary', 'submit', false ); ?>
+						<?php endif; ?>
+						</form>
 					</section>
 					<section class="ptid-settings-section" aria-labelledby="ptid-custom-targets-title">
 						<h2 id="ptid-custom-targets-title"><?php echo esc_html__( 'Custom post types and taxonomies', 'slug-free-permalinks' ); ?></h2>
