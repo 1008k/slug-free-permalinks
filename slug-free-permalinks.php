@@ -454,6 +454,13 @@ final class PTID_Permalink_Plugin {
 			),
 			'redirect_legacy' => ! empty( $input['redirect_legacy'] ),
 		);
+		// Keep legacy regular-post URLs stable until the explicit migration.
+		if ( in_array( 'post', $previous['post_types'], true ) ) {
+			$settings['structure'] = $previous['structure'];
+			if ( ! in_array( 'post', $settings['post_types'], true ) ) {
+				$settings['post_types'][] = 'post';
+			}
+		}
 		$conflicts = $this->get_route_slug_conflicts( $settings['post_types'], $settings['taxonomies'] );
 
 		if ( array() !== $conflicts ) {
@@ -494,6 +501,7 @@ final class PTID_Permalink_Plugin {
 		$post_types             = $this->get_available_post_types();
 		$taxonomies             = $this->get_available_taxonomies();
 		$post_enabled           = in_array( 'post', $settings['post_types'], true );
+		unset( $post_types['post'] );
 		$current_wp_structure   = (string) get_option( 'permalink_structure', '' );
 		$wp_permalink_structure = '/' . user_trailingslashit(
 			'hyphen' === $settings['structure'] ? 'post-%post_id%' : 'post/%post_id%',
@@ -537,12 +545,12 @@ final class PTID_Permalink_Plugin {
 							<?php if ( $post_enabled ) : ?>
 								<input type="hidden" name="<?php echo esc_attr( self::OPTION_NAME ); ?>[post_types][]" value="post" />
 							<?php endif; ?>
-				<table class="form-table" role="presentation">
+						<table class="form-table" role="presentation">
 					<tbody>
 						<tr>
 							<th scope="row"><?php echo esc_html__( 'Permalink format', 'slug-free-permalinks' ); ?></th>
 							<td>
-								<select name="<?php echo esc_attr( self::OPTION_NAME ); ?>[structure]">
+								<select name="<?php echo esc_attr( self::OPTION_NAME ); ?>[structure]" <?php disabled( $post_enabled ); ?>>
 									<option value="slash" <?php selected( $settings['structure'], 'slash' ); ?>>
 									<?php echo esc_html( '/{type}/123/' ); ?>
 									</option>
@@ -550,6 +558,10 @@ final class PTID_Permalink_Plugin {
 									<?php echo esc_html( '/{type}-123/' ); ?>
 									</option>
 								</select>
+								<?php if ( $post_enabled ) : ?>
+									<input type="hidden" name="<?php echo esc_attr( self::OPTION_NAME ); ?>[structure]" value="<?php echo esc_attr( $settings['structure'] ); ?>" />
+									<p class="description"><?php echo esc_html__( 'Migrate legacy regular posts before changing the ID URL format.', 'slug-free-permalinks' ); ?></p>
+								<?php endif; ?>
 								<p class="description">
 									<?php echo esc_html__( '{type} is replaced with the post type or taxonomy rewrite slug.', 'slug-free-permalinks' ); ?>
 									<?php echo esc_html__( ' Example: /book/123/ or /book-123/.', 'slug-free-permalinks' ); ?>
@@ -561,7 +573,6 @@ final class PTID_Permalink_Plugin {
 							<td>
 								<fieldset class="ptid-target-list">
 								<?php foreach ( $post_types as $post_type => $object ) : ?>
-										<?php if ( 'post' === $post_type ) { continue; } ?>
 										<label class="ptid-target-list__item">
 											<input
 												name="<?php echo esc_attr( self::OPTION_NAME ); ?>[post_types][]"
@@ -608,10 +619,9 @@ final class PTID_Permalink_Plugin {
 							</td>
 						</tr>
 					</tbody>
-				</table>
-			<?php submit_button(); ?>
-					</form>
-
+						</table>
+						<?php submit_button(); ?>
+						</form>
 					</section>
 				</div>
 
