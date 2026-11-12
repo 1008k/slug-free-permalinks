@@ -73,7 +73,7 @@ The settings screen rejects a selection where a post type and taxonomy share the
 
 Yes. Polylang integration uses the language home URL returned by Polylang instead of accepting arbitrary path prefixes.
 
-For example, when Polylang exposes `/en/` as a language path, Slug-Free Permalinks registers `/en/post/123/` and `/en/category/45/` alongside the base routes. Domain-based or query-based language modes continue to use the URL returned by Polylang without inventing an extra path prefix.
+For example, when Polylang exposes `/en/` as a language path, selected custom content can use `/en/books/123/` and `/en/category/45/` alongside the base routes. Domain-based or query-based language modes continue to use the URL returned by Polylang without inventing an extra path prefix.
 
 **Can I let WordPress manage regular post ID URLs?**
 
