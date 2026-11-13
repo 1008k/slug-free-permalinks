@@ -253,8 +253,8 @@ final class PTID_Permalink_Plugin {
 			array(
 				'post_type'        => $post_type,
 				'post_status'      => 'any',
-				'meta_key'         => self::LEGACY_META_KEY,
-				'meta_value'       => $identifier,
+				'meta_key'         => self::LEGACY_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Queried only after matching a configured legacy route.
+				'meta_value'       => $identifier, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Restricted to the requested post type and matched route.
 				'posts_per_page'   => 20,
 				'fields'           => 'ids',
 				'suppress_filters' => true,
@@ -498,8 +498,8 @@ final class PTID_Permalink_Plugin {
 
 		check_admin_referer( 'ptid_migrate_post_structure' );
 
-		$settings           = $this->get_settings();
-		$expected_structure = '/' . user_trailingslashit(
+		$settings            = $this->get_settings();
+		$expected_structure  = '/' . user_trailingslashit(
 			'hyphen' === $settings['structure'] ? 'post-%post_id%' : 'post/%post_id%',
 			'single'
 		);
@@ -746,10 +746,10 @@ final class PTID_Permalink_Plugin {
 							<div class="ptid-permalink-presets" role="group" aria-label="<?php echo esc_attr__( 'Permalink presets', 'slug-free-permalinks' ); ?>">
 							<?php
 							$presets = array(
-								'/%post_id%/'                   => __( 'Post ID', 'slug-free-permalinks' ),
-								'/post/%post_id%/'              => __( 'Post / ID', 'slug-free-permalinks' ),
+								'/%post_id%/'            => __( 'Post ID', 'slug-free-permalinks' ),
+								'/post/%post_id%/'       => __( 'Post / ID', 'slug-free-permalinks' ),
 								'/%year%/%monthnum%/%post_id%/' => __( 'Year / Month / ID', 'slug-free-permalinks' ),
-								'/%category%/%post_id%/'        => __( 'Category / ID', 'slug-free-permalinks' ),
+								'/%category%/%post_id%/' => __( 'Category / ID', 'slug-free-permalinks' ),
 							);
 							foreach ( $presets as $preset => $label ) :
 								?>
