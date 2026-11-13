@@ -6,6 +6,7 @@
 
 - Build native WordPress post permalinks using presets and editable tags, with separate custom content settings and legacy migration.
 - Add optional `legacy_id` custom field permalinks for CMS migrations, with ID or slug fallback.
+- Preserve redirects from legacy CPT slugs and avoid ambiguous identifier collisions.
 - Redirect URLs in the non-selected ID format (slash or hyphen) when legacy redirects are enabled.
 
 ## [1.7.0]
