@@ -627,6 +627,12 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 	$legacy_ui = ob_get_clean();
 	ptid_studio_assert_same(
 		true,
+		false !== strpos( $legacy_ui, 'data-ptid-confirm=' ),
+		'Migration must ask for confirmation before altering site-wide permalinks.'
+	);
+
+	ptid_studio_assert_same(
+		true,
 		false !== strpos( $legacy_ui, 'name="action" value="ptid_migrate_post_structure"' ),
 		'Legacy sites must show an explicit migration action in the regular-post section.'
 	);
@@ -664,6 +670,12 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 	ob_start();
 	$migration_plugin->render_settings_page();
 	$native_ui = ob_get_clean();
+	ptid_studio_assert_same(
+		true,
+		false !== strpos( $native_ui, 'name="action" value="ptid_save_post_structure"' ),
+		'Native permalink settings must retain the explicit save action.'
+	);
+
 	ptid_studio_assert_same(
 		false,
 		false !== strpos( $native_ui, 'name="action" value="ptid_migrate_post_structure"' ),
@@ -772,6 +784,40 @@ $legacy_plugin->register_rewrite_rules();
 $lookup_legacy = new ReflectionMethod( PTID_Permalink_Plugin::class, 'lookup_legacy_post' );
 $lookup_legacy->setAccessible( true );
 
+$lookup_old_slug = new ReflectionMethod( PTID_Permalink_Plugin::class, 'lookup_old_cpt_slug' );
+$lookup_old_slug->setAccessible( true );
+ptid_studio_assert_same(
+	$custom_post_id,
+	$lookup_old_slug->invoke( $legacy_plugin, $custom_post->post_name, 'studio_book' ),
+	'Legacy-enabled CPTs must still resolve previous slugs for optional 301 redirects.'
+);
+$old_slug_request             = new WP();
+$old_slug_request->request    = 'books/archive/' . $custom_post->post_name;
+$old_slug_request->query_vars = array(
+	'ptid_route'      => '1',
+	'ptid_identifier' => $custom_post->post_name,
+	'post_type'       => 'studio_book',
+);
+$legacy_plugin->resolve_legacy_request( $old_slug_request );
+ptid_studio_assert_same(
+	$custom_post_id,
+	$old_slug_request->query_vars['p'],
+	'An old CPT slug must reach canonical redirection when redirect_legacy is enabled.'
+);
+
+$redirect_disabled_settings                    = $legacy_settings;
+$redirect_disabled_settings['redirect_legacy'] = false;
+update_option( $settings_option, $redirect_disabled_settings );
+$redirect_disabled_plugin = new PTID_Permalink_Plugin();
+ptid_studio_assert_same(
+	0,
+	$lookup_old_slug->invoke( $redirect_disabled_plugin, $custom_post->post_name, 'studio_book' ),
+	'Legacy CPT slugs must not be rescued when redirects are disabled.'
+);
+update_option( $settings_option, $legacy_settings );
+
+
+
 ptid_studio_assert_same(
 	true,
 	isset( $GLOBALS['wp_rewrite']->extra_rules_top['^books/archive/([A-Za-z0-9_-]+)/?$'] ),
@@ -818,6 +864,12 @@ if ( is_wp_error( $legacy_second_id ) ) {
 	exit( 1 );
 }
 update_post_meta( $legacy_second_id, 'legacy_id', 'old-book-45' );
+ptid_studio_assert_same(
+	0,
+	$lookup_old_slug->invoke( $legacy_plugin, 'old-book-45', 'studio_book' ),
+	'Legacy identifier claims must not be reinterpreted as an old slug.'
+);
+
 ptid_studio_assert_same(
 	0,
 	$lookup_legacy->invoke( $legacy_plugin, 'old-book-45', 'studio_book' ),
@@ -868,7 +920,15 @@ ptid_studio_assert_same(
 $native_request             = new WP();
 $native_request->request    = 'entry/migration-123.html';
 $native_request->query_vars = array( 'ptid_legacy_id' => 'migration-123' );
+$native_request->query_vars['author_name'] = 'an-old-author';
+$native_request->query_vars['tag']         = 'obsolete-tag';
+$native_request->query_vars['hour']        = 4;
 $native_legacy_plugin->resolve_legacy_request( $native_request );
+ptid_studio_assert_same(
+	false,
+	isset( $native_request->query_vars['author_name'], $native_request->query_vars['tag'], $native_request->query_vars['hour'] ),
+	'Native legacy post routes must not inherit stale author, taxonomy or date filters.'
+);
 ptid_studio_assert_same(
 	$created_post_id,
 	$native_request->query_vars['p'],
