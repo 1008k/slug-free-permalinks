@@ -850,6 +850,9 @@ ptid_studio_assert_same(
 $GLOBALS['wp_rewrite']->set_permalink_structure( '/entry/%legacy_id%.html' );
 update_option( $settings_option, $legacy_settings );
 $native_legacy_plugin = new PTID_Permalink_Plugin();
+// Earlier tests changed options within one process; refresh the permalink hook.
+remove_all_filters( 'post_link' );
+add_filter( 'post_link', array( $native_legacy_plugin, 'filter_permalink' ), 10, 2 );
 update_post_meta( $created_post_id, 'legacy_id', 'migration-123' );
 ptid_studio_assert_same(
 	home_url( '/entry/migration-123.html' ),
