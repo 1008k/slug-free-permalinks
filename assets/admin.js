@@ -6,6 +6,15 @@
 		return;
 	}
 
+	const migrationWarning = form.dataset.ptidConfirm;
+	if ( migrationWarning ) {
+		form.addEventListener( 'submit', function ( event ) {
+			if ( ! window.confirm( migrationWarning ) ) {
+				event.preventDefault();
+			}
+		} );
+	}
+
 	for ( const button of form.querySelectorAll( '[data-ptid-preset]' ) ) {
 		button.addEventListener( 'click', function () {
 			input.value = button.dataset.ptidPreset;
