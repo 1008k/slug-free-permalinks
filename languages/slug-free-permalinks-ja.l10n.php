@@ -64,5 +64,12 @@ return array(
         'Migrate legacy regular posts before changing the WordPress permalink structure.' => '通常投稿の旧方式を移行してから、WordPress標準のパーマリンク構造を変更してください。',
         'Enter a valid WordPress permalink structure starting with a slash.' => 'スラッシュで始まる有効なWordPressパーマリンク構造を入力してください。',
         'To preserve existing post URLs, migrate using the current legacy structure before editing it.' => '既存の投稿URLを維持するため、現在の旧URL形式のまま移行してください。変更は移行後に行えます。',
+        'Use legacy identifiers' => '移行元の識別子を使用',
+        'Use the legacy_id custom field for post URLs. Posts without a value use the selected fallback.' => '投稿のカスタムフィールド legacy_id をURLに使用します。値のない投稿にはフォールバック識別子を使用します。',
+        'Migrate regular posts before enabling legacy identifiers.' => '移行元の識別子を使用する前に、通常投稿をWordPress標準設定へ移行してください。',
+        'Fallback identifier' => 'フォールバック識別子',
+        'Post slug' => '投稿スラッグ',
+        'Enable legacy identifiers before using the %legacy_id% tag.' => '%legacy_id%タグを使用する前に、移行元の識別子を有効にしてください。',
+        'Remove %legacy_id% from the WordPress permalink structure before disabling legacy identifiers.' => '移行元の識別子を無効にする前に、WordPressのパーマリンク構造から%legacy_id%を削除してください。',
     ),
 );
