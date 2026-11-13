@@ -811,6 +811,7 @@ final class PTID_Permalink_Plugin {
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'Slug-Free Permalinks', 'slug-free-permalinks' ); ?></h1>
 			<?php
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- This GET value only controls a whitelisted display notice.
 			$notice = isset( $_GET['ptid_notice'] ) && is_string( $_GET['ptid_notice'] )
 				? sanitize_key( wp_unslash( $_GET['ptid_notice'] ) )
 				: '';
@@ -829,7 +830,11 @@ final class PTID_Permalink_Plugin {
 							</div>
 						<?php endif; ?>
 						<p><?php echo esc_html__( 'Choose a preset or insert WordPress permalink tags, then edit the resulting structure directly.', 'slug-free-permalinks' ); ?></p>
-						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="ptid-native-permalink-form" <?php if ( $post_enabled ) : ?>data-ptid-confirm="<?php echo esc_attr__( 'Migrate regular posts to WordPress permalinks? This changes the site-wide permalink structure.', 'slug-free-permalinks' ); ?>"<?php endif; ?>>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="ptid-native-permalink-form"
+							<?php if ( $post_enabled ) : ?>
+								data-ptid-confirm="<?php echo esc_attr__( 'Migrate regular posts to WordPress permalinks? This changes the site-wide permalink structure.', 'slug-free-permalinks' ); ?>"
+							<?php endif; ?>
+						>
 							<input type="hidden" name="action" value="<?php echo esc_attr( $post_enabled ? 'ptid_migrate_post_structure' : 'ptid_save_post_structure' ); ?>" />
 							<?php wp_nonce_field( $post_enabled ? 'ptid_migrate_post_structure' : 'ptid_save_post_structure' ); ?>
 							<div class="ptid-permalink-presets" role="group" aria-label="<?php echo esc_attr__( 'Permalink presets', 'slug-free-permalinks' ); ?>">
