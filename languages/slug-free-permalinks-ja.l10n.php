@@ -74,5 +74,6 @@ return array(
         'Regular posts now use WordPress permalinks.' => '通常投稿をWordPress標準のパーマリンクへ移行しました。',
         'WordPress permalinks saved.' => 'WordPressのパーマリンク設定を保存しました。',
         'Migrate regular posts to WordPress permalinks? This changes the site-wide permalink structure.' => '通常投稿をWordPress標準のパーマリンクへ移行しますか？ サイト全体のパーマリンク構造が変更されます。',
+        'Use a recognized WordPress permalink tag in the structure, and remove unknown tags.' => 'WordPressで認識できるパーマリンクタグを使用し、不明なタグを削除してください。',
     ),
 );
