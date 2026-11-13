@@ -33,6 +33,7 @@ final class PTID_Permalink_Plugin {
 	private const REWRITE_MARKER_VERSION        = '2';
 	private const REWRITE_MARKER_VERSION_OPTION = 'ptid_rewrite_marker_version';
 	private const REWRITE_SIGNATURE_OPTION      = 'ptid_rewrite_signature';
+	private const REWRITE_HARD_FLUSH_OPTION     = 'ptid_rewrite_hard_flush_pending';
 	/**
 	 * Normalized plugin settings.
 	 *
@@ -105,6 +106,7 @@ final class PTID_Permalink_Plugin {
 		add_filter( 'query_vars', array( $instance, 'register_query_vars' ) );
 		add_action( 'parse_request', array( $instance, 'resolve_legacy_request' ), 9 );
 		add_action( 'parse_request', array( $instance, 'resolve_term_request' ) );
+		add_filter( 'pre_handle_404', array( $instance, 'handle_unresolved_legacy_404' ), 10, 2 );
 		add_action( 'template_redirect', array( $instance, 'redirect_legacy_permalink' ) );
 		add_action( 'admin_init', array( $instance, 'register_settings' ) );
 		add_action( 'admin_init', array( $instance, 'normalize_stored_settings' ) );
@@ -402,9 +404,28 @@ final class PTID_Permalink_Plugin {
 		if ( $post_id ) {
 			$wp->query_vars['p'] = $post_id;
 		} else {
-			$wp->query_vars['p']        = 0;
-			$wp->query_vars['post__in'] = array( 0 );
+			$wp->query_vars['p']                     = 0;
+			$wp->query_vars['post__in']              = array( 0 );
+			$wp->query_vars['ptid_legacy_not_found'] = 1;
 		}
+	}
+
+	/**
+	 * Prevents unresolved legacy routes from being classified as the blog home.
+	 *
+	 * @param mixed    $preempt Existing pre-handle result.
+	 * @param WP_Query $query   Main query.
+	 * @return mixed Pre-handle result.
+	 */
+	public function handle_unresolved_legacy_404( $preempt, WP_Query $query ) {
+		if ( ! $query->get( 'ptid_legacy_not_found' ) ) {
+			return $preempt;
+		}
+
+		$query->set_404();
+		status_header( 404 );
+		nocache_headers();
+		return true;
 	}
 
 	/**
@@ -451,12 +472,16 @@ final class PTID_Permalink_Plugin {
 	 * Flushes rewrite rules once when registration changed the persisted set.
 	 */
 	public function flush_pending_rewrite_rules(): void {
-		if ( ! $this->rewrite_rules_flush_pending ) {
+		$hard_flush = (bool) get_option( self::REWRITE_HARD_FLUSH_OPTION, false );
+		if ( ! $this->rewrite_rules_flush_pending && ! $hard_flush ) {
 			return;
 		}
 
 		$this->rewrite_rules_flush_pending = false;
-		flush_rewrite_rules( false );
+		flush_rewrite_rules( $hard_flush );
+		if ( $hard_flush ) {
+			delete_option( self::REWRITE_HARD_FLUSH_OPTION );
+		}
 		$this->persist_rewrite_state();
 	}
 
@@ -472,6 +497,7 @@ final class PTID_Permalink_Plugin {
 		$query_vars[] = 'ptid_route';
 		$query_vars[] = 'ptid_identifier';
 		$query_vars[] = 'ptid_legacy_id';
+		$query_vars[] = 'ptid_legacy_not_found';
 
 		return $query_vars;
 	}
@@ -618,8 +644,9 @@ final class PTID_Permalink_Plugin {
 		$settings['post_types'] = array_values( array_diff( $settings['post_types'], array( 'post' ) ) );
 		update_option( self::OPTION_NAME, $settings );
 		$this->prime_settings_cache( $settings );
-		// Refresh after a fresh request registers CPT rewrite rules with the new front.
+		// Rebuild after a fresh request registers CPT structures with the new front.
 		delete_option( self::REWRITE_SIGNATURE_OPTION );
+		update_option( self::REWRITE_HARD_FLUSH_OPTION, true, false );
 	}
 
 	/**
@@ -668,8 +695,9 @@ final class PTID_Permalink_Plugin {
 		}
 
 		$wp_rewrite->set_permalink_structure( $structure );
-		// Rebuild after CPT rewrite registrations have picked up the new front.
+		// Rebuild after CPT rewrite registrations and refresh the server rewrite file.
 		delete_option( self::REWRITE_SIGNATURE_OPTION );
+		update_option( self::REWRITE_HARD_FLUSH_OPTION, true, false );
 	}
 
 	/**
