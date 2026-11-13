@@ -270,7 +270,7 @@ final class PTID_Permalink_Plugin {
 		}
 		if ( $fallback instanceof WP_Post && $post_type === $fallback->post_type ) {
 			$raw_value = get_post_meta( $fallback->ID, self::LEGACY_META_KEY, true );
-			if ( '' === $raw_value && $identifier === $this->get_post_identifier( $fallback ) ) {
+			if ( ( '' === $raw_value || ! is_string( $raw_value ) || 1 !== preg_match( '/\\A[A-Za-z0-9_-]+\\z/D', $raw_value ) ) && $identifier === $this->get_post_identifier( $fallback ) ) {
 				$matched[ $fallback->ID ] = true;
 			}
 		}
