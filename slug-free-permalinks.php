@@ -811,10 +811,12 @@ final class PTID_Permalink_Plugin {
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'Slug-Free Permalinks', 'slug-free-permalinks' ); ?></h1>
 			<?php
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- This GET value only controls a whitelisted display notice.
+			// This GET value controls only a whitelisted, non-persistent notice.
+			// phpcs:disable WordPress.Security.NonceVerification.Recommended
 			$notice = isset( $_GET['ptid_notice'] ) && is_string( $_GET['ptid_notice'] )
 				? sanitize_key( wp_unslash( $_GET['ptid_notice'] ) )
 				: '';
+			// phpcs:enable WordPress.Security.NonceVerification.Recommended
 			if ( 'migrated' === $notice || 'saved' === $notice ) :
 				?>
 				<div class="notice notice-success is-dismissible" role="status"><p><?php echo esc_html( 'migrated' === $notice ? __( 'Regular posts now use WordPress permalinks.', 'slug-free-permalinks' ) : __( 'WordPress permalinks saved.', 'slug-free-permalinks' ) ); ?></p></div>
