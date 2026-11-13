@@ -708,6 +708,11 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 		get_option( 'ptid_rewrite_signature', false ),
 		'Migration must defer rewriting until the next request can rebuild CPT routes with the new permalink front.'
 	);
+	ptid_studio_assert_same(
+		true,
+		(bool) get_option( 'ptid_rewrite_hard_flush_pending', false ),
+		'Migration must request a hard rewrite flush after fresh CPT initialization.'
+	);
 	$no_reenable_settings = $migration_plugin->sanitize_settings(
 		array(
 			'structure'       => $format,
@@ -757,6 +762,11 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 		false,
 		get_option( 'ptid_rewrite_signature', false ),
 		'Changing the native structure must defer rebuilding CPT rewrite rules.'
+	);
+	ptid_studio_assert_same(
+		true,
+		(bool) get_option( 'ptid_rewrite_hard_flush_pending', false ),
+		'Changing WordPress permalinks must schedule a server rewrite update.'
 	);
 	ptid_studio_assert_same(
 		array( 'studio_book' ),
@@ -959,6 +969,24 @@ ptid_studio_assert_same(
 	$wrong_path_request->query_vars['post__in'],
 	'Legacy requests with incompatible date/category/path segments must fail closed.'
 );
+ptid_studio_assert_same(
+	1,
+	$wrong_path_request->query_vars['ptid_legacy_not_found'],
+	'Failed native legacy lookups must carry an explicit 404 marker.'
+);
+$missing_query = new WP_Query();
+$missing_query->set( 'ptid_legacy_not_found', 1 );
+ptid_studio_assert_same(
+	true,
+	$native_legacy_plugin->handle_unresolved_legacy_404( false, $missing_query ),
+	'Legacy requests that fail lookup must stop WordPress home-page fallback.'
+);
+ptid_studio_assert_same(
+	true,
+	$missing_query->is_404(),
+	'Missing legacy identifiers must return an explicit 404 rather than HTTP 200.'
+);
+
 
 $ambiguous_cpt_request             = new WP();
 $ambiguous_cpt_request->request    = 'books/archive/' . $custom_post_id;
@@ -978,6 +1006,7 @@ delete_post_meta( $custom_post_id, 'legacy_id' );
 delete_post_meta( $legacy_second_id, 'legacy_id' );
 wp_delete_post( $legacy_second_id, true );
 
+delete_option( 'ptid_rewrite_hard_flush_pending' );
 wp_set_current_user( $original_user_id );
 $GLOBALS['wp_rewrite']->set_permalink_structure( $previous_wp_structure );
 update_option( $settings_option, $settings );
