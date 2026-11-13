@@ -932,9 +932,9 @@ ptid_studio_assert_same(
 	'Native post legacy IDs must resolve using the same lookup logic.'
 );
 
-$native_request             = new WP();
-$native_request->request    = 'entry/migration-123.html';
-$native_request->query_vars = array( 'ptid_legacy_id' => 'migration-123' );
+$native_request                            = new WP();
+$native_request->request                   = 'entry/migration-123.html';
+$native_request->query_vars                = array( 'ptid_legacy_id' => 'migration-123' );
 $native_request->query_vars['author_name'] = 'an-old-author';
 $native_request->query_vars['tag']         = 'obsolete-tag';
 $native_request->query_vars['hour']        = 4;
