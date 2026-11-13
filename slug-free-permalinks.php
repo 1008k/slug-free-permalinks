@@ -426,17 +426,15 @@ final class PTID_Permalink_Plugin {
 
 		global $wp_rewrite;
 		if ( ! empty( $vars['feed'] ) ) {
-			$feed = (string) $vars['feed'];
-			if ( in_array( $feed, (array) $wp_rewrite->feeds, true ) ) {
-				$feed_base = trim( (string) $wp_rewrite->feed_base, '/' );
-				if ( $request === $canonical . '/' . $feed_base . '/' . $feed
+			$feed      = (string) $vars['feed'];
+			$feed_base = trim( (string) $wp_rewrite->feed_base, '/' );
+			if ( 'feed' === $feed || in_array( $feed, (array) $wp_rewrite->feeds, true ) ) {
+				if ( $request === $canonical . '/' . $feed_base
+					|| $request === $canonical . '/' . $feed_base . '/' . $feed
 					|| $request === $canonical . '/' . $feed
 				) {
 					return true;
 				}
-			}
-			if ( 'feed' === $feed && $request === $canonical . '/' . trim( (string) $wp_rewrite->feed_base, '/' ) ) {
-				return true;
 			}
 		}
 
