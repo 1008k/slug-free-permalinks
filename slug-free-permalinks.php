@@ -367,7 +367,16 @@ final class PTID_Permalink_Plugin {
 		$identifier = (string) ( $is_custom ? $wp->query_vars['ptid_identifier'] : $wp->query_vars['ptid_legacy_id'] );
 		$post_id    = $this->lookup_legacy_post( $identifier, $post_type );
 
-		if ( ! $post_id && $is_custom ) {
+		if ( $post_id && $is_custom ) {
+			// An ID claimed by one article must not shadow a different old slug.
+			$old_slug_post = get_page_by_path( $identifier, OBJECT, $post_type );
+			if ( $old_slug_post instanceof WP_Post
+				&& $identifier === $old_slug_post->post_name
+				&& $old_slug_post->ID !== $post_id
+			) {
+				$post_id = 0;
+			}
+		} elseif ( ! $post_id && $is_custom ) {
 			$post_id = $this->lookup_old_cpt_slug( $identifier, $post_type );
 		}
 
