@@ -47,6 +47,8 @@ Suppose the original article URL is `/entry/12345.html`, but its WordPress post 
 3. Use `%legacy_id%` in the regular post structure. Selected custom post types instead use the registered rewrite slug with the imported identifier.
 4. Posts without `legacy_id` use their WordPress post ID (default) or slug (selectable fallback).
 
+Legacy post URLs also support WordPress feed and embed endpoints and resolution through the core `url_to_postid()` API. The native permalink editor rejects unknown tags or a nonempty structure with no permalink tokens.
+
 With legacy identifiers enabled, optional legacy redirects continue to send existing custom post type slug URLs to the canonical URL, unless the requested slug collides with another post's identifier. Ambiguous routes fail closed instead of redirecting to the wrong content.
 
 The plugin does not import, populate, or edit custom fields. Supported identifiers consist of ASCII letters, digits, hyphens, and underscores. When different posts would resolve to the same URL, the route fails closed (404) rather than displaying the wrong post. Keeping the exact old path requires compatible URL structures, matching domains, and collision-free IDs. Back up the site and test redirects and existing URLs before switching.
