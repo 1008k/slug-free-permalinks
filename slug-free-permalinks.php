@@ -107,6 +107,7 @@ final class PTID_Permalink_Plugin {
 		add_action( 'parse_request', array( $instance, 'resolve_legacy_request' ), 9 );
 		add_action( 'parse_request', array( $instance, 'resolve_term_request' ) );
 		add_filter( 'pre_handle_404', array( $instance, 'handle_unresolved_legacy_404' ), 10, 2 );
+		add_filter( 'url_to_postid', array( $instance, 'filter_url_to_postid' ) );
 		add_action( 'template_redirect', array( $instance, 'redirect_legacy_permalink' ) );
 		add_action( 'admin_init', array( $instance, 'register_settings' ) );
 		add_action( 'admin_init', array( $instance, 'normalize_stored_settings' ) );
@@ -672,13 +673,44 @@ final class PTID_Permalink_Plugin {
 			wp_die( esc_html__( 'Enter a valid WordPress permalink structure starting with a slash.', 'slug-free-permalinks' ) );
 		}
 
-		if ( false !== strpos( $structure, '%legacy_id%' ) && empty( $this->get_settings()['use_legacy_id'] ) ) {
-			wp_die( esc_html__( 'Enable legacy identifiers before using the %legacy_id% tag.', 'slug-free-permalinks' ) );
+		if ( ! $this->is_valid_native_post_structure( $structure ) ) {
+			wp_die( esc_html__( 'Use a recognized WordPress permalink tag in the structure, and remove unknown tags.', 'slug-free-permalinks' ) );
 		}
 
 		$this->apply_native_post_structure( $structure );
 		wp_safe_redirect( admin_url( 'options-general.php?page=' . self::MENU_SLUG . '&ptid_notice=saved' ) );
 		exit;
+	}
+
+	/**
+	 * Checks permalink tokens against WordPress's registered rewrite tags.
+	 *
+	 * @param string $structure Submitted native post structure.
+	 * @return bool Whether the permalink structure can identify posts.
+	 */
+	private function is_valid_native_post_structure( string $structure ): bool {
+		if ( '' === $structure ) {
+			return true;
+		}
+
+		global $wp_rewrite;
+		$tags = (array) $wp_rewrite->rewritecode;
+		if ( ! empty( $this->get_settings()['use_legacy_id'] ) ) {
+			$tags[] = '%legacy_id%';
+		}
+
+		preg_match_all( '/%[^%]*%/', $structure, $matches );
+		if ( empty( $matches[0] ) ) {
+			return false;
+		}
+
+		foreach ( $matches[0] as $tag ) {
+			if ( ! in_array( $tag, $tags, true ) ) {
+				return false;
+			}
+		}
+
+		return 0 === substr_count( str_replace( $matches[0], '', $structure ), '%' ) % 2;
 	}
 
 	/**
