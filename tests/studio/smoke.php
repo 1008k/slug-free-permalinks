@@ -1001,6 +1001,7 @@ ptid_studio_assert_same(
 	$ambiguous_cpt_request->query_vars['p'],
 	'CPT fallback requests must resolve only the intended post after collisions are removed.'
 );
+
 /*
  * Validate the WordPress-native structure and legacy permalink endpoints.
  */
@@ -1013,7 +1014,10 @@ ptid_studio_assert_same( false, $validate_native->invoke( $native_legacy_plugin,
 
 $feed_request             = new WP();
 $feed_request->request    = 'entry/migration-123.html/feed/';
-$feed_request->query_vars = array( 'ptid_legacy_id' => 'migration-123', 'feed' => 'rss2' );
+$feed_request->query_vars = array(
+	'ptid_legacy_id' => 'migration-123',
+	'feed'           => 'rss2',
+);
 $native_legacy_plugin->resolve_legacy_request( $feed_request );
 ptid_studio_assert_same( $created_post_id, $feed_request->query_vars['p'], 'Shorthand feed endpoints must resolve a legacy post.' );
 
@@ -1023,7 +1027,10 @@ ptid_studio_assert_same( $created_post_id, $feed_request->query_vars['p'], 'Expl
 
 $embed_request             = new WP();
 $embed_request->request    = 'entry/migration-123.html/embed/';
-$embed_request->query_vars = array( 'ptid_legacy_id' => 'migration-123', 'embed' => 'true' );
+$embed_request->query_vars = array(
+	'ptid_legacy_id' => 'migration-123',
+	'embed'          => 'true',
+);
 $native_legacy_plugin->resolve_legacy_request( $embed_request );
 ptid_studio_assert_same( $created_post_id, $embed_request->query_vars['p'], 'Embed endpoints must resolve a legacy post.' );
 
@@ -1036,7 +1043,7 @@ update_option(
 	'rewrite_rules',
 	array(
 		'^books/archive/([A-Za-z0-9_-]+)/' => 'index.php?post_type=studio_book&ptid_identifier=$matches[1]&ptid_route=1',
-		'^entry/([^/]+)\\.html' => 'index.php?ptid_legacy_id=$matches[1]',
+		'^entry/([^/]+)\\.html'             => 'index.php?ptid_legacy_id=$matches[1]',
 	)
 );
 add_filter( 'url_to_postid', array( $native_legacy_plugin, 'filter_url_to_postid' ), 1 );
