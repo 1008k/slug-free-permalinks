@@ -261,7 +261,7 @@ final class PTID_Permalink_Plugin {
 			)
 		);
 		foreach ( $posts as $post_id ) {
-			if ( $identifier === get_post_meta( (int) $post_id, self::LEGACY_META_KEY, true ) ) {
+			if ( get_post_meta( (int) $post_id, self::LEGACY_META_KEY, true ) === $identifier ) {
 				$matched[ (int) $post_id ] = true;
 			}
 		}
@@ -498,7 +498,7 @@ final class PTID_Permalink_Plugin {
 
 		check_admin_referer( 'ptid_migrate_post_structure' );
 
-		$settings = $this->get_settings();
+		$settings           = $this->get_settings();
 		$expected_structure = '/' . user_trailingslashit(
 			'hyphen' === $settings['structure'] ? 'post-%post_id%' : 'post/%post_id%',
 			'single'
@@ -746,13 +746,13 @@ final class PTID_Permalink_Plugin {
 							<div class="ptid-permalink-presets" role="group" aria-label="<?php echo esc_attr__( 'Permalink presets', 'slug-free-permalinks' ); ?>">
 							<?php
 							$presets = array(
-								'/%post_id%/'                     => __( 'Post ID', 'slug-free-permalinks' ),
-								'/post/%post_id%/'                => __( 'Post / ID', 'slug-free-permalinks' ),
-								'/%year%/%monthnum%/%post_id%/'   => __( 'Year / Month / ID', 'slug-free-permalinks' ),
-								'/%category%/%post_id%/'          => __( 'Category / ID', 'slug-free-permalinks' ),
+								'/%post_id%/'                   => __( 'Post ID', 'slug-free-permalinks' ),
+								'/post/%post_id%/'              => __( 'Post / ID', 'slug-free-permalinks' ),
+								'/%year%/%monthnum%/%post_id%/' => __( 'Year / Month / ID', 'slug-free-permalinks' ),
+								'/%category%/%post_id%/'        => __( 'Category / ID', 'slug-free-permalinks' ),
 							);
 							foreach ( $presets as $preset => $label ) :
-							?>
+								?>
 								<button type="button" class="button" data-ptid-preset="<?php echo esc_attr( $preset ); ?>"><?php echo esc_html( $label ); ?></button>
 							<?php endforeach; ?>
 						</div>
@@ -1335,7 +1335,7 @@ final class PTID_Permalink_Plugin {
 	 * Builds an ID-based path segment.
 	 *
 	 * @param string $slug Content type slug.
-	 * @param int    $id   Content object ID.
+	 * @param string $id   Content identifier.
 	 * @return string ID-based relative path.
 	 */
 	private function build_id_path( string $slug, string $id ): string {
@@ -1351,7 +1351,7 @@ final class PTID_Permalink_Plugin {
 	 * Builds an ID-based permalink from the site or language home URL.
 	 *
 	 * @param string $slug              Content type slug.
-	 * @param int    $id                Content object ID.
+	 * @param string $id                Content identifier.
 	 * @param string $language_home_url Optional language home URL.
 	 * @return string ID-based content permalink.
 	 */
