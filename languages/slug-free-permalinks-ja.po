@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Slug-Free Permalinks 1.7.0\n"
+"Project-Id-Version: Slug-Free Permalinks 2.0.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-03-16 00:00+0000\n"
 "PO-Revision-Date: 2026-03-16 00:00+0000\n"
@@ -95,3 +95,114 @@ msgstr "{type} は投稿タイプまたはタクソノミーの rewrite slug に
 
 msgid " Example: /post/123/ or /post-123/."
 msgstr " 例: /post/123/ または /post-123/。"
+
+msgid "You are not allowed to change permalink settings."
+msgstr "パーマリンク設定を変更する権限がありません。"
+
+msgid "Migrate regular posts to WordPress permalinks"
+msgstr "通常投稿をWordPress標準のパーマリンクに移行"
+
+msgid "This explicitly sets the WordPress permalink structure above and stops plugin URL rewriting for regular posts. Back up your site and check for URL conflicts before proceeding. Custom post types and taxonomies keep their plugin settings."
+msgstr "WordPressのパーマリンク構造を上記の設定に変更し、通常投稿のURL書き換えを停止します。実行前にバックアップを取り、URLの競合がないか確認してください。カスタム投稿タイプとタクソノミーの設定は維持されます。"
+
+msgid "Regular posts"
+msgstr "通常投稿"
+
+msgid "WordPress manages regular post permalinks. Change their structure in WordPress permalink settings."
+msgstr "通常投稿のパーマリンクはWordPress標準設定で管理します。変更はWordPressのパーマリンク設定から行ってください。"
+
+msgid "Current WordPress structure"
+msgstr "現在のWordPressパーマリンク構造"
+
+msgid "Plain"
+msgstr "基本（クエリ形式）"
+
+msgid "Regular posts still use the legacy plugin URL format. Migrate them explicitly to use WordPress settings."
+msgstr "通常投稿は旧方式で管理されています。WordPress標準設定へ移行する場合は、以下の移行操作を実行してください。"
+
+msgid "Custom post types and taxonomies"
+msgstr "カスタム投稿タイプとタクソノミー"
+
+msgid "Select content types for plugin-managed ID URLs. These settings do not change regular post permalinks."
+msgstr "IDベースURLにする対象を選択します。通常投稿のパーマリンク設定は変更しません。"
+
+msgid "Migrate legacy regular posts before changing the ID URL format."
+msgstr "ID URL形式を変更するには、先に通常投稿を標準設定へ移行してください。"
+
+msgid " Example: /book/123/ or /book-123/."
+msgstr " 例: /book/123/ または /book-123/。"
+
+msgid "Choose a preset or insert WordPress permalink tags, then edit the resulting structure directly."
+msgstr "テンプレートやタグからパーマリンク構造を組み立て、そのまま編集できます。"
+
+msgid "Permalink presets"
+msgstr "パーマリンクのテンプレート"
+
+msgid "Post ID"
+msgstr "投稿ID"
+
+msgid "Post / ID"
+msgstr "post / 投稿ID"
+
+msgid "Year / Month / ID"
+msgstr "年 / 月 / 投稿ID"
+
+msgid "Category / ID"
+msgstr "カテゴリー / 投稿ID"
+
+msgid "Insert permalink tags"
+msgstr "パーマリンクタグを挿入"
+
+msgid "Migration preserves the existing regular post URLs. The structure must match the legacy format shown when this page loaded. After migration, you can customize it."
+msgstr "既存の投稿URLを維持するため、移行時は現在の旧URL形式を使用してください。移行後に構造を編集できます。"
+
+msgid "Changing WordPress permalinks can affect custom post type URLs. Back up the site and check for URL conflicts first."
+msgstr "WordPressのパーマリンク変更はカスタム投稿タイプのURLにも影響する場合があります。バックアップとURLの競合を確認してください。"
+
+msgid "Saving changes the WordPress permalink structure for regular posts and may also affect custom post type URLs."
+msgstr "保存するとWordPress標準の投稿パーマリンク構造が変更され、カスタム投稿タイプのURLにも影響する場合があります。"
+
+msgid "Save WordPress permalinks"
+msgstr "WordPressのパーマリンクを保存"
+
+msgid "Migrate legacy regular posts before changing the WordPress permalink structure."
+msgstr "通常投稿の旧方式を移行してから、WordPress標準のパーマリンク構造を変更してください。"
+
+msgid "Enter a valid WordPress permalink structure starting with a slash."
+msgstr "スラッシュで始まる有効なWordPressパーマリンク構造を入力してください。"
+
+msgid "To preserve existing post URLs, migrate using the current legacy structure before editing it."
+msgstr "既存の投稿URLを維持するため、現在の旧URL形式のまま移行してください。変更は移行後に行えます。"
+
+msgid "Use legacy identifiers"
+msgstr "移行元の識別子を使用"
+
+msgid "Use the legacy_id custom field for post URLs. Posts without a value use the selected fallback."
+msgstr "投稿のカスタムフィールド legacy_id をURLに使用します。値のない投稿にはフォールバック識別子を使用します。"
+
+msgid "Migrate regular posts before enabling legacy identifiers."
+msgstr "移行元の識別子を使用する前に、通常投稿をWordPress標準設定へ移行してください。"
+
+msgid "Fallback identifier"
+msgstr "フォールバック識別子"
+
+msgid "Post slug"
+msgstr "投稿スラッグ"
+
+msgid "Enable legacy identifiers before using the %legacy_id% tag."
+msgstr "%legacy_id%タグを使用する前に、移行元の識別子を有効にしてください。"
+
+msgid "Remove %legacy_id% from the WordPress permalink structure before disabling legacy identifiers."
+msgstr "移行元の識別子を無効にする前に、WordPressのパーマリンク構造から%legacy_id%を削除してください。"
+
+msgid "Regular posts now use WordPress permalinks."
+msgstr "通常投稿をWordPress標準のパーマリンクへ移行しました。"
+
+msgid "WordPress permalinks saved."
+msgstr "WordPressのパーマリンク設定を保存しました。"
+
+msgid "Migrate regular posts to WordPress permalinks? This changes the site-wide permalink structure."
+msgstr "通常投稿をWordPress標準のパーマリンクへ移行しますか？ サイト全体のパーマリンク構造が変更されます。"
+
+msgid "Use a recognized WordPress permalink tag in the structure, and remove unknown tags."
+msgstr "WordPressで認識できるパーマリンクタグを使用し、不明なタグを削除してください。"

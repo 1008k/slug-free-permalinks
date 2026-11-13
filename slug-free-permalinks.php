@@ -3,7 +3,7 @@
  * Plugin Name: Slug-Free Permalinks
  * Plugin URI: https://happas.jp/en/slug-free-permalinks/
  * Description: Use ID-based permalinks for selected post types and taxonomies without managing slugs.
- * Version: 1.7.0
+ * Version: 2.0.0
  * Requires at least: 6.4
  * Requires PHP: 8.2
  * Author: Kodo
@@ -25,13 +25,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class PTID_Permalink_Plugin {
 
-	private const PLUGIN_VERSION                = '1.7.0';
+	private const PLUGIN_VERSION                = '2.0.0';
 	private const OPTION_NAME                   = 'ptid_permalink_settings';
 	private const MENU_SLUG                     = 'ptid-permalink-settings';
+	private const LEGACY_META_KEY               = 'legacy_id';
 	private const REWRITE_MARKER                = 'ptid_route=1';
 	private const REWRITE_MARKER_VERSION        = '2';
 	private const REWRITE_MARKER_VERSION_OPTION = 'ptid_rewrite_marker_version';
 	private const REWRITE_SIGNATURE_OPTION      = 'ptid_rewrite_signature';
+	private const REWRITE_HARD_FLUSH_OPTION     = 'ptid_rewrite_hard_flush_pending';
 	/**
 	 * Normalized plugin settings.
 	 *
@@ -93,6 +95,7 @@ final class PTID_Permalink_Plugin {
 	 */
 	public static function bootstrap(): void {
 		$instance = new self();
+		add_action( 'init', array( $instance, 'register_legacy_rewrite_tag' ), 9 );
 		add_action( 'init', array( $instance, 'register_rewrite_rules' ), 99 );
 		add_action( 'registered_post_type', array( $instance, 'refresh_rewrite_rules_after_registration' ), 10, 0 );
 		add_action( 'registered_taxonomy', array( $instance, 'refresh_rewrite_rules_after_registration' ), 10, 0 );
@@ -101,11 +104,16 @@ final class PTID_Permalink_Plugin {
 		add_filter( 'post_type_link', array( $instance, 'filter_permalink' ), 10, 2 );
 		add_filter( 'term_link', array( $instance, 'filter_term_link' ), 10, 3 );
 		add_filter( 'query_vars', array( $instance, 'register_query_vars' ) );
+		add_action( 'parse_request', array( $instance, 'resolve_legacy_request' ), 9 );
 		add_action( 'parse_request', array( $instance, 'resolve_term_request' ) );
+		add_filter( 'pre_handle_404', array( $instance, 'handle_unresolved_legacy_404' ), 10, 2 );
+		add_filter( 'url_to_postid', array( $instance, 'filter_url_to_postid' ) );
 		add_action( 'template_redirect', array( $instance, 'redirect_legacy_permalink' ) );
 		add_action( 'admin_init', array( $instance, 'register_settings' ) );
 		add_action( 'admin_init', array( $instance, 'normalize_stored_settings' ) );
 		add_action( 'admin_menu', array( $instance, 'register_settings_page' ) );
+		add_action( 'admin_post_ptid_migrate_post_structure', array( $instance, 'migrate_post_structure' ) );
+		add_action( 'admin_post_ptid_save_post_structure', array( $instance, 'save_post_structure' ) );
 		add_action( 'admin_enqueue_scripts', array( $instance, 'enqueue_admin_assets' ) );
 		add_filter(
 			'plugin_action_links_' . plugin_basename( __FILE__ ),
@@ -143,7 +151,8 @@ final class PTID_Permalink_Plugin {
 	 */
 	public function filter_permalink( string $post_link, $post ): string {
 
-		if ( ! $this->is_feature_enabled() ) {
+		$settings = $this->get_settings();
+		if ( ! $this->is_feature_enabled() && empty( $settings['use_legacy_id'] ) ) {
 			return $post_link;
 		}
 
@@ -156,13 +165,20 @@ final class PTID_Permalink_Plugin {
 			return $post_link;
 		}
 
+		if ( 'post' === $post_context['post_type'] && ! empty( $settings['use_legacy_id'] ) && false !== strpos( $post_link, '%legacy_id%' ) ) {
+			return str_replace( '%legacy_id%', $this->get_post_identifier( $post ), $post_link );
+		}
+
 		if ( ! in_array( $post_context['post_type'], $this->get_enabled_post_types(), true ) ) {
 			return $post_link;
 		}
 
 		$post_type_slug = $this->get_post_type_route_slug( $post_context['post_type'] );
+		$identifier     = ! empty( $settings['use_legacy_id'] ) && 'post' !== $post_context['post_type']
+			? $this->get_post_identifier( $post )
+			: (string) $post_context['ID'];
 
-		return $this->build_content_permalink( $post_type_slug, $post_context['ID'], $this->get_polylang_home_url_for_post( $post_context['ID'] ) );
+		return $this->build_content_permalink( $post_type_slug, $identifier, $this->get_polylang_home_url_for_post( $post_context['ID'] ) );
 	}
 	/**
 	 * Replaces a term permalink with its configured ID-based form.
@@ -191,6 +207,360 @@ final class PTID_Permalink_Plugin {
 	}
 
 	/**
+	 * Registers the custom tag only when the migration identifier is enabled.
+	 */
+	public function register_legacy_rewrite_tag(): void {
+		if ( ! empty( $this->get_settings()['use_legacy_id'] ) ) {
+			add_rewrite_tag( '%legacy_id%', '([^/]+)', 'ptid_legacy_id=' );
+		}
+	}
+
+	/**
+	 * Returns a safe URL identifier from existing post metadata or its fallback.
+	 *
+	 * @param WP_Post $post Post.
+	 * @return string Identifier.
+	 */
+	private function get_post_identifier( WP_Post $post ): string {
+		$value = get_post_meta( $post->ID, self::LEGACY_META_KEY, true );
+		if ( is_string( $value ) && '' !== $value ) {
+			// Keep the original value unchanged; never silently normalize two IDs together.
+			if ( 1 === preg_match( '/\\A[A-Za-z0-9_-]+\\z/D', $value ) ) {
+				return $value;
+			}
+			return (string) $post->ID;
+		}
+
+		$settings = $this->get_settings();
+		$slug     = (string) $post->post_name;
+		return 'slug' === $settings['legacy_fallback'] && 1 === preg_match( '/\\A[A-Za-z0-9_-]+\\z/D', $slug )
+			? $slug
+			: (string) $post->ID;
+	}
+
+	/**
+	 * Resolves an identifier within one post type; ambiguous values fail closed.
+	 *
+	 * @param string $identifier URL segment.
+	 * @param string $post_type  Target post type.
+	 * @return int Resolved post ID or zero for ambiguous/missing values.
+	 */
+	private function lookup_legacy_post( string $identifier, string $post_type ): int {
+		if ( '' === $identifier || 1 !== preg_match( '/\\A[A-Za-z0-9_-]+\\z/D', $identifier ) ) {
+			return 0;
+		}
+
+		$settings = $this->get_settings();
+		$matched  = array();
+		$posts    = get_posts(
+			array(
+				'post_type'        => $post_type,
+				'post_status'      => 'any',
+				'meta_key'         => self::LEGACY_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Queried only after matching a configured legacy route.
+				'meta_value'       => $identifier, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Restricted to the requested post type and matched route.
+				'posts_per_page'   => 20,
+				'fields'           => 'ids',
+				'suppress_filters' => true,
+			)
+		);
+		foreach ( $posts as $post_id ) {
+			if ( get_post_meta( (int) $post_id, self::LEGACY_META_KEY, true ) === $identifier ) {
+				$matched[ (int) $post_id ] = true;
+			}
+		}
+
+		$fallbacks = array();
+		if ( 'slug' === $settings['legacy_fallback'] ) {
+			$fallbacks[] = get_page_by_path( $identifier, OBJECT, $post_type );
+		}
+		if ( ctype_digit( $identifier ) ) {
+			$fallbacks[] = get_post( (int) $identifier );
+		}
+		foreach ( $fallbacks as $fallback ) {
+			if ( $fallback instanceof WP_Post && $post_type === $fallback->post_type ) {
+				$raw_value = get_post_meta( $fallback->ID, self::LEGACY_META_KEY, true );
+				if ( ( '' === $raw_value || ! is_string( $raw_value ) || 1 !== preg_match( '/\\A[A-Za-z0-9_-]+\\z/D', $raw_value ) ) && $identifier === $this->get_post_identifier( $fallback ) ) {
+					$matched[ $fallback->ID ] = true;
+				}
+			}
+		}
+
+		if ( 1 !== count( $matched ) ) {
+			return 0;
+		}
+
+		$id   = (int) array_key_first( $matched );
+		$post = get_post( $id );
+		return $post instanceof WP_Post && in_array( $post->post_status, array( 'publish', 'private' ), true ) ? $id : 0;
+	}
+
+	/**
+	 * Resolves an old CPT slug only for an explicit legacy redirect.
+	 * Never override an identifier claimed by another post.
+	 *
+	 * @param string $identifier Requested path segment.
+	 * @param string $post_type  CPT name.
+	 * @return int Post ID, or zero when unavailable or ambiguous.
+	 */
+	private function lookup_old_cpt_slug( string $identifier, string $post_type ): int {
+		if ( empty( $this->get_settings()['redirect_legacy'] ) ) {
+			return 0;
+		}
+
+		$post = get_page_by_path( $identifier, OBJECT, $post_type );
+		if ( ! ( $post instanceof WP_Post )
+			|| $identifier !== $post->post_name
+			|| ! in_array( $post->post_status, array( 'publish', 'private' ), true )
+		) {
+			return 0;
+		}
+
+		// A legacy identifier owned by any post must not be redirected as a slug.
+		$owners = get_posts(
+			array(
+				'post_type'        => $post_type,
+				'post_status'      => 'any',
+				'meta_key'         => self::LEGACY_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Scoped to matching CPT legacy routes.
+				'meta_value'       => $identifier, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Needed to avoid redirects across collisions.
+				'posts_per_page'   => 1,
+				'fields'           => 'ids',
+				'suppress_filters' => true,
+			)
+		);
+
+		if ( ! empty( $owners ) ) {
+			return 0;
+		}
+
+		if ( ctype_digit( $identifier ) ) {
+			$other_post = get_post( (int) $identifier );
+			if ( $other_post instanceof WP_Post
+				&& $other_post->ID !== $post->ID
+				&& $other_post->post_type === $post_type
+				&& $identifier === $this->get_post_identifier( $other_post )
+			) {
+				return 0;
+			}
+		}
+
+		return (int) $post->ID;
+	}
+
+	/**
+	 * Resolves legacy identifiers from native post and plugin CPT rewrite rules.
+	 *
+	 * @param WP $wp WordPress request object.
+	 */
+	public function resolve_legacy_request( WP $wp ): void {
+		if ( empty( $this->get_settings()['use_legacy_id'] ) ) {
+			return;
+		}
+
+		$is_native = isset( $wp->query_vars['ptid_legacy_id'] );
+		$is_custom = isset( $wp->query_vars['ptid_identifier'] ) && isset( $wp->query_vars['ptid_route'] );
+		if ( ! $is_native && ! $is_custom ) {
+			return;
+		}
+
+		$post_type = $is_custom ? sanitize_key( (string) ( $wp->query_vars['post_type'] ?? '' ) ) : 'post';
+		if ( $is_custom && ! in_array( $post_type, $this->get_enabled_post_types(), true ) ) {
+			return;
+		}
+
+		$identifier = (string) ( $is_custom ? $wp->query_vars['ptid_identifier'] : $wp->query_vars['ptid_legacy_id'] );
+		$post_id    = $this->lookup_legacy_post( $identifier, $post_type );
+
+		if ( $post_id && $is_custom ) {
+			// An ID claimed by one article must not shadow a different old slug.
+			$old_slug_post = get_page_by_path( $identifier, OBJECT, $post_type );
+			if ( $old_slug_post instanceof WP_Post
+				&& $identifier === $old_slug_post->post_name
+				&& $old_slug_post->ID !== $post_id
+			) {
+				$post_id = 0;
+			}
+		} elseif ( ! $post_id && $is_custom ) {
+			$post_id = $this->lookup_old_cpt_slug( $identifier, $post_type );
+		}
+
+		if ( $post_id && $is_native ) {
+			// Date/category tokens must still agree with WordPress's canonical URL.
+			$permalink_path = (string) wp_parse_url( (string) get_permalink( $post_id ), PHP_URL_PATH );
+			$home_path      = rtrim( (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH ), '/' );
+			if ( '' !== $home_path && 0 === strpos( $permalink_path, $home_path . '/' ) ) {
+				$permalink_path = substr( $permalink_path, strlen( $home_path ) );
+			}
+			if ( ! $this->matches_native_legacy_path( trim( $permalink_path, '/' ), trim( $wp->request, '/' ), $wp->query_vars ) ) {
+				$post_id = 0;
+			}
+		}
+
+		// Never let WordPress fall through to a different post on a conflicting route.
+		$wp->query_vars['post_type'] = $post_type;
+		// The canonical path was verified above; stale structural query vars
+		// must not constrain the resolved post (author, taxonomy or date archives).
+		foreach ( array( 'name', 'pagename', 'year', 'monthnum', 'day', 'hour', 'minute', 'second', 'w', 'm', 'category_name', 'cat', 'tag', 'tag_id', 'taxonomy', 'term', 'author', 'author_name', 'attachment', 'attachment_id', 'page_id', 'post_format' ) as $query_var ) {
+			unset( $wp->query_vars[ $query_var ] );
+		}
+		if ( $post_id ) {
+			$wp->query_vars['p'] = $post_id;
+		} else {
+			$wp->query_vars['p']                     = 0;
+			$wp->query_vars['post__in']              = array( 0 );
+			$wp->query_vars['ptid_legacy_not_found'] = 1;
+		}
+	}
+
+	/**
+	 * Validates WordPress's recognized single-post endpoint suffixes.
+	 *
+	 * @param string $canonical Canonical post path relative to the site.
+	 * @param string $request   Requested path relative to the site.
+	 * @param array  $vars      Rewrite query variables.
+	 * @return bool Whether this is the post or one of its native endpoints.
+	 */
+	private function matches_native_legacy_path( string $canonical, string $request, array $vars ): bool {
+		if ( $canonical === $request ) {
+			return true;
+		}
+
+		global $wp_rewrite;
+		if ( ! empty( $vars['feed'] ) ) {
+			$feed      = (string) $vars['feed'];
+			$feed_base = trim( (string) $wp_rewrite->feed_base, '/' );
+			if ( 'feed' === $feed || in_array( $feed, (array) $wp_rewrite->feeds, true ) ) {
+				if ( $request === $canonical . '/' . $feed_base
+					|| $request === $canonical . '/' . $feed_base . '/' . $feed
+					|| $request === $canonical . '/' . $feed
+				) {
+					return true;
+				}
+			}
+		}
+
+		if ( ! empty( $vars['embed'] ) && $request === $canonical . '/embed' ) {
+			return true;
+		}
+
+		if ( ! empty( $vars['tb'] ) && $request === $canonical . '/trackback' ) {
+			return true;
+		}
+
+		if ( ! empty( $vars['cpage'] ) && $request === $canonical . '/' . $wp_rewrite->comments_pagination_base . '-' . absint( $vars['cpage'] ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Allows WordPress's url_to_postid() and oEmbed to resolve canonical legacy URLs.
+	 * The core filter accepts a URL, not a post ID, so a verified match is converted
+	 * to the native ?p=ID form that WordPress already recognizes.
+	 *
+	 * @param string $url Input URL.
+	 * @return string Original URL or an equivalent native WordPress post URL.
+	 */
+	public function filter_url_to_postid( string $url ): string {
+		if ( empty( $this->get_settings()['use_legacy_id'] ) ) {
+			return $url;
+		}
+
+		global $wp_rewrite;
+
+		$url_host  = (string) wp_parse_url( $url, PHP_URL_HOST );
+		$home_host = (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+		if ( '' === $url_host || strtolower( $url_host ) !== strtolower( $home_host ) ) {
+			return $url;
+		}
+
+		$url_port  = wp_parse_url( $url, PHP_URL_PORT );
+		$home_port = wp_parse_url( home_url( '/' ), PHP_URL_PORT );
+		if ( $url_port !== $home_port ) {
+			return $url;
+		}
+
+		$path      = trim( (string) wp_parse_url( $url, PHP_URL_PATH ), '/' );
+		$home_path = trim( (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH ), '/' );
+		if ( '' !== $home_path ) {
+			if ( 0 !== strpos( $path, $home_path . '/' ) ) {
+				return $url;
+			}
+			$path = substr( $path, strlen( $home_path ) + 1 );
+		}
+
+		if ( '' === $path ) {
+			return $url;
+		}
+
+		// Honor the first WordPress rewrite match instead of taking over another route.
+		foreach ( (array) $wp_rewrite->wp_rewrite_rules() as $regex => $query ) {
+			if ( 1 !== preg_match( '#^' . str_replace( '#', '\\#', $regex ) . '#', $path, $matches ) ) {
+				continue;
+			}
+
+			if ( false === strpos( $query, 'ptid_legacy_id=' ) && false === strpos( $query, 'ptid_identifier=' ) ) {
+				break;
+			}
+
+			$query = preg_replace( '/^.+?\\?/', '', $query );
+			parse_str( WP_MatchesMapRegex::apply( $query, $matches ), $vars );
+			$is_native = isset( $vars['ptid_legacy_id'] );
+			$is_custom = isset( $vars['ptid_identifier'], $vars['ptid_route'] );
+			if ( ! $is_native && ! $is_custom ) {
+				break;
+			}
+
+			$post_type = $is_native ? 'post' : sanitize_key( (string) ( $vars['post_type'] ?? '' ) );
+			if ( $is_custom && ! in_array( $post_type, $this->get_enabled_post_types(), true ) ) {
+				break;
+			}
+
+			$identifier = (string) ( $is_native ? $vars['ptid_legacy_id'] : $vars['ptid_identifier'] );
+			$post_id    = $this->lookup_legacy_post( $identifier, $post_type );
+			if ( ! $post_id ) {
+				break;
+			}
+
+			// Check the generated canonical URL; also rejects old slug and route collisions.
+			$canonical_path = trim( (string) wp_parse_url( (string) get_permalink( $post_id ), PHP_URL_PATH ), '/' );
+			$requested_path = trim( (string) wp_parse_url( $url, PHP_URL_PATH ), '/' );
+			if ( $canonical_path !== $requested_path ) {
+				break;
+			}
+
+			if ( $is_custom ) {
+				$slug_post = get_page_by_path( $identifier, OBJECT, $post_type );
+				if ( $slug_post instanceof WP_Post && $slug_post->ID !== $post_id && $identifier === $slug_post->post_name ) {
+					break;
+				}
+			}
+
+			return add_query_arg( 'p', $post_id, home_url( '/' ) );
+		}
+
+		return $url;
+	}
+
+	/**
+	 * Prevents unresolved legacy routes from being classified as the blog home.
+	 *
+	 * @param mixed    $preempt Existing pre-handle result.
+	 * @param WP_Query $query   Main query.
+	 * @return mixed Pre-handle result.
+	 */
+	public function handle_unresolved_legacy_404( $preempt, WP_Query $query ) {
+		if ( ! $query->get( 'ptid_legacy_not_found' ) ) {
+			return $preempt;
+		}
+
+		$query->set_404();
+		status_header( 404 );
+		nocache_headers();
+		return true;
+	}
+
+	/**
 	 * Registers ID-based rewrite rules for enabled content types.
 	 */
 	public function register_rewrite_rules(): void {
@@ -198,9 +568,10 @@ final class PTID_Permalink_Plugin {
 		$post_types = $this->get_enabled_post_types();
 		$taxonomies = $this->get_enabled_taxonomies();
 		$enabled    = array() !== $post_types || array() !== $taxonomies;
-		$signature  = $this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled );
+		$settings   = $this->get_settings();
+		$signature  = $this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled, ! empty( $settings['redirect_legacy'] ) );
 
-		$this->register_rewrite_rules_for( $structure, $post_types, $taxonomies, $enabled );
+		$this->register_rewrite_rules_for( $structure, $post_types, $taxonomies, $enabled, ! empty( $settings['redirect_legacy'] ) );
 		$this->rewrite_rules_registered = true;
 
 		if (
@@ -233,12 +604,16 @@ final class PTID_Permalink_Plugin {
 	 * Flushes rewrite rules once when registration changed the persisted set.
 	 */
 	public function flush_pending_rewrite_rules(): void {
-		if ( ! $this->rewrite_rules_flush_pending ) {
+		$hard_flush = (bool) get_option( self::REWRITE_HARD_FLUSH_OPTION, false );
+		if ( ! $this->rewrite_rules_flush_pending && ! $hard_flush ) {
 			return;
 		}
 
 		$this->rewrite_rules_flush_pending = false;
-		flush_rewrite_rules( false );
+		flush_rewrite_rules( $hard_flush );
+		if ( $hard_flush ) {
+			delete_option( self::REWRITE_HARD_FLUSH_OPTION );
+		}
 		$this->persist_rewrite_state();
 	}
 
@@ -252,6 +627,9 @@ final class PTID_Permalink_Plugin {
 		$query_vars[] = 'ptid_taxonomy';
 		$query_vars[] = 'ptid_term_id';
 		$query_vars[] = 'ptid_route';
+		$query_vars[] = 'ptid_identifier';
+		$query_vars[] = 'ptid_legacy_id';
+		$query_vars[] = 'ptid_legacy_not_found';
 
 		return $query_vars;
 	}
@@ -291,6 +669,7 @@ final class PTID_Permalink_Plugin {
 		}
 	}
 
+
 	/**
 	 * Registers the plugin setting and its sanitizer.
 	 */
@@ -326,7 +705,8 @@ final class PTID_Permalink_Plugin {
 				$normalized['structure'],
 				$normalized['post_types'],
 				$normalized['taxonomies'],
-				$this->has_enabled_targets( $normalized )
+				$this->has_enabled_targets( $normalized ),
+				$normalized['redirect_legacy']
 			);
 			flush_rewrite_rules();
 			$this->prime_settings_cache( $normalized );
@@ -345,6 +725,142 @@ final class PTID_Permalink_Plugin {
 			self::MENU_SLUG,
 			array( $this, 'render_settings_page' )
 		);
+	}
+
+	/**
+	 * Moves regular post URL handling to the WordPress permalink setting.
+	 */
+	public function migrate_post_structure(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to change permalink settings.', 'slug-free-permalinks' ) );
+		}
+
+		check_admin_referer( 'ptid_migrate_post_structure' );
+
+		$settings            = $this->get_settings();
+		$expected_structure  = '/' . user_trailingslashit(
+			'hyphen' === $settings['structure'] ? 'post-%post_id%' : 'post/%post_id%',
+			'single'
+		);
+		$submitted_structure = isset( $_POST['ptid_post_structure'] ) && is_string( $_POST['ptid_post_structure'] )
+			? sanitize_text_field( wp_unslash( $_POST['ptid_post_structure'] ) )
+			: '';
+
+		if ( $expected_structure !== $submitted_structure ) {
+			wp_die( esc_html__( 'To preserve existing post URLs, migrate using the current legacy structure before editing it.', 'slug-free-permalinks' ) );
+		}
+
+		$this->apply_post_structure_migration();
+
+		wp_safe_redirect( admin_url( 'options-general.php?page=' . self::MENU_SLUG . '&ptid_notice=migrated' ) );
+		exit;
+	}
+
+	/**
+	 * Applies the explicitly requested migration while keeping custom targets.
+	 */
+	private function apply_post_structure_migration(): void {
+		$settings = $this->get_settings();
+		if ( ! in_array( 'post', $settings['post_types'], true ) ) {
+			return;
+		}
+
+		$structure = '/' . user_trailingslashit(
+			'hyphen' === $settings['structure'] ? 'post-%post_id%' : 'post/%post_id%',
+			'single'
+		);
+
+		global $wp_rewrite;
+		$wp_rewrite->set_permalink_structure( $structure );
+
+		$settings['post_types'] = array_values( array_diff( $settings['post_types'], array( 'post' ) ) );
+		update_option( self::OPTION_NAME, $settings );
+		$this->prime_settings_cache( $settings );
+		// Rebuild after a fresh request registers CPT structures with the new front.
+		delete_option( self::REWRITE_SIGNATURE_OPTION );
+		update_option( self::REWRITE_HARD_FLUSH_OPTION, true, false );
+	}
+
+	/**
+	 * Saves the standard WordPress permalink structure when regular posts
+	 * are no longer routed by this plugin.
+	 */
+	public function save_post_structure(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to change permalink settings.', 'slug-free-permalinks' ) );
+		}
+
+		check_admin_referer( 'ptid_save_post_structure' );
+
+		if ( in_array( 'post', $this->get_settings()['post_types'], true ) ) {
+			wp_die( esc_html__( 'Migrate legacy regular posts before changing the WordPress permalink structure.', 'slug-free-permalinks' ) );
+		}
+
+		$structure = isset( $_POST['ptid_post_structure'] ) && is_string( $_POST['ptid_post_structure'] )
+			? sanitize_text_field( wp_unslash( $_POST['ptid_post_structure'] ) )
+			: '';
+
+		if ( '' !== $structure && ( '/' !== substr( $structure, 0, 1 ) || false !== strpbrk( $structure, '?#' ) ) ) {
+			wp_die( esc_html__( 'Enter a valid WordPress permalink structure starting with a slash.', 'slug-free-permalinks' ) );
+		}
+
+		if ( ! $this->is_valid_native_post_structure( $structure ) ) {
+			wp_die( esc_html__( 'Use a recognized WordPress permalink tag in the structure, and remove unknown tags.', 'slug-free-permalinks' ) );
+		}
+
+		$this->apply_native_post_structure( $structure );
+		wp_safe_redirect( admin_url( 'options-general.php?page=' . self::MENU_SLUG . '&ptid_notice=saved' ) );
+		exit;
+	}
+
+	/**
+	 * Checks permalink tokens against WordPress's registered rewrite tags.
+	 *
+	 * @param string $structure Submitted native post structure.
+	 * @return bool Whether the permalink structure can identify posts.
+	 */
+	private function is_valid_native_post_structure( string $structure ): bool {
+		if ( '' === $structure ) {
+			return true;
+		}
+
+		global $wp_rewrite;
+		$tags = (array) $wp_rewrite->rewritecode;
+		if ( ! empty( $this->get_settings()['use_legacy_id'] ) ) {
+			$tags[] = '%legacy_id%';
+		}
+
+		preg_match_all( '/%[^%]*%/', $structure, $matches );
+		if ( empty( $matches[0] ) ) {
+			return false;
+		}
+
+		foreach ( $matches[0] as $tag ) {
+			if ( ! in_array( $tag, $tags, true ) ) {
+				return false;
+			}
+		}
+
+		return false === strpos( str_replace( $matches[0], '', $structure ), '%' );
+	}
+
+	/**
+	 * Applies a WordPress-native post permalink structure without creating
+	 * additional plugin settings.
+	 *
+	 * @param string $structure Native permalink structure, or empty for plain.
+	 */
+	private function apply_native_post_structure( string $structure ): void {
+		global $wp_rewrite;
+
+		if ( (string) get_option( 'permalink_structure', '' ) === $structure ) {
+			return;
+		}
+
+		$wp_rewrite->set_permalink_structure( $structure );
+		// Rebuild after CPT rewrite registrations and refresh the server rewrite file.
+		delete_option( self::REWRITE_SIGNATURE_OPTION );
+		update_option( self::REWRITE_HARD_FLUSH_OPTION, true, false );
 	}
 
 	/**
@@ -398,7 +914,7 @@ final class PTID_Permalink_Plugin {
 	public function sanitize_settings( $input ): array {
 		$previous = $this->get_settings();
 
-		$settings  = array(
+		$settings = array(
 			'structure'       => $this->sanitize_structure( $input['structure'] ?? '' ),
 			'post_types'      => $this->sanitize_enabled_items(
 				$input['post_types'] ?? array(),
@@ -409,7 +925,24 @@ final class PTID_Permalink_Plugin {
 				array_keys( $this->get_available_taxonomies() )
 			),
 			'redirect_legacy' => ! empty( $input['redirect_legacy'] ),
+			'use_legacy_id'   => ! empty( $input['use_legacy_id'] ),
+			'legacy_fallback' => 'slug' === ( $input['legacy_fallback'] ?? '' ) ? 'slug' : 'id',
 		);
+		if ( in_array( 'post', $previous['post_types'], true ) ) {
+			// Native custom tags require a non-plain structure and explicit v1 migration.
+			$settings['use_legacy_id'] = false;
+		}
+		// Only the explicit migration may remove legacy post routing.
+		if ( in_array( 'post', $previous['post_types'], true ) ) {
+			$settings['structure'] = $previous['structure'];
+			if ( ! in_array( 'post', $settings['post_types'], true ) ) {
+				array_unshift( $settings['post_types'], 'post' );
+			}
+		} else {
+			$settings['post_types'] = array_diff( $settings['post_types'], array( 'post' ) );
+		}
+		$settings['post_types'] = array_values( array_unique( $settings['post_types'] ) );
+
 		$conflicts = $this->get_route_slug_conflicts( $settings['post_types'], $settings['taxonomies'] );
 
 		if ( array() !== $conflicts ) {
@@ -417,13 +950,23 @@ final class PTID_Permalink_Plugin {
 			return $previous;
 		}
 
+		if ( false !== strpos( (string) get_option( 'permalink_structure', '' ), '%legacy_id%' ) && ! $settings['use_legacy_id'] ) {
+			add_settings_error( self::OPTION_NAME, 'legacy_tag_in_use', __( 'Remove %legacy_id% from the WordPress permalink structure before disabling legacy identifiers.', 'slug-free-permalinks' ) );
+			return $previous;
+		}
+
 		$settings_changed = $previous !== $settings;
 		if ( $settings_changed ) {
+			$this->prime_settings_cache( $settings );
+			if ( $settings['use_legacy_id'] ) {
+				$this->register_legacy_rewrite_tag();
+			}
 			$this->register_rewrite_rules_for(
 				$settings['structure'],
 				$settings['post_types'],
 				$settings['taxonomies'],
-				$this->has_enabled_targets( $settings )
+				$this->has_enabled_targets( $settings ),
+				$settings['redirect_legacy']
 			);
 			flush_rewrite_rules();
 		}
@@ -445,14 +988,12 @@ final class PTID_Permalink_Plugin {
 			return;
 		}
 
-		$settings               = $this->get_settings();
-		$post_types             = $this->get_available_post_types();
-		$taxonomies             = $this->get_available_taxonomies();
-		$post_enabled           = in_array( 'post', $settings['post_types'], true );
-		$custom_targets_enabled = array() !== array_diff(
-			$settings['post_types'],
-			array( 'post' )
-		) || array() !== $settings['taxonomies'];
+		$settings     = $this->get_settings();
+		$post_types   = $this->get_available_post_types();
+		$taxonomies   = $this->get_available_taxonomies();
+		$post_enabled = in_array( 'post', $settings['post_types'], true );
+		unset( $post_types['post'] );
+		$current_wp_structure   = (string) get_option( 'permalink_structure', '' );
 		$wp_permalink_structure = '/' . user_trailingslashit(
 			'hyphen' === $settings['structure'] ? 'post-%post_id%' : 'post/%post_id%',
 			'single'
@@ -460,19 +1001,81 @@ final class PTID_Permalink_Plugin {
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'Slug-Free Permalinks', 'slug-free-permalinks' ); ?></h1>
+			<?php
+			// This GET value controls only a whitelisted, non-persistent notice.
+			// phpcs:disable WordPress.Security.NonceVerification.Recommended
+			$notice = isset( $_GET['ptid_notice'] ) && is_string( $_GET['ptid_notice'] )
+				? sanitize_key( wp_unslash( $_GET['ptid_notice'] ) )
+				: '';
+			// phpcs:enable WordPress.Security.NonceVerification.Recommended
+			if ( 'migrated' === $notice || 'saved' === $notice ) :
+				?>
+				<div class="notice notice-success is-dismissible" role="status"><p><?php echo esc_html( 'migrated' === $notice ? __( 'Regular posts now use WordPress permalinks.', 'slug-free-permalinks' ) : __( 'WordPress permalinks saved.', 'slug-free-permalinks' ) ); ?></p></div>
+			<?php endif; ?>
 			<?php settings_errors( self::OPTION_NAME ); ?>
-			<p><?php echo esc_html__( 'Checked post types and taxonomies will use the selected ID based permalink format. Clear all checks to disable. Rewrite rules are flushed automatically when settings change.', 'slug-free-permalinks' ); ?></p>
-
 			<div class="ptid-admin-layout">
 				<div class="ptid-admin-main">
-					<form action="options.php" method="post">
-			<?php settings_fields( 'ptid_permalink_settings_group' ); ?>
-				<table class="form-table" role="presentation">
+					<section class="ptid-settings-section" aria-labelledby="ptid-regular-posts-title">
+						<h2 id="ptid-regular-posts-title"><?php echo esc_html__( 'Regular posts', 'slug-free-permalinks' ); ?></h2>
+						<?php if ( $post_enabled ) : ?>
+							<div class="notice notice-warning inline">
+								<p><?php echo esc_html__( 'Regular posts still use the legacy plugin URL format. Migrate them explicitly to use WordPress settings.', 'slug-free-permalinks' ); ?></p>
+							</div>
+						<?php endif; ?>
+						<p><?php echo esc_html__( 'Choose a preset or insert WordPress permalink tags, then edit the resulting structure directly.', 'slug-free-permalinks' ); ?></p>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="ptid-native-permalink-form"
+							<?php if ( $post_enabled ) : ?>
+								data-ptid-confirm="<?php echo esc_attr__( 'Migrate regular posts to WordPress permalinks? This changes the site-wide permalink structure.', 'slug-free-permalinks' ); ?>"
+							<?php endif; ?>
+						>
+							<input type="hidden" name="action" value="<?php echo esc_attr( $post_enabled ? 'ptid_migrate_post_structure' : 'ptid_save_post_structure' ); ?>" />
+							<?php wp_nonce_field( $post_enabled ? 'ptid_migrate_post_structure' : 'ptid_save_post_structure' ); ?>
+							<div class="ptid-permalink-presets" role="group" aria-label="<?php echo esc_attr__( 'Permalink presets', 'slug-free-permalinks' ); ?>">
+							<?php
+							$presets = array(
+								'/%post_id%/'            => __( 'Post ID', 'slug-free-permalinks' ),
+								'/post/%post_id%/'       => __( 'Post / ID', 'slug-free-permalinks' ),
+								'/%year%/%monthnum%/%post_id%/' => __( 'Year / Month / ID', 'slug-free-permalinks' ),
+								'/%category%/%post_id%/' => __( 'Category / ID', 'slug-free-permalinks' ),
+							);
+							foreach ( $presets as $preset => $label ) :
+								?>
+								<button type="button" class="button" data-ptid-preset="<?php echo esc_attr( $preset ); ?>"><?php echo esc_html( $label ); ?></button>
+							<?php endforeach; ?>
+						</div>
+						<p>
+							<label for="ptid-post-structure"><strong><?php echo esc_html__( 'WordPress custom structure', 'slug-free-permalinks' ); ?></strong></label>
+							<input type="text" id="ptid-post-structure" name="ptid_post_structure" class="large-text code" value="<?php echo esc_attr( $post_enabled ? $wp_permalink_structure : $current_wp_structure ); ?>" spellcheck="false" autocomplete="off" />
+						</p>
+						<div class="ptid-permalink-tags" role="group" aria-label="<?php echo esc_attr__( 'Insert permalink tags', 'slug-free-permalinks' ); ?>">
+							<?php foreach ( ! empty( $settings['use_legacy_id'] ) ? array( '%post_id%', '%postname%', '%legacy_id%', '%category%', '%year%', '%monthnum%', '%day%' ) : array( '%post_id%', '%postname%', '%category%', '%year%', '%monthnum%', '%day%' ) as $tag ) : ?>
+								<button type="button" class="button button-small" data-ptid-tag="<?php echo esc_attr( $tag ); ?>"><code><?php echo esc_html( $tag ); ?></code></button>
+							<?php endforeach; ?>
+						</div>
+						<?php if ( $post_enabled ) : ?>
+							<p class="description"><?php echo esc_html__( 'Migration preserves the existing regular post URLs. The structure must match the legacy format shown when this page loaded. After migration, you can customize it.', 'slug-free-permalinks' ); ?></p>
+							<p class="description"><?php echo esc_html__( 'Changing WordPress permalinks can affect custom post type URLs. Back up the site and check for URL conflicts first.', 'slug-free-permalinks' ); ?></p>
+							<?php submit_button( __( 'Migrate regular posts to WordPress permalinks', 'slug-free-permalinks' ), 'secondary', 'submit', false ); ?>
+						<?php else : ?>
+							<p class="description"><?php echo esc_html__( 'Saving changes the WordPress permalink structure for regular posts and may also affect custom post type URLs.', 'slug-free-permalinks' ); ?></p>
+							<?php submit_button( __( 'Save WordPress permalinks', 'slug-free-permalinks' ), 'primary', 'submit', false ); ?>
+						<?php endif; ?>
+						</form>
+					</section>
+					<section class="ptid-settings-section" aria-labelledby="ptid-custom-targets-title">
+						<h2 id="ptid-custom-targets-title"><?php echo esc_html__( 'Custom post types and taxonomies', 'slug-free-permalinks' ); ?></h2>
+						<p><?php echo esc_html__( 'Select content types for plugin-managed ID URLs. These settings do not change regular post permalinks.', 'slug-free-permalinks' ); ?></p>
+						<form action="options.php" method="post">
+							<?php settings_fields( 'ptid_permalink_settings_group' ); ?>
+							<?php if ( $post_enabled ) : ?>
+								<input type="hidden" name="<?php echo esc_attr( self::OPTION_NAME ); ?>[post_types][]" value="post" />
+							<?php endif; ?>
+						<table class="form-table" role="presentation">
 					<tbody>
 						<tr>
 							<th scope="row"><?php echo esc_html__( 'Permalink format', 'slug-free-permalinks' ); ?></th>
 							<td>
-								<select name="<?php echo esc_attr( self::OPTION_NAME ); ?>[structure]">
+								<select name="<?php echo esc_attr( self::OPTION_NAME ); ?>[structure]" <?php disabled( $post_enabled ); ?>>
 									<option value="slash" <?php selected( $settings['structure'], 'slash' ); ?>>
 									<?php echo esc_html( '/{type}/123/' ); ?>
 									</option>
@@ -480,12 +1083,17 @@ final class PTID_Permalink_Plugin {
 									<?php echo esc_html( '/{type}-123/' ); ?>
 									</option>
 								</select>
+								<?php if ( $post_enabled ) : ?>
+									<input type="hidden" name="<?php echo esc_attr( self::OPTION_NAME ); ?>[structure]" value="<?php echo esc_attr( $settings['structure'] ); ?>" />
+									<p class="description"><?php echo esc_html__( 'Migrate legacy regular posts before changing the ID URL format.', 'slug-free-permalinks' ); ?></p>
+								<?php endif; ?>
 								<p class="description">
 									<?php echo esc_html__( '{type} is replaced with the post type or taxonomy rewrite slug.', 'slug-free-permalinks' ); ?>
-									<?php echo esc_html__( ' Example: /post/123/ or /post-123/.', 'slug-free-permalinks' ); ?>
+									<?php echo esc_html__( ' Example: /book/123/ or /book-123/.', 'slug-free-permalinks' ); ?>
 								</p>
 							</td>
 						</tr>
+						<?php if ( ! empty( $post_types ) ) : ?>
 						<tr>
 							<th scope="row"><?php echo esc_html__( 'Target post types', 'slug-free-permalinks' ); ?></th>
 							<td>
@@ -504,6 +1112,7 @@ final class PTID_Permalink_Plugin {
 								</fieldset>
 							</td>
 						</tr>
+						<?php endif; ?>
 						<tr>
 							<th scope="row"><?php echo esc_html__( 'Target taxonomies', 'slug-free-permalinks' ); ?></th>
 							<td>
@@ -523,6 +1132,25 @@ final class PTID_Permalink_Plugin {
 							</td>
 						</tr>
 						<tr>
+							<th scope="row"><?php echo esc_html__( 'Use legacy identifiers', 'slug-free-permalinks' ); ?></th>
+							<td>
+								<label>
+									<input type="checkbox" name="<?php echo esc_attr( self::OPTION_NAME ); ?>[use_legacy_id]" value="1" <?php checked( ! empty( $settings['use_legacy_id'] ) ); ?> <?php disabled( $post_enabled ); ?> />
+									<?php echo esc_html__( 'Use the legacy_id custom field for post URLs. Posts without a value use the selected fallback.', 'slug-free-permalinks' ); ?>
+								</label>
+								<?php if ( $post_enabled ) : ?>
+									<p class="description"><?php echo esc_html__( 'Migrate regular posts before enabling legacy identifiers.', 'slug-free-permalinks' ); ?></p>
+								<?php endif; ?>
+								<details>
+									<summary><?php echo esc_html__( 'Fallback identifier', 'slug-free-permalinks' ); ?></summary>
+									<select name="<?php echo esc_attr( self::OPTION_NAME ); ?>[legacy_fallback]">
+										<option value="id" <?php selected( $settings['legacy_fallback'], 'id' ); ?>><?php echo esc_html__( 'Post ID', 'slug-free-permalinks' ); ?></option>
+										<option value="slug" <?php selected( $settings['legacy_fallback'], 'slug' ); ?>><?php echo esc_html__( 'Post slug', 'slug-free-permalinks' ); ?></option>
+									</select>
+								</details>
+							</td>
+						</tr>
+						<tr>
 							<th scope="row"><?php echo esc_html__( 'Redirect legacy permalinks', 'slug-free-permalinks' ); ?></th>
 							<td>
 								<label>
@@ -537,53 +1165,10 @@ final class PTID_Permalink_Plugin {
 							</td>
 						</tr>
 					</tbody>
-				</table>
-			<?php submit_button(); ?>
-					</form>
-
-			<?php if ( $post_enabled || $custom_targets_enabled ) : ?>
-				<details class="ptid-deactivation-guide">
-					<summary><?php echo esc_html__( 'Before deactivating', 'slug-free-permalinks' ); ?></summary>
-					<div class="ptid-deactivation-guide__body">
-						<?php if ( $post_enabled ) : ?>
-							<p>
-								<?php echo esc_html__( 'To keep the current ID URL format for regular posts, set the following value as the Custom Structure under Settings > Permalinks before deactivating this plugin.', 'slug-free-permalinks' ); ?>
-							</p>
-							<p>
-								<label for="ptid-wordpress-permalink-structure">
-									<strong><?php echo esc_html__( 'WordPress custom structure', 'slug-free-permalinks' ); ?></strong>
-								</label>
-							</p>
-							<p>
-								<input
-									id="ptid-wordpress-permalink-structure"
-									class="regular-text code"
-									type="text"
-									value="<?php echo esc_attr( $wp_permalink_structure ); ?>"
-									readonly
-								/>
-								<button
-									id="ptid-copy-wordpress-permalink-structure"
-									class="button"
-									type="button"
-									data-copy-text="<?php echo esc_attr( $wp_permalink_structure ); ?>"
-								>
-									<?php echo esc_html__( 'Copy', 'slug-free-permalinks' ); ?>
-								</button>
-								<a class="button" href="<?php echo esc_url( admin_url( 'options-permalink.php' ) ); ?>">
-									<?php echo esc_html__( 'Open Permalink Settings', 'slug-free-permalinks' ); ?>
-								</a>
-							</p>
-						<?php endif; ?>
-
-						<?php if ( $custom_targets_enabled ) : ?>
-							<p>
-								<?php echo esc_html__( 'Custom post types and taxonomies are not controlled by the regular WordPress post permalink setting. Check their rewrite settings before deactivating the plugin.', 'slug-free-permalinks' ); ?>
-							</p>
-						<?php endif; ?>
-					</div>
-				</details>
-			<?php endif; ?>
+						</table>
+						<?php submit_button(); ?>
+						</form>
+					</section>
 				</div>
 
 				<aside class="ptid-admin-sidebar" aria-label="<?php echo esc_attr__( 'Helpful links', 'slug-free-permalinks' ); ?>">
@@ -727,6 +1312,8 @@ final class PTID_Permalink_Plugin {
 			'post_types'      => array(),
 			'taxonomies'      => array(),
 			'redirect_legacy' => false,
+			'use_legacy_id'   => false,
+			'legacy_fallback' => 'id',
 		);
 	}
 
@@ -998,6 +1585,8 @@ final class PTID_Permalink_Plugin {
 				array_keys( $this->get_available_taxonomies() )
 			),
 			'redirect_legacy' => ! empty( $settings['redirect_legacy'] ),
+			'use_legacy_id'   => ! empty( $settings['use_legacy_id'] ),
+			'legacy_fallback' => 'slug' === ( $settings['legacy_fallback'] ?? '' ) ? 'slug' : 'id',
 		);
 	}
 
@@ -1024,17 +1613,19 @@ final class PTID_Permalink_Plugin {
 			'ID'          => $post_id,
 			'post_type'   => $post_type,
 			'post_status' => $post_status,
+			'post_name'   => isset( $post->post_name ) ? (string) $post->post_name : '',
 		);
 	}
+
 
 	/**
 	 * Builds an ID-based path segment.
 	 *
 	 * @param string $slug Content type slug.
-	 * @param int    $id   Content object ID.
+	 * @param string $id   Content identifier.
 	 * @return string ID-based relative path.
 	 */
-	private function build_id_path( string $slug, int $id ): string {
+	private function build_id_path( string $slug, string $id ): string {
 
 		if ( 'hyphen' === $this->get_permalink_structure() ) {
 			return $slug . '-' . $id;
@@ -1047,11 +1638,11 @@ final class PTID_Permalink_Plugin {
 	 * Builds an ID-based permalink from the site or language home URL.
 	 *
 	 * @param string $slug              Content type slug.
-	 * @param int    $id                Content object ID.
+	 * @param string $id                Content identifier.
 	 * @param string $language_home_url Optional language home URL.
 	 * @return string ID-based content permalink.
 	 */
-	private function build_content_permalink( string $slug, int $id, string $language_home_url = '' ): string {
+	private function build_content_permalink( string $slug, string $id, string $language_home_url = '' ): string {
 		$relative_id_path = user_trailingslashit( $this->build_id_path( $slug, $id ) );
 
 		if ( '' !== $language_home_url ) {
@@ -1366,20 +1957,26 @@ final class PTID_Permalink_Plugin {
 	/**
 	 * Registers rewrite rules for configured content types.
 	 *
-	 * @param string $structure  Permalink structure name.
-	 * @param array  $post_types Enabled post type names.
-	 * @param array  $taxonomies Enabled taxonomy names.
-	 * @param bool   $enabled    Whether routing is enabled.
+	 * The non-selected ID format is also registered while legacy redirects
+	 * are enabled, so requests in the previous format can be redirected
+	 * to the canonical URL.
+	 *
+	 * @param string $structure              Permalink structure name.
+	 * @param array  $post_types             Enabled post type names.
+	 * @param array  $taxonomies             Enabled taxonomy names.
+	 * @param bool   $enabled                Whether routing is enabled.
+	 * @param bool   $redirect_legacy        Whether legacy redirects are enabled.
 	 */
-	private function register_rewrite_rules_for( string $structure, array $post_types, array $taxonomies, bool $enabled ): void {
+	private function register_rewrite_rules_for( string $structure, array $post_types, array $taxonomies, bool $enabled, bool $redirect_legacy = false ): void {
 		$this->remove_plugin_rewrite_rules();
 
 		if ( ! $enabled ) {
 			return;
 		}
 
-		$separator = 'hyphen' === $structure ? '-' : '/';
-
+		$legacy_enabled    = ! empty( $this->get_settings()['use_legacy_id'] );
+		$current_separator = 'hyphen' === $structure ? '-' : '/';
+		$legacy_separator  = 'hyphen' === $structure ? '/' : '-';
 		foreach ( $this->get_rewrite_path_prefixes() as $path_prefix ) {
 			$prefix_pattern = '^';
 			if ( '' !== $path_prefix ) {
@@ -1388,20 +1985,26 @@ final class PTID_Permalink_Plugin {
 
 			foreach ( $post_types as $post_type ) {
 				$route_slug = preg_quote( $this->get_post_type_route_slug( $post_type ), '#' );
-				add_rewrite_rule(
-					$prefix_pattern . $route_slug . $separator . '([0-9]+)/?$',
-					'index.php?post_type=' . $post_type . '&p=$matches[1]&' . self::REWRITE_MARKER,
-					'top'
-				);
+				$use_legacy = $legacy_enabled && 'post' !== $post_type;
+				$query      = 'index.php?post_type=' . $post_type . ( $use_legacy ? '&ptid_identifier=$matches[1]&' : '&p=$matches[1]&' ) . self::REWRITE_MARKER;
+				$pattern    = $use_legacy ? '([A-Za-z0-9_-]+)' : '([0-9]+)';
+
+				add_rewrite_rule( $prefix_pattern . $route_slug . $current_separator . $pattern . '/?$', $query, 'top' );
+
+				if ( $redirect_legacy ) {
+					add_rewrite_rule( $prefix_pattern . $route_slug . $legacy_separator . $pattern . '/?$', $query, 'top' );
+				}
 			}
 
 			foreach ( $taxonomies as $taxonomy ) {
 				$route_slug = preg_quote( $this->get_taxonomy_route_slug( $taxonomy ), '#' );
-				add_rewrite_rule(
-					$prefix_pattern . $route_slug . $separator . '([0-9]+)/?$',
-					'index.php?ptid_taxonomy=' . $taxonomy . '&ptid_term_id=$matches[1]&' . self::REWRITE_MARKER,
-					'top'
-				);
+				$query      = 'index.php?ptid_taxonomy=' . $taxonomy . '&ptid_term_id=$matches[1]&' . self::REWRITE_MARKER;
+
+				add_rewrite_rule( $prefix_pattern . $route_slug . $current_separator . '([0-9]+)/?$', $query, 'top' );
+
+				if ( $redirect_legacy ) {
+					add_rewrite_rule( $prefix_pattern . $route_slug . $legacy_separator . '([0-9]+)/?$', $query, 'top' );
+				}
 			}
 		}
 	}
@@ -1431,10 +2034,11 @@ final class PTID_Permalink_Plugin {
 	 * @param string $structure  Permalink structure name.
 	 * @param array  $post_types Enabled post type names.
 	 * @param array  $taxonomies Enabled taxonomy names.
-	 * @param bool   $enabled    Whether routing is enabled.
+	 * @param bool   $enabled                Whether routing is enabled.
+	 * @param bool   $redirect_legacy        Whether legacy redirects are enabled.
 	 * @return string Rewrite signature.
 	 */
-	private function build_rewrite_signature( string $structure, array $post_types, array $taxonomies, bool $enabled ): string {
+	private function build_rewrite_signature( string $structure, array $post_types, array $taxonomies, bool $enabled, bool $redirect_legacy = false ): string {
 		$post_routes = array();
 		foreach ( $post_types as $post_type ) {
 			$post_routes[ $post_type ] = $this->get_post_type_route_slug( $post_type );
@@ -1449,6 +2053,8 @@ final class PTID_Permalink_Plugin {
 			array(
 				'structure'       => $structure,
 				'enabled'         => $enabled,
+				'redirect_legacy' => $redirect_legacy,
+				'use_legacy_id'   => ! empty( $this->get_settings()['use_legacy_id'] ),
 				'post_routes'     => $post_routes,
 				'taxonomy_routes' => $taxonomy_routes,
 				'path_prefixes'   => $this->get_rewrite_path_prefixes(),
@@ -1464,11 +2070,12 @@ final class PTID_Permalink_Plugin {
 		$post_types = $this->get_enabled_post_types();
 		$taxonomies = $this->get_enabled_taxonomies();
 		$enabled    = array() !== $post_types || array() !== $taxonomies;
+		$settings   = $this->get_settings();
 
 		update_option( self::REWRITE_MARKER_VERSION_OPTION, self::REWRITE_MARKER_VERSION, true );
 		update_option(
 			self::REWRITE_SIGNATURE_OPTION,
-			$this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled ),
+			$this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled, ! empty( $settings['redirect_legacy'] ) ),
 			true
 		);
 	}

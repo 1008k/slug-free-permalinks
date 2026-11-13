@@ -2,35 +2,43 @@
 
 ## [Unreleased]
 
+## [2.0.0]
+
+- Build native WordPress post permalinks using presets and editable tags, with separate custom content settings and legacy migration.
+- Add optional `legacy_id` custom field permalinks for CMS migrations, with ID or slug fallback.
+- Preserve redirects from legacy CPT slugs and avoid ambiguous identifier collisions.
+- Validate permalink tags and support legacy identifiers in feed, embed, and WordPress URL-to-post lookups.
+- Redirect URLs in the non-selected ID format (slash or hyphen) when legacy redirects are enabled.
+
 ## [1.7.0]
 
-- Improve target selection and guidance on the settings screen.
-- Refine ID-based URL handling for Polylang language paths.
+- Make post type and taxonomy selection easier on the settings screen.
+- Improve ID-based URL handling for Polylang language paths.
 
 ## [1.6.0]
 
-- Add deactivation guidance and a copyable permalink structure to preserve regular post ID URLs.
-- Reduce rewrite checks and permalink processing overhead.
+- Add deactivation guidance and a copyable permalink structure for keeping regular post ID URLs.
+- Reduce overhead in permalink processing and rewrite-rule checks.
 
 ## [1.5.1]
 
 - Update compatibility metadata for WordPress 7.1.
-- Improve CI and distribution validation.
+- Improve release validation.
 
 ## [1.5.0]
 
-- Support ID-based URLs using registered rewrite slugs for post types and taxonomies.
-- Reject conflicting rewrite slugs and disable conflicting saved settings.
-- Improve rewrite-rule refresh after post type and taxonomy registration and remove stale plugin rules.
-- Improve compatibility with language and path-prefixed URLs and existing permalink integrations.
+- Support ID-based URLs using registered rewrite slugs for custom post types and taxonomies.
+- Prevent selecting content types with conflicting rewrite slugs.
+- Improve ID URL routing when post types or taxonomies are registered.
+- Improve compatibility with language-prefixed URLs and existing permalink settings.
 
 ## [1.4.8]
 
-- Prevent unnecessary database writes during settings normalization on public requests.
+- Reduce unnecessary database writes during page requests.
 
 ## [1.4.7]
 
-- Fix canonical ID-based URLs in sitemap and indexing integrations.
+- Fix canonical ID-based URLs in sitemaps and indexing integrations.
 
 ## [1.4.6]
 
@@ -38,37 +46,34 @@
 
 ## [1.4.5]
 
-- Improve internal permalink handling consistency.
+- Improve permalink generation.
 
 ## [1.4.4]
 
-- Unify ID-based URL handling with or without Polylang.
-- Support language-directory URLs such as `/en/`.
+- Support ID-based URLs with language directories such as `/en/`, with or without Polylang.
 
 ## [1.4.3]
 
-- Preserve Polylang and language-directory permalink prefixes for ID-based URLs.
-- Accept prefixed ID routes such as `/en/post/123/` and `/en/category/45/`.
+- Generate and resolve language-prefixed ID URLs such as `/en/post/123/` and `/en/category/45/`.
 
 ## [1.4.2]
 
-- Add Japanese translation support compatible with Plugin Check.
-- Update the distribution package for the latest Plugin Check fixes.
+- Add Japanese translations and improve Plugin Check compatibility.
 
 ## [1.4.1]
 
-- Remove unnecessary translation loading for Plugin Check compatibility.
-- Refine the FAQ and release packaging workflow.
+- Improve translation-loading compatibility.
+- Update the FAQ and release process.
 
 ## [1.4.0]
 
 - Rebrand the plugin as Slug-Free Permalinks.
 - Add the WordPress.org readme and distribution metadata.
-- Add an optional legacy slug redirect setting.
+- Add a setting for redirecting legacy slug URLs to ID-based URLs.
 
 ## [1.3.4]
 
-- Add an optional redirect from legacy slug URLs to the current ID-based permalink.
+- Allow redirects from legacy slug URLs to ID-based URLs.
 
 ## [1.3.3]
 

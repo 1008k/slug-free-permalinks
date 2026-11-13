@@ -1,26 +1,37 @@
 ( function () {
-	const button = document.getElementById( 'ptid-copy-wordpress-permalink-structure' );
-	const input = document.getElementById( 'ptid-wordpress-permalink-structure' );
+	const input = document.getElementById( 'ptid-post-structure' );
+	const form = document.getElementById( 'ptid-native-permalink-form' );
 
-	if ( ! button || ! input ) {
+	if ( ! input || ! form ) {
 		return;
 	}
 
-	button.addEventListener( 'click', async function () {
-		const value = button.dataset.copyText || input.value;
-
-		try {
-			if ( navigator.clipboard && window.isSecureContext ) {
-				await navigator.clipboard.writeText( value );
-				return;
+	const migrationWarning = form.dataset.ptidConfirm;
+	if ( migrationWarning ) {
+		form.addEventListener( 'submit', function ( event ) {
+			if ( ! window.confirm( migrationWarning ) ) {
+				event.preventDefault();
 			}
+		} );
+	}
 
+	for ( const button of form.querySelectorAll( '[data-ptid-preset]' ) ) {
+		button.addEventListener( 'click', function () {
+			input.value = button.dataset.ptidPreset;
 			input.focus();
-			input.select();
-			document.execCommand( 'copy' );
-		} catch ( error ) {
+			input.setSelectionRange( input.value.length, input.value.length );
+			input.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+		} );
+	}
+
+	for ( const button of form.querySelectorAll( '[data-ptid-tag]' ) ) {
+		button.addEventListener( 'click', function () {
+			const tag = button.dataset.ptidTag;
+			const start = input.selectionStart ?? input.value.length;
+			const end = input.selectionEnd ?? start;
+			input.setRangeText( tag, start, end, 'end' );
 			input.focus();
-			input.select();
-		}
-	} );
+			input.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+		} );
+	}
 }() );
