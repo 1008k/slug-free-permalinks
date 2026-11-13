@@ -456,6 +456,95 @@ final class PTID_Permalink_Plugin {
 	}
 
 	/**
+	 * Allows WordPress's url_to_postid() and oEmbed to resolve canonical legacy URLs.
+	 * The core filter accepts a URL, not a post ID, so a verified match is converted
+	 * to the native ?p=ID form that WordPress already recognizes.
+	 *
+	 * @param string $url Input URL.
+	 * @return string Original URL or an equivalent native WordPress post URL.
+	 */
+	public function filter_url_to_postid( string $url ): string {
+		if ( empty( $this->get_settings()['use_legacy_id'] ) ) {
+			return $url;
+		}
+
+		global $wp_rewrite;
+
+		$url_host  = (string) wp_parse_url( $url, PHP_URL_HOST );
+		$home_host = (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+		if ( '' === $url_host || strtolower( $url_host ) !== strtolower( $home_host ) ) {
+			return $url;
+		}
+
+		$url_port  = wp_parse_url( $url, PHP_URL_PORT );
+		$home_port = wp_parse_url( home_url( '/' ), PHP_URL_PORT );
+		if ( $url_port !== $home_port ) {
+			return $url;
+		}
+
+		$path      = trim( (string) wp_parse_url( $url, PHP_URL_PATH ), '/' );
+		$home_path = trim( (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH ), '/' );
+		if ( '' !== $home_path ) {
+			if ( 0 !== strpos( $path, $home_path . '/' ) ) {
+				return $url;
+			}
+			$path = substr( $path, strlen( $home_path ) + 1 );
+		}
+
+		if ( '' === $path ) {
+			return $url;
+		}
+
+		// Honor the first WordPress rewrite match instead of taking over another route.
+		foreach ( (array) $wp_rewrite->wp_rewrite_rules() as $regex => $query ) {
+			if ( 1 !== preg_match( '#^' . str_replace( '#', '\\#', $regex ) . '#', $path, $matches ) ) {
+				continue;
+			}
+
+			if ( false === strpos( $query, 'ptid_legacy_id=' ) && false === strpos( $query, 'ptid_identifier=' ) ) {
+				break;
+			}
+
+			$query = preg_replace( '/^.+?\\?/', '', $query );
+			parse_str( WP_MatchesMapRegex::apply( $query, $matches ), $vars );
+			$is_native = isset( $vars['ptid_legacy_id'] );
+			$is_custom = isset( $vars['ptid_identifier'], $vars['ptid_route'] );
+			if ( ! $is_native && ! $is_custom ) {
+				break;
+			}
+
+			$post_type = $is_native ? 'post' : sanitize_key( (string) ( $vars['post_type'] ?? '' ) );
+			if ( $is_custom && ! in_array( $post_type, $this->get_enabled_post_types(), true ) ) {
+				break;
+			}
+
+			$identifier = (string) ( $is_native ? $vars['ptid_legacy_id'] : $vars['ptid_identifier'] );
+			$post_id    = $this->lookup_legacy_post( $identifier, $post_type );
+			if ( ! $post_id ) {
+				break;
+			}
+
+			// Check the generated canonical URL; also rejects old slug and route collisions.
+			$canonical_path = trim( (string) wp_parse_url( (string) get_permalink( $post_id ), PHP_URL_PATH ), '/' );
+			$requested_path = trim( (string) wp_parse_url( $url, PHP_URL_PATH ), '/' );
+			if ( $canonical_path !== $requested_path ) {
+				break;
+			}
+
+			if ( $is_custom ) {
+				$slug_post = get_page_by_path( $identifier, OBJECT, $post_type );
+				if ( $slug_post instanceof WP_Post && $slug_post->ID !== $post_id && $identifier === $slug_post->post_name ) {
+					break;
+				}
+			}
+
+			return add_query_arg( 'p', $post_id, home_url( '/' ) );
+		}
+
+		return $url;
+	}
+
+	/**
 	 * Prevents unresolved legacy routes from being classified as the blog home.
 	 *
 	 * @param mixed    $preempt Existing pre-handle result.
