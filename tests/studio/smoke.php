@@ -1043,7 +1043,7 @@ update_option(
 	'rewrite_rules',
 	array(
 		'^books/archive/([A-Za-z0-9_-]+)/' => 'index.php?post_type=studio_book&ptid_identifier=$matches[1]&ptid_route=1',
-		'^entry/([^/]+)\\.html'             => 'index.php?ptid_legacy_id=$matches[1]',
+		'^entry/([^/]+)\\.html'            => 'index.php?ptid_legacy_id=$matches[1]',
 	)
 );
 add_filter( 'url_to_postid', array( $native_legacy_plugin, 'filter_url_to_postid' ), 1 );
