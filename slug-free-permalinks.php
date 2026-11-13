@@ -325,7 +325,22 @@ final class PTID_Permalink_Plugin {
 			)
 		);
 
-		return empty( $owners ) ? (int) $post->ID : 0;
+		if ( ! empty( $owners ) ) {
+			return 0;
+		}
+
+		if ( ctype_digit( $identifier ) ) {
+			$other_post = get_post( (int) $identifier );
+			if ( $other_post instanceof WP_Post
+				&& $other_post->ID !== $post->ID
+				&& $other_post->post_type === $post_type
+				&& $identifier === $this->get_post_identifier( $other_post )
+			) {
+				return 0;
+			}
+		}
+
+		return (int) $post->ID;
 	}
 
 	/**
@@ -570,7 +585,7 @@ final class PTID_Permalink_Plugin {
 
 		$this->apply_post_structure_migration();
 
-		wp_safe_redirect( admin_url( 'options-general.php?page=' . self::MENU_SLUG ) );
+		wp_safe_redirect( admin_url( 'options-general.php?page=' . self::MENU_SLUG . '&ptid_notice=migrated' ) );
 		exit;
 	}
 
@@ -626,7 +641,7 @@ final class PTID_Permalink_Plugin {
 		}
 
 		$this->apply_native_post_structure( $structure );
-		wp_safe_redirect( admin_url( 'options-general.php?page=' . self::MENU_SLUG ) );
+		wp_safe_redirect( admin_url( 'options-general.php?page=' . self::MENU_SLUG . '&ptid_notice=saved' ) );
 		exit;
 	}
 
@@ -786,6 +801,14 @@ final class PTID_Permalink_Plugin {
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'Slug-Free Permalinks', 'slug-free-permalinks' ); ?></h1>
+			<?php
+			$notice = isset( $_GET['ptid_notice'] ) && is_string( $_GET['ptid_notice'] )
+				? sanitize_key( wp_unslash( $_GET['ptid_notice'] ) )
+				: '';
+			if ( 'migrated' === $notice || 'saved' === $notice ) :
+				?>
+				<div class="notice notice-success is-dismissible" role="status"><p><?php echo esc_html( 'migrated' === $notice ? __( 'Regular posts now use WordPress permalinks.', 'slug-free-permalinks' ) : __( 'WordPress permalinks saved.', 'slug-free-permalinks' ) ); ?></p></div>
+			<?php endif; ?>
 			<?php settings_errors( self::OPTION_NAME ); ?>
 			<div class="ptid-admin-layout">
 				<div class="ptid-admin-main">
@@ -797,7 +820,7 @@ final class PTID_Permalink_Plugin {
 							</div>
 						<?php endif; ?>
 						<p><?php echo esc_html__( 'Choose a preset or insert WordPress permalink tags, then edit the resulting structure directly.', 'slug-free-permalinks' ); ?></p>
-						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="ptid-native-permalink-form">
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="ptid-native-permalink-form" <?php if ( $post_enabled ) : ?>data-ptid-confirm="<?php echo esc_attr__( 'Migrate regular posts to WordPress permalinks? This changes the site-wide permalink structure.', 'slug-free-permalinks' ); ?>"<?php endif; ?>>
 							<input type="hidden" name="action" value="<?php echo esc_attr( $post_enabled ? 'ptid_migrate_post_structure' : 'ptid_save_post_structure' ); ?>" />
 							<?php wp_nonce_field( $post_enabled ? 'ptid_migrate_post_structure' : 'ptid_save_post_structure' ); ?>
 							<div class="ptid-permalink-presets" role="group" aria-label="<?php echo esc_attr__( 'Permalink presets', 'slug-free-permalinks' ); ?>">
