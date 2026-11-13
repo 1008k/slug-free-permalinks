@@ -229,7 +229,10 @@ final class PTID_Permalink_Plugin {
 		}
 
 		$settings = $this->get_settings();
-		return 'slug' === $settings['legacy_fallback'] ? (string) $post->post_name : (string) $post->ID;
+		$slug     = (string) $post->post_name;
+		return 'slug' === $settings['legacy_fallback'] && 1 === preg_match( '/\\A[A-Za-z0-9_-]+\\z/D', $slug )
+			? $slug
+			: (string) $post->ID;
 	}
 
 	/**
@@ -263,15 +266,19 @@ final class PTID_Permalink_Plugin {
 			}
 		}
 
+		$fallbacks = array();
 		if ( 'slug' === $settings['legacy_fallback'] ) {
-			$fallback = get_page_by_path( $identifier, OBJECT, $post_type );
-		} else {
-			$fallback = ctype_digit( $identifier ) ? get_post( (int) $identifier ) : null;
+			$fallbacks[] = get_page_by_path( $identifier, OBJECT, $post_type );
 		}
-		if ( $fallback instanceof WP_Post && $post_type === $fallback->post_type ) {
-			$raw_value = get_post_meta( $fallback->ID, self::LEGACY_META_KEY, true );
-			if ( ( '' === $raw_value || ! is_string( $raw_value ) || 1 !== preg_match( '/\\A[A-Za-z0-9_-]+\\z/D', $raw_value ) ) && $identifier === $this->get_post_identifier( $fallback ) ) {
-				$matched[ $fallback->ID ] = true;
+		if ( ctype_digit( $identifier ) ) {
+			$fallbacks[] = get_post( (int) $identifier );
+		}
+		foreach ( $fallbacks as $fallback ) {
+			if ( $fallback instanceof WP_Post && $post_type === $fallback->post_type ) {
+				$raw_value = get_post_meta( $fallback->ID, self::LEGACY_META_KEY, true );
+				if ( ( '' === $raw_value || ! is_string( $raw_value ) || 1 !== preg_match( '/\\A[A-Za-z0-9_-]+\\z/D', $raw_value ) ) && $identifier === $this->get_post_identifier( $fallback ) ) {
+					$matched[ $fallback->ID ] = true;
+				}
 			}
 		}
 
