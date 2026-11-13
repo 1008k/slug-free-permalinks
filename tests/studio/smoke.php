@@ -875,6 +875,21 @@ ptid_studio_assert_same(
 	$lookup_legacy->invoke( $legacy_plugin, 'old-book-45', 'studio_book' ),
 	'Duplicate legacy IDs must not resolve to an arbitrary post.'
 );
+// A legacy ID must never take over another CPT's original slug.
+update_post_meta( $legacy_second_id, 'legacy_id', $custom_post->post_name );
+$slug_collision_request             = new WP();
+$slug_collision_request->request    = 'books/archive/' . $custom_post->post_name;
+$slug_collision_request->query_vars = array(
+	'ptid_route'      => '1',
+	'ptid_identifier' => $custom_post->post_name,
+	'post_type'       => 'studio_book',
+);
+$legacy_plugin->resolve_legacy_request( $slug_collision_request );
+ptid_studio_assert_same(
+	array( 0 ),
+	$slug_collision_request->query_vars['post__in'],
+	'A legacy ID overlapping another CPT slug must fail closed.'
+);
 update_post_meta( $legacy_second_id, 'legacy_id', (string) $custom_post_id );
 delete_post_meta( $custom_post_id, 'legacy_id' );
 ptid_studio_assert_same(
