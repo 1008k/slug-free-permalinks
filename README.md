@@ -95,7 +95,7 @@ Yes. The Regular posts section offers an explicit migration for sites still usin
 
 When regular posts are enabled, the settings screen shows the equivalent WordPress Custom Structure for the current ID URL format, such as `/post/%post_id%/` or `/post-%post_id%/`. The displayed value follows the site's current trailing-slash policy. Use the migration button to switch to WordPress's native structure before deactivating the plugin.
 
-Custom post types and taxonomies have their own rewrite settings and need to be checked separately before deactivation.
+Custom post types and taxonomies have their own rewrite settings and need to be checked separately before deactivation. If the regular-post structure contains `%legacy_id%`, deactivation also removes the custom tag and its routing; switch back to native tags or arrange redirects before disabling the plugin.
 
 ---
 
