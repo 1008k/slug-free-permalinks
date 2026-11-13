@@ -225,7 +225,7 @@ final class PTID_Permalink_Plugin {
 			if ( 1 === preg_match( '/\\A[A-Za-z0-9_-]+\\z/D', $value ) ) {
 				return $value;
 			}
-			return '';
+			return (string) $post->ID;
 		}
 
 		$settings = $this->get_settings();
@@ -649,7 +649,7 @@ final class PTID_Permalink_Plugin {
 			'use_legacy_id'   => ! empty( $input['use_legacy_id'] ),
 			'legacy_fallback' => 'slug' === ( $input['legacy_fallback'] ?? '' ) ? 'slug' : 'id',
 		);
-		if ( in_array( 'post', $previous['post_types'], true ) || (string) get_option( 'permalink_structure', '' ) === '' ) {
+		if ( in_array( 'post', $previous['post_types'], true ) ) {
 			// Native custom tags require a non-plain structure and explicit v1 migration.
 			$settings['use_legacy_id'] = false;
 		}
@@ -671,8 +671,17 @@ final class PTID_Permalink_Plugin {
 			return $previous;
 		}
 
+		if ( false !== strpos( (string) get_option( 'permalink_structure', '' ), '%legacy_id%' ) && ! $settings['use_legacy_id'] ) {
+			add_settings_error( self::OPTION_NAME, 'legacy_tag_in_use', __( 'Remove %legacy_id% from the WordPress permalink structure before disabling legacy identifiers.', 'slug-free-permalinks' ) );
+			return $previous;
+		}
+
 		$settings_changed = $previous !== $settings;
 		if ( $settings_changed ) {
+			$this->prime_settings_cache( $settings );
+			if ( $settings['use_legacy_id'] ) {
+				$this->register_legacy_rewrite_tag();
+			}
 			$this->register_rewrite_rules_for(
 				$settings['structure'],
 				$settings['post_types'],
@@ -745,7 +754,7 @@ final class PTID_Permalink_Plugin {
 							<input type="text" id="ptid-post-structure" name="ptid_post_structure" class="large-text code" value="<?php echo esc_attr( $post_enabled ? $wp_permalink_structure : $current_wp_structure ); ?>" spellcheck="false" autocomplete="off" />
 						</p>
 						<div class="ptid-permalink-tags" role="group" aria-label="<?php echo esc_attr__( 'Insert permalink tags', 'slug-free-permalinks' ); ?>">
-							<?php foreach ( array( '%post_id%', '%postname%', '%category%', '%year%', '%monthnum%', '%day%' ) as $tag ) : ?>
+							<?php foreach ( ! empty( $settings['use_legacy_id'] ) ? array( '%post_id%', '%postname%', '%legacy_id%', '%category%', '%year%', '%monthnum%', '%day%' ) : array( '%post_id%', '%postname%', '%category%', '%year%', '%monthnum%', '%day%' ) as $tag ) : ?>
 								<button type="button" class="button button-small" data-ptid-tag="<?php echo esc_attr( $tag ); ?>"><code><?php echo esc_html( $tag ); ?></code></button>
 							<?php endforeach; ?>
 						</div>
