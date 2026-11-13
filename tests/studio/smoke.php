@@ -861,6 +861,40 @@ ptid_studio_assert_same(
 	$lookup_legacy->invoke( $native_legacy_plugin, 'migration-123', 'post' ),
 	'Native post legacy IDs must resolve using the same lookup logic.'
 );
+
+$native_request             = new WP();
+$native_request->request    = 'entry/migration-123.html';
+$native_request->query_vars = array( 'ptid_legacy_id' => 'migration-123' );
+$native_legacy_plugin->resolve_legacy_request( $native_request );
+ptid_studio_assert_same(
+	$created_post_id,
+	$native_request->query_vars['p'],
+	'Native legacy routes must resolve to the intended WordPress post.'
+);
+
+$wrong_path_request             = new WP();
+$wrong_path_request->request    = 'other/migration-123.html';
+$wrong_path_request->query_vars = array( 'ptid_legacy_id' => 'migration-123' );
+$native_legacy_plugin->resolve_legacy_request( $wrong_path_request );
+ptid_studio_assert_same(
+	array( 0 ),
+	$wrong_path_request->query_vars['post__in'],
+	'Legacy requests with incompatible date/category/path segments must fail closed.'
+);
+
+$ambiguous_cpt_request             = new WP();
+$ambiguous_cpt_request->request    = 'books/archive/' . $custom_post_id;
+$ambiguous_cpt_request->query_vars = array(
+	'ptid_route'      => '1',
+	'ptid_identifier' => (string) $custom_post_id,
+	'post_type'       => 'studio_book',
+);
+$legacy_plugin->resolve_legacy_request( $ambiguous_cpt_request );
+ptid_studio_assert_same(
+	$custom_post_id,
+	$ambiguous_cpt_request->query_vars['p'],
+	'CPT fallback requests must resolve only the intended post after collisions are removed.'
+);
 delete_post_meta( $created_post_id, 'legacy_id' );
 delete_post_meta( $custom_post_id, 'legacy_id' );
 delete_post_meta( $legacy_second_id, 'legacy_id' );
