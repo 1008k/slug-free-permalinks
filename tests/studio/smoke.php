@@ -95,6 +95,8 @@ $settings = array(
 	'post_types'      => array( 'post', 'studio_book' ),
 	'taxonomies'      => array( 'category', 'studio_genre' ),
 	'redirect_legacy' => true,
+	'use_legacy_id'   => false,
+	'legacy_fallback' => 'id',
 );
 
 update_option( $settings_option, $settings );
@@ -109,6 +111,8 @@ ptid_studio_assert_same(
 			'post_types'      => array( 'post' ),
 			'taxonomies'      => array( 'studio_post_route' ),
 			'redirect_legacy' => false,
+			'use_legacy_id'   => false,
+			'legacy_fallback' => 'id',
 		)
 	),
 	'Conflicting rewrite slugs must keep the previous settings.'
@@ -126,6 +130,8 @@ ptid_studio_assert_same(
 			'post_types'      => array( 'studio_book' ),
 			'taxonomies'      => array( 'category', 'studio_genre' ),
 			'redirect_legacy' => true,
+			'use_legacy_id'   => false,
+			'legacy_fallback' => 'id',
 		)
 	),
 	'Saving custom-target settings must preserve the legacy post URL format and target.'
@@ -428,6 +434,8 @@ $legacy_settings = array(
 	'post_types'      => 'not-an-array',
 	'taxonomies'      => array( 'category', 'category' ),
 	'redirect_legacy' => false,
+	'use_legacy_id'   => false,
+	'legacy_fallback' => 'id',
 );
 update_option( $settings_option, $legacy_settings );
 
@@ -450,6 +458,8 @@ ptid_studio_assert_same(
 		'post_types'      => array(),
 		'taxonomies'      => array( 'category' ),
 		'redirect_legacy' => false,
+		'use_legacy_id'   => false,
+		'legacy_fallback' => 'id',
 	),
 	get_option( $settings_option ),
 	'Admin-side normalization must persist the normalized settings.'
@@ -460,6 +470,8 @@ $conflicting_settings = array(
 	'post_types'      => array( 'post' ),
 	'taxonomies'      => array( 'studio_post_route' ),
 	'redirect_legacy' => false,
+	'use_legacy_id'   => false,
+	'legacy_fallback' => 'id',
 );
 update_option( $settings_option, $conflicting_settings );
 $GLOBALS['wp_rewrite']->extra_rules['legacy-plugin-post-rule'] = 'index.php?post_type=post&p=$matches[1]&ptid_route=1';
@@ -473,6 +485,8 @@ ptid_studio_assert_same(
 		'post_types'      => array(),
 		'taxonomies'      => array(),
 		'redirect_legacy' => false,
+		'use_legacy_id'   => false,
+		'legacy_fallback' => 'id',
 	),
 	get_option( $settings_option ),
 	'Admin-side normalization must disable stored content types with conflicting rewrite slugs.'
@@ -498,6 +512,8 @@ $invalid_settings = array(
 	'post_types'      => array( 'post', 'page', 'not_registered' ),
 	'taxonomies'      => array( 'category', 'post_format', 'not_registered' ),
 	'redirect_legacy' => false,
+	'use_legacy_id'   => false,
+	'legacy_fallback' => 'id',
 );
 update_option( $settings_option, $invalid_settings );
 
@@ -509,6 +525,8 @@ ptid_studio_assert_same(
 		'post_types'      => array( 'post' ),
 		'taxonomies'      => array( 'category' ),
 		'redirect_legacy' => false,
+		'use_legacy_id'   => false,
+		'legacy_fallback' => 'id',
 	),
 	get_option( $settings_option ),
 	'Admin-side normalization must discard unavailable content types.'
@@ -528,6 +546,8 @@ $alternate_settings = array(
 	'post_types'      => array( 'post' ),
 	'taxonomies'      => array( 'category' ),
 	'redirect_legacy' => true,
+	'use_legacy_id'   => false,
+	'legacy_fallback' => 'id',
 );
 update_option( $settings_option, $alternate_settings );
 $alternate_plugin = new PTID_Permalink_Plugin();
@@ -596,6 +616,8 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 		'post_types'      => array( 'post', 'studio_book' ),
 		'taxonomies'      => array( 'category', 'studio_genre' ),
 		'redirect_legacy' => false,
+		'use_legacy_id'   => false,
+		'legacy_fallback' => 'id',
 	);
 	update_option( $settings_option, $migration_settings );
 	update_option( 'ptid_rewrite_signature', 'pre-migration-signature' );
@@ -680,6 +702,8 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 			'post_types'      => array( 'post', 'studio_book' ),
 			'taxonomies'      => array( 'category', 'studio_genre' ),
 			'redirect_legacy' => false,
+			'use_legacy_id'   => false,
+			'legacy_fallback' => 'id',
 		)
 	);
 	ptid_studio_assert_same(
