@@ -752,6 +752,7 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 		'Editing WordPress permalinks must not restore regular-post plugin routing.'
 	);
 }
+
 /*
  * Legacy metadata is supplied by importers. This plugin only uses existing
  * values, resolves incoming routes and fails closed when IDs overlap.
