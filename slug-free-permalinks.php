@@ -315,6 +315,18 @@ final class PTID_Permalink_Plugin {
 		$identifier = (string) ( $is_custom ? $wp->query_vars['ptid_identifier'] : $wp->query_vars['ptid_legacy_id'] );
 		$post_id    = $this->lookup_legacy_post( $identifier, $post_type );
 
+		if ( $post_id && $is_native ) {
+			// Date/category tokens must still agree with WordPress's canonical URL.
+			$permalink_path = (string) wp_parse_url( (string) get_permalink( $post_id ), PHP_URL_PATH );
+			$home_path      = rtrim( (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH ), '/' );
+			if ( '' !== $home_path && 0 === strpos( $permalink_path, $home_path . '/' ) ) {
+				$permalink_path = substr( $permalink_path, strlen( $home_path ) );
+			}
+			if ( trim( $permalink_path, '/' ) !== trim( $wp->request, '/' ) ) {
+				$post_id = 0;
+			}
+		}
+
 		// Never let WordPress fall through to a different post on a conflicting route.
 		$wp->query_vars['post_type'] = $post_type;
 		unset( $wp->query_vars['name'], $wp->query_vars['year'], $wp->query_vars['monthnum'], $wp->query_vars['day'], $wp->query_vars['category_name'] );
