@@ -1002,100 +1002,67 @@ ptid_studio_assert_same(
 	'CPT fallback requests must resolve only the intended post after collisions are removed.'
 );
 /*
- * Native permalink editor validation and WordPress's own URL lookup.
+ * Validate the WordPress-native structure and legacy permalink endpoints.
  */
 $validate_native = new ReflectionMethod( PTID_Permalink_Plugin::class, 'is_valid_native_post_structure' );
 $validate_native->setAccessible( true );
-ptid_studio_assert_same( true, $validate_native->invoke( $native_legacy_plugin, '/entry/%legacy_id%.html' ), 'Enabled legacy IDs are valid WordPress extension tags.' );
-ptid_studio_assert_same( true, $validate_native->invoke( $native_legacy_plugin, '/%year%/%post_id%/' ), 'Supported WordPress permalink tags must remain valid.' );
-ptid_studio_assert_same( false, $validate_native->invoke( $native_legacy_plugin, '/articles/' ), 'A static path cannot be saved as a regular-post permalink structure.' );
-ptid_studio_assert_same( false, $validate_native->invoke( $native_legacy_plugin, '/entry/%legacyid%/' ), 'Unknown or misspelled permalink tags must be rejected.' );
+ptid_studio_assert_same( true, $validate_native->invoke( $native_legacy_plugin, '/entry/%legacy_id%.html' ), 'Valid legacy tag must be permitted when enabled.' );
+ptid_studio_assert_same( true, $validate_native->invoke( $native_legacy_plugin, '/%year%/%post_id%/' ), 'Native WordPress permalink tags must be supported.' );
+ptid_studio_assert_same( false, $validate_native->invoke( $native_legacy_plugin, '/articles/' ), 'Static permalink structures must be rejected.' );
+ptid_studio_assert_same( false, $validate_native->invoke( $native_legacy_plugin, '/entry/%legacyid%/' ), 'Unknown permalink tags must be rejected.' );
 
 $feed_request             = new WP();
 $feed_request->request    = 'entry/migration-123.html/feed/';
-$feed_request->query_vars = array(
-	'ptid_legacy_id' => 'migration-123',
-	'feed'           => 'rss2',
-);
+$feed_request->query_vars = array( 'ptid_legacy_id' => 'migration-123', 'feed' => 'rss2' );
 $native_legacy_plugin->resolve_legacy_request( $feed_request );
-ptid_studio_assert_same(
-	$created_post_id,
-	$feed_request->query_vars['p'],
-	'Native legacy post feed shorthand URLs must resolve to the article.'
-);
+ptid_studio_assert_same( $created_post_id, $feed_request->query_vars['p'], 'Shorthand feed endpoints must resolve a legacy post.' );
 
 $feed_request->request = 'entry/migration-123.html/feed/rss2/';
 $native_legacy_plugin->resolve_legacy_request( $feed_request );
-ptid_studio_assert_same(
-	$created_post_id,
-	$feed_request->query_vars['p'],
-	'Native legacy posts must accept standard feed type endpoints.'
-);
+ptid_studio_assert_same( $created_post_id, $feed_request->query_vars['p'], 'Explicit feed endpoints must resolve a legacy post.' );
 
 $embed_request             = new WP();
 $embed_request->request    = 'entry/migration-123.html/embed/';
-$embed_request->query_vars = array(
-	'ptid_legacy_id' => 'migration-123',
-	'embed'          => 'true',
-);
+$embed_request->query_vars = array( 'ptid_legacy_id' => 'migration-123', 'embed' => 'true' );
 $native_legacy_plugin->resolve_legacy_request( $embed_request );
-ptid_studio_assert_same(
-	$created_post_id,
-	$embed_request->query_vars['p'],
-	'WordPress embed endpoints must continue to resolve legacy post identifiers.'
-);
+ptid_studio_assert_same( $created_post_id, $embed_request->query_vars['p'], 'Embed endpoints must resolve a legacy post.' );
 
+/*
+ * url_to_postid uses rewrite mappings directly, not the parse_request action.
+ * Supply deterministic mappings to exercise its public WordPress entrypoint.
+ */
 $previous_lookup_rules = get_option( 'rewrite_rules', array() );
 update_option(
 	'rewrite_rules',
 	array(
-		'^books/archive/([A-Za-z0-9_-]+)/?
-delete_post_meta( $legacy_second_id, 'legacy_id' );
-wp_delete_post( $legacy_second_id, true );
-
-delete_option( 'ptid_rewrite_hard_flush_pending' );
-wp_set_current_user( $original_user_id );
-$GLOBALS['wp_rewrite']->set_permalink_structure( $previous_wp_structure );
-update_option( $settings_option, $settings );
-
-echo "Slug-Free Permalinks Studio smoke tests passed.\n";
- => 'index.php?post_type=studio_book&ptid_identifier=$matches[1]&ptid_route=1',
-		'^entry/([^/]+)\\.html/?
-delete_post_meta( $legacy_second_id, 'legacy_id' );
-wp_delete_post( $legacy_second_id, true );
-
-delete_option( 'ptid_rewrite_hard_flush_pending' );
-wp_set_current_user( $original_user_id );
-$GLOBALS['wp_rewrite']->set_permalink_structure( $previous_wp_structure );
-update_option( $settings_option, $settings );
-
-echo "Slug-Free Permalinks Studio smoke tests passed.\n";
-             => 'index.php?ptid_legacy_id=$matches[1]',
+		'^books/archive/([A-Za-z0-9_-]+)/' => 'index.php?post_type=studio_book&ptid_identifier=$matches[1]&ptid_route=1',
+		'^entry/([^/]+)\\.html' => 'index.php?ptid_legacy_id=$matches[1]',
 	)
 );
 add_filter( 'url_to_postid', array( $native_legacy_plugin, 'filter_url_to_postid' ), 1 );
 remove_all_filters( 'post_type_link' );
 add_filter( 'post_type_link', array( $native_legacy_plugin, 'filter_permalink' ), 10, 2 );
+
 ptid_studio_assert_same(
 	$created_post_id,
 	url_to_postid( home_url( '/entry/migration-123.html' ) ),
-	'Core url_to_postid must resolve canonical regular posts using imported identifiers.'
+	'WordPress url_to_postid must resolve regular posts using legacy identifiers.'
 );
 update_post_meta( $custom_post_id, 'legacy_id', 'old-book-45' );
 ptid_studio_assert_same(
 	$custom_post_id,
 	url_to_postid( home_url( '/books/archive/old-book-45/' ) ),
-	'Core url_to_postid must resolve canonical CPT URLs using imported identifiers.'
+	'WordPress url_to_postid must resolve legacy CPT URLs.'
 );
 ptid_studio_assert_same(
 	0,
 	url_to_postid( home_url( '/books/archive/not-an-id/' ) ),
-	'Unknown legacy IDs must remain unresolved by WordPress URL lookup.'
+	'Unknown legacy identifiers must remain unresolved.'
 );
 ptid_studio_assert_same(
 	0,
 	url_to_postid( 'https://unrelated.example/books/archive/old-book-45/' ),
-	'External domains must not be redirected into WordPress post ID lookups.'
+	'Foreign URLs must not resolve to local posts.'
 );
 remove_filter( 'url_to_postid', array( $native_legacy_plugin, 'filter_url_to_postid' ), 1 );
 update_option( 'rewrite_rules', $previous_lookup_rules );
