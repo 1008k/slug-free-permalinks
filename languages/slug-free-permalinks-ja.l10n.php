@@ -71,5 +71,8 @@ return array(
         'Post slug' => '投稿スラッグ',
         'Enable legacy identifiers before using the %legacy_id% tag.' => '%legacy_id%タグを使用する前に、移行元の識別子を有効にしてください。',
         'Remove %legacy_id% from the WordPress permalink structure before disabling legacy identifiers.' => '移行元の識別子を無効にする前に、WordPressのパーマリンク構造から%legacy_id%を削除してください。',
+        'Regular posts now use WordPress permalinks.' => '通常投稿をWordPress標準のパーマリンクへ移行しました。',
+        'WordPress permalinks saved.' => 'WordPressのパーマリンク設定を保存しました。',
+        'Migrate regular posts to WordPress permalinks? This changes the site-wide permalink structure.' => '通常投稿をWordPress標準のパーマリンクへ移行しますか？ サイト全体のパーマリンク構造が変更されます。',
     ),
 );
