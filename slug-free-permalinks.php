@@ -28,6 +28,7 @@ final class PTID_Permalink_Plugin {
 	private const PLUGIN_VERSION                = '2.0.0';
 	private const OPTION_NAME                   = 'ptid_permalink_settings';
 	private const MENU_SLUG                     = 'ptid-permalink-settings';
+	private const LEGACY_META_KEY               = 'legacy_id';
 	private const REWRITE_MARKER                = 'ptid_route=1';
 	private const REWRITE_MARKER_VERSION        = '2';
 	private const REWRITE_MARKER_VERSION_OPTION = 'ptid_rewrite_marker_version';
@@ -93,6 +94,7 @@ final class PTID_Permalink_Plugin {
 	 */
 	public static function bootstrap(): void {
 		$instance = new self();
+		add_action( 'init', array( $instance, 'register_legacy_rewrite_tag' ), 9 );
 		add_action( 'init', array( $instance, 'register_rewrite_rules' ), 99 );
 		add_action( 'registered_post_type', array( $instance, 'refresh_rewrite_rules_after_registration' ), 10, 0 );
 		add_action( 'registered_taxonomy', array( $instance, 'refresh_rewrite_rules_after_registration' ), 10, 0 );
@@ -101,6 +103,7 @@ final class PTID_Permalink_Plugin {
 		add_filter( 'post_type_link', array( $instance, 'filter_permalink' ), 10, 2 );
 		add_filter( 'term_link', array( $instance, 'filter_term_link' ), 10, 3 );
 		add_filter( 'query_vars', array( $instance, 'register_query_vars' ) );
+		add_action( 'parse_request', array( $instance, 'resolve_legacy_request' ), 9 );
 		add_action( 'parse_request', array( $instance, 'resolve_term_request' ) );
 		add_action( 'template_redirect', array( $instance, 'redirect_legacy_permalink' ) );
 		add_action( 'admin_init', array( $instance, 'register_settings' ) );
@@ -145,7 +148,8 @@ final class PTID_Permalink_Plugin {
 	 */
 	public function filter_permalink( string $post_link, $post ): string {
 
-		if ( ! $this->is_feature_enabled() ) {
+		$settings = $this->get_settings();
+		if ( ! $this->is_feature_enabled() && empty( $settings['use_legacy_id'] ) ) {
 			return $post_link;
 		}
 
@@ -158,13 +162,20 @@ final class PTID_Permalink_Plugin {
 			return $post_link;
 		}
 
+		if ( 'post' === $post_context['post_type'] && ! empty( $settings['use_legacy_id'] ) && false !== strpos( $post_link, '%legacy_id%' ) ) {
+			return str_replace( '%legacy_id%', $this->get_post_identifier( $post ), $post_link );
+		}
+
 		if ( ! in_array( $post_context['post_type'], $this->get_enabled_post_types(), true ) ) {
 			return $post_link;
 		}
 
 		$post_type_slug = $this->get_post_type_route_slug( $post_context['post_type'] );
+		$identifier     = ! empty( $settings['use_legacy_id'] ) && 'post' !== $post_context['post_type']
+			? $this->get_post_identifier( $post )
+			: (string) $post_context['ID'];
 
-		return $this->build_content_permalink( $post_type_slug, $post_context['ID'], $this->get_polylang_home_url_for_post( $post_context['ID'] ) );
+		return $this->build_content_permalink( $post_type_slug, $identifier, $this->get_polylang_home_url_for_post( $post_context['ID'] ) );
 	}
 	/**
 	 * Replaces a term permalink with its configured ID-based form.
@@ -190,6 +201,122 @@ final class PTID_Permalink_Plugin {
 			$term->term_id,
 			$this->get_polylang_home_url_for_term( $term->term_id )
 		);
+	}
+
+	/**
+	 * Registers the custom tag only when the migration identifier is enabled.
+	 */
+	public function register_legacy_rewrite_tag(): void {
+		if ( ! empty( $this->get_settings()['use_legacy_id'] ) ) {
+			add_rewrite_tag( '%legacy_id%', '([^/]+)', 'ptid_legacy_id=' );
+		}
+	}
+
+	/**
+	 * Returns a safe URL identifier from existing post metadata or its fallback.
+	 *
+	 * @param WP_Post $post Post.
+	 * @return string Identifier.
+	 */
+	private function get_post_identifier( WP_Post $post ): string {
+		$value = get_post_meta( $post->ID, self::LEGACY_META_KEY, true );
+		if ( is_string( $value ) && '' !== $value ) {
+			// Keep the original value unchanged; never silently normalize two IDs together.
+			if ( 1 === preg_match( '/\\A[A-Za-z0-9_-]+\\z/D', $value ) ) {
+				return $value;
+			}
+			return '';
+		}
+
+		$settings = $this->get_settings();
+		return 'slug' === $settings['legacy_fallback'] ? (string) $post->post_name : (string) $post->ID;
+	}
+
+	/**
+	 * Resolves an identifier within one post type; ambiguous values fail closed.
+	 *
+	 * @param string $identifier URL segment.
+	 * @param string $post_type  Target post type.
+	 * @return int Resolved post ID or zero for ambiguous/missing values.
+	 */
+	private function lookup_legacy_post( string $identifier, string $post_type ): int {
+		if ( '' === $identifier || 1 !== preg_match( '/\\A[A-Za-z0-9_-]+\\z/D', $identifier ) ) {
+			return 0;
+		}
+
+		$settings = $this->get_settings();
+		$matched  = array();
+		$posts    = get_posts(
+			array(
+				'post_type'        => $post_type,
+				'post_status'      => 'any',
+				'meta_key'         => self::LEGACY_META_KEY,
+				'meta_value'       => $identifier,
+				'posts_per_page'   => 20,
+				'fields'           => 'ids',
+				'suppress_filters' => true,
+			)
+		);
+		foreach ( $posts as $post_id ) {
+			if ( $identifier === get_post_meta( (int) $post_id, self::LEGACY_META_KEY, true ) ) {
+				$matched[ (int) $post_id ] = true;
+			}
+		}
+
+		if ( 'slug' === $settings['legacy_fallback'] ) {
+			$fallback = get_page_by_path( $identifier, OBJECT, $post_type );
+		} else {
+			$fallback = ctype_digit( $identifier ) ? get_post( (int) $identifier ) : null;
+		}
+		if ( $fallback instanceof WP_Post && $post_type === $fallback->post_type ) {
+			$raw_value = get_post_meta( $fallback->ID, self::LEGACY_META_KEY, true );
+			if ( '' === $raw_value && $identifier === $this->get_post_identifier( $fallback ) ) {
+				$matched[ $fallback->ID ] = true;
+			}
+		}
+
+		if ( 1 !== count( $matched ) ) {
+			return 0;
+		}
+
+		$id   = (int) array_key_first( $matched );
+		$post = get_post( $id );
+		return $post instanceof WP_Post && in_array( $post->post_status, array( 'publish', 'private' ), true ) ? $id : 0;
+	}
+
+	/**
+	 * Resolves legacy identifiers from native post and plugin CPT rewrite rules.
+	 *
+	 * @param WP $wp WordPress request object.
+	 */
+	public function resolve_legacy_request( WP $wp ): void {
+		if ( empty( $this->get_settings()['use_legacy_id'] ) ) {
+			return;
+		}
+
+		$is_native = isset( $wp->query_vars['ptid_legacy_id'] );
+		$is_custom = isset( $wp->query_vars['ptid_identifier'] ) && isset( $wp->query_vars['ptid_route'] );
+		if ( ! $is_native && ! $is_custom ) {
+			return;
+		}
+
+		$post_type = $is_custom ? sanitize_key( (string) ( $wp->query_vars['post_type'] ?? '' ) ) : 'post';
+		if ( $is_custom && ! in_array( $post_type, $this->get_enabled_post_types(), true ) ) {
+			return;
+		}
+
+		$identifier = (string) ( $is_custom ? $wp->query_vars['ptid_identifier'] : $wp->query_vars['ptid_legacy_id'] );
+		$post_id    = $this->lookup_legacy_post( $identifier, $post_type );
+
+		// Never let WordPress fall through to a different post on a conflicting route.
+		$wp->query_vars['post_type'] = $post_type;
+		unset( $wp->query_vars['name'], $wp->query_vars['year'], $wp->query_vars['monthnum'], $wp->query_vars['day'], $wp->query_vars['category_name'] );
+		if ( $post_id ) {
+			$wp->query_vars['p'] = $post_id;
+		} else {
+			$wp->query_vars['p']        = 0;
+			$wp->query_vars['post__in'] = array( 0 );
+		}
 	}
 
 	/**
@@ -255,6 +382,8 @@ final class PTID_Permalink_Plugin {
 		$query_vars[] = 'ptid_taxonomy';
 		$query_vars[] = 'ptid_term_id';
 		$query_vars[] = 'ptid_route';
+		$query_vars[] = 'ptid_identifier';
+		$query_vars[] = 'ptid_legacy_id';
 
 		return $query_vars;
 	}
@@ -428,6 +557,10 @@ final class PTID_Permalink_Plugin {
 			wp_die( esc_html__( 'Enter a valid WordPress permalink structure starting with a slash.', 'slug-free-permalinks' ) );
 		}
 
+		if ( false !== strpos( $structure, '%legacy_id%' ) && empty( $this->get_settings()['use_legacy_id'] ) ) {
+			wp_die( esc_html__( 'Enable legacy identifiers before using the %legacy_id% tag.', 'slug-free-permalinks' ) );
+		}
+
 		$this->apply_native_post_structure( $structure );
 		wp_safe_redirect( admin_url( 'options-general.php?page=' . self::MENU_SLUG ) );
 		exit;
@@ -513,7 +646,13 @@ final class PTID_Permalink_Plugin {
 				array_keys( $this->get_available_taxonomies() )
 			),
 			'redirect_legacy' => ! empty( $input['redirect_legacy'] ),
+			'use_legacy_id'   => ! empty( $input['use_legacy_id'] ),
+			'legacy_fallback' => 'slug' === ( $input['legacy_fallback'] ?? '' ) ? 'slug' : 'id',
 		);
+		if ( in_array( 'post', $previous['post_types'], true ) || (string) get_option( 'permalink_structure', '' ) === '' ) {
+			// Native custom tags require a non-plain structure and explicit v1 migration.
+			$settings['use_legacy_id'] = false;
+		}
 		// Only the explicit migration may remove legacy post routing.
 		if ( in_array( 'post', $previous['post_types'], true ) ) {
 			$settings['structure'] = $previous['structure'];
@@ -690,6 +829,25 @@ final class PTID_Permalink_Plugin {
 							</td>
 						</tr>
 						<tr>
+							<th scope="row"><?php echo esc_html__( 'Use legacy identifiers', 'slug-free-permalinks' ); ?></th>
+							<td>
+								<label>
+									<input type="checkbox" name="<?php echo esc_attr( self::OPTION_NAME ); ?>[use_legacy_id]" value="1" <?php checked( ! empty( $settings['use_legacy_id'] ) ); ?> <?php disabled( $post_enabled ); ?> />
+									<?php echo esc_html__( 'Use the legacy_id custom field for post URLs. Posts without a value use the selected fallback.', 'slug-free-permalinks' ); ?>
+								</label>
+								<?php if ( $post_enabled ) : ?>
+									<p class="description"><?php echo esc_html__( 'Migrate regular posts before enabling legacy identifiers.', 'slug-free-permalinks' ); ?></p>
+								<?php endif; ?>
+								<details>
+									<summary><?php echo esc_html__( 'Fallback identifier', 'slug-free-permalinks' ); ?></summary>
+									<select name="<?php echo esc_attr( self::OPTION_NAME ); ?>[legacy_fallback]">
+										<option value="id" <?php selected( $settings['legacy_fallback'], 'id' ); ?>><?php echo esc_html__( 'Post ID', 'slug-free-permalinks' ); ?></option>
+										<option value="slug" <?php selected( $settings['legacy_fallback'], 'slug' ); ?>><?php echo esc_html__( 'Post slug', 'slug-free-permalinks' ); ?></option>
+									</select>
+								</details>
+							</td>
+						</tr>
+						<tr>
 							<th scope="row"><?php echo esc_html__( 'Redirect legacy permalinks', 'slug-free-permalinks' ); ?></th>
 							<td>
 								<label>
@@ -851,6 +1009,8 @@ final class PTID_Permalink_Plugin {
 			'post_types'      => array(),
 			'taxonomies'      => array(),
 			'redirect_legacy' => false,
+			'use_legacy_id'   => false,
+			'legacy_fallback' => 'id',
 		);
 	}
 
@@ -1122,6 +1282,8 @@ final class PTID_Permalink_Plugin {
 				array_keys( $this->get_available_taxonomies() )
 			),
 			'redirect_legacy' => ! empty( $settings['redirect_legacy'] ),
+			'use_legacy_id'   => ! empty( $settings['use_legacy_id'] ),
+			'legacy_fallback' => 'slug' === ( $settings['legacy_fallback'] ?? '' ) ? 'slug' : 'id',
 		);
 	}
 
@@ -1160,7 +1322,7 @@ final class PTID_Permalink_Plugin {
 	 * @param int    $id   Content object ID.
 	 * @return string ID-based relative path.
 	 */
-	private function build_id_path( string $slug, int $id ): string {
+	private function build_id_path( string $slug, string $id ): string {
 
 		if ( 'hyphen' === $this->get_permalink_structure() ) {
 			return $slug . '-' . $id;
@@ -1177,7 +1339,7 @@ final class PTID_Permalink_Plugin {
 	 * @param string $language_home_url Optional language home URL.
 	 * @return string ID-based content permalink.
 	 */
-	private function build_content_permalink( string $slug, int $id, string $language_home_url = '' ): string {
+	private function build_content_permalink( string $slug, string $id, string $language_home_url = '' ): string {
 		$relative_id_path = user_trailingslashit( $this->build_id_path( $slug, $id ) );
 
 		if ( '' !== $language_home_url ) {
@@ -1509,6 +1671,7 @@ final class PTID_Permalink_Plugin {
 			return;
 		}
 
+		$legacy_enabled    = ! empty( $this->get_settings()['use_legacy_id'] );
 		$current_separator = 'hyphen' === $structure ? '-' : '/';
 		$legacy_separator  = 'hyphen' === $structure ? '/' : '-';
 		foreach ( $this->get_rewrite_path_prefixes() as $path_prefix ) {
@@ -1519,9 +1682,390 @@ final class PTID_Permalink_Plugin {
 
 			foreach ( $post_types as $post_type ) {
 				$route_slug = preg_quote( $this->get_post_type_route_slug( $post_type ), '#' );
-				$query      = 'index.php?post_type=' . $post_type . '&p=$matches[1]&' . self::REWRITE_MARKER;
+				$use_legacy = $legacy_enabled && 'post' !== $post_type;
+				$query      = 'index.php?post_type=' . $post_type . ( $use_legacy ? '&ptid_identifier=$matches[1]&' : '&p=$matches[1]&' ) . self::REWRITE_MARKER;
+				$pattern    = $use_legacy ? '([A-Za-z0-9_-]+)' : '([0-9]+)';
+
+				add_rewrite_rule( $prefix_pattern . $route_slug . $current_separator . $pattern . '/?
+
+				if ( $redirect_legacy ) {
+					add_rewrite_rule( $prefix_pattern . $route_slug . $legacy_separator . $pattern . '/?
+				}
+			}
+
+			foreach ( $taxonomies as $taxonomy ) {
+				$route_slug = preg_quote( $this->get_taxonomy_route_slug( $taxonomy ), '#' );
+				$query      = 'index.php?ptid_taxonomy=' . $taxonomy . '&ptid_term_id=$matches[1]&' . self::REWRITE_MARKER;
 
 				add_rewrite_rule( $prefix_pattern . $route_slug . $current_separator . '([0-9]+)/?$', $query, 'top' );
+
+				if ( $redirect_legacy ) {
+					add_rewrite_rule( $prefix_pattern . $route_slug . $legacy_separator . '([0-9]+)/?$', $query, 'top' );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Removes rewrite rules previously registered by this plugin.
+	 */
+	private function remove_plugin_rewrite_rules(): void {
+		global $wp_rewrite;
+
+		foreach ( array( 'extra_rules_top', 'extra_rules' ) as $rules_property ) {
+			if ( ! isset( $wp_rewrite->{$rules_property} ) || ! is_array( $wp_rewrite->{$rules_property} ) ) {
+				continue;
+			}
+
+			foreach ( $wp_rewrite->{$rules_property} as $regex => $query ) {
+				if ( $this->is_plugin_rewrite_query( $query ) ) {
+					unset( $wp_rewrite->{$rules_property}[ $regex ] );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Builds a signature for the rewrite rules generated by current settings.
+	 *
+	 * @param string $structure  Permalink structure name.
+	 * @param array  $post_types Enabled post type names.
+	 * @param array  $taxonomies Enabled taxonomy names.
+	 * @param bool   $enabled                Whether routing is enabled.
+	 * @param bool   $redirect_legacy        Whether legacy redirects are enabled.
+	 * @return string Rewrite signature.
+	 */
+	private function build_rewrite_signature( string $structure, array $post_types, array $taxonomies, bool $enabled, bool $redirect_legacy = false ): string {
+		$post_routes = array();
+		foreach ( $post_types as $post_type ) {
+			$post_routes[ $post_type ] = $this->get_post_type_route_slug( $post_type );
+		}
+
+		$taxonomy_routes = array();
+		foreach ( $taxonomies as $taxonomy ) {
+			$taxonomy_routes[ $taxonomy ] = $this->get_taxonomy_route_slug( $taxonomy );
+		}
+
+		return (string) wp_json_encode(
+			array(
+				'structure'       => $structure,
+				'enabled'         => $enabled,
+				'redirect_legacy' => $redirect_legacy,
+				'use_legacy_id'   => ! empty( $this->get_settings()['use_legacy_id'] ),
+				'post_routes'     => $post_routes,
+				'taxonomy_routes' => $taxonomy_routes,
+				'path_prefixes'   => $this->get_rewrite_path_prefixes(),
+			)
+		);
+	}
+
+	/**
+	 * Persists the rewrite marker version and current rewrite signature.
+	 */
+	private function persist_rewrite_state(): void {
+		$structure  = $this->get_permalink_structure();
+		$post_types = $this->get_enabled_post_types();
+		$taxonomies = $this->get_enabled_taxonomies();
+		$enabled    = array() !== $post_types || array() !== $taxonomies;
+		$settings   = $this->get_settings();
+
+		update_option( self::REWRITE_MARKER_VERSION_OPTION, self::REWRITE_MARKER_VERSION, true );
+		update_option(
+			self::REWRITE_SIGNATURE_OPTION,
+			$this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled, ! empty( $settings['redirect_legacy'] ) ),
+			true
+		);
+	}
+
+	/**
+	 * Determines whether a query belongs to this plugin's rewrite rules.
+	 *
+	 * @param mixed $query Rewrite query value.
+	 * @return bool Whether the query belongs to this plugin.
+	 */
+	private function is_plugin_rewrite_query( $query ): bool {
+		if ( ! is_string( $query ) ) {
+			return false;
+		}
+
+		return false !== strpos( $query, '&' . self::REWRITE_MARKER )
+			&& (
+				0 === strpos( $query, 'index.php?ptid_taxonomy=' )
+				|| 0 === strpos( $query, 'index.php?post_type=' )
+			);
+	}
+
+	/**
+	 * Stores normalized settings in request-local caches.
+	 *
+	 * @param array $settings Normalized settings.
+	 * @return array Cached settings.
+	 */
+	private function prime_settings_cache( array $settings ): array {
+		$this->settings_cache            = wp_parse_args( $settings, self::default_settings() );
+		$this->enabled_post_types_cache  = null;
+		$this->enabled_taxonomies_cache  = null;
+		$this->permalink_structure_cache = null;
+
+		return $this->settings_cache;
+	}
+}
+
+PTID_Permalink_Plugin::bootstrap();
+register_activation_hook( __FILE__, array( 'PTID_Permalink_Plugin', 'activate' ) );
+register_deactivation_hook( __FILE__, array( 'PTID_Permalink_Plugin', 'deactivate' ) );
+, $query, 'top' );
+
+				if ( $redirect_legacy ) {
+					add_rewrite_rule( $prefix_pattern . $route_slug . $legacy_separator . '([0-9]+)/?$', $query, 'top' );
+				}
+			}
+
+			foreach ( $taxonomies as $taxonomy ) {
+				$route_slug = preg_quote( $this->get_taxonomy_route_slug( $taxonomy ), '#' );
+				$query      = 'index.php?ptid_taxonomy=' . $taxonomy . '&ptid_term_id=$matches[1]&' . self::REWRITE_MARKER;
+
+				add_rewrite_rule( $prefix_pattern . $route_slug . $current_separator . '([0-9]+)/?$', $query, 'top' );
+
+				if ( $redirect_legacy ) {
+					add_rewrite_rule( $prefix_pattern . $route_slug . $legacy_separator . '([0-9]+)/?$', $query, 'top' );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Removes rewrite rules previously registered by this plugin.
+	 */
+	private function remove_plugin_rewrite_rules(): void {
+		global $wp_rewrite;
+
+		foreach ( array( 'extra_rules_top', 'extra_rules' ) as $rules_property ) {
+			if ( ! isset( $wp_rewrite->{$rules_property} ) || ! is_array( $wp_rewrite->{$rules_property} ) ) {
+				continue;
+			}
+
+			foreach ( $wp_rewrite->{$rules_property} as $regex => $query ) {
+				if ( $this->is_plugin_rewrite_query( $query ) ) {
+					unset( $wp_rewrite->{$rules_property}[ $regex ] );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Builds a signature for the rewrite rules generated by current settings.
+	 *
+	 * @param string $structure  Permalink structure name.
+	 * @param array  $post_types Enabled post type names.
+	 * @param array  $taxonomies Enabled taxonomy names.
+	 * @param bool   $enabled                Whether routing is enabled.
+	 * @param bool   $redirect_legacy        Whether legacy redirects are enabled.
+	 * @return string Rewrite signature.
+	 */
+	private function build_rewrite_signature( string $structure, array $post_types, array $taxonomies, bool $enabled, bool $redirect_legacy = false ): string {
+		$post_routes = array();
+		foreach ( $post_types as $post_type ) {
+			$post_routes[ $post_type ] = $this->get_post_type_route_slug( $post_type );
+		}
+
+		$taxonomy_routes = array();
+		foreach ( $taxonomies as $taxonomy ) {
+			$taxonomy_routes[ $taxonomy ] = $this->get_taxonomy_route_slug( $taxonomy );
+		}
+
+		return (string) wp_json_encode(
+			array(
+				'structure'       => $structure,
+				'enabled'         => $enabled,
+				'redirect_legacy' => $redirect_legacy,
+				'post_routes'     => $post_routes,
+				'taxonomy_routes' => $taxonomy_routes,
+				'path_prefixes'   => $this->get_rewrite_path_prefixes(),
+			)
+		);
+	}
+
+	/**
+	 * Persists the rewrite marker version and current rewrite signature.
+	 */
+	private function persist_rewrite_state(): void {
+		$structure  = $this->get_permalink_structure();
+		$post_types = $this->get_enabled_post_types();
+		$taxonomies = $this->get_enabled_taxonomies();
+		$enabled    = array() !== $post_types || array() !== $taxonomies;
+		$settings   = $this->get_settings();
+
+		update_option( self::REWRITE_MARKER_VERSION_OPTION, self::REWRITE_MARKER_VERSION, true );
+		update_option(
+			self::REWRITE_SIGNATURE_OPTION,
+			$this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled, ! empty( $settings['redirect_legacy'] ) ),
+			true
+		);
+	}
+
+	/**
+	 * Determines whether a query belongs to this plugin's rewrite rules.
+	 *
+	 * @param mixed $query Rewrite query value.
+	 * @return bool Whether the query belongs to this plugin.
+	 */
+	private function is_plugin_rewrite_query( $query ): bool {
+		if ( ! is_string( $query ) ) {
+			return false;
+		}
+
+		return false !== strpos( $query, '&' . self::REWRITE_MARKER )
+			&& (
+				0 === strpos( $query, 'index.php?ptid_taxonomy=' )
+				|| 0 === strpos( $query, 'index.php?post_type=' )
+			);
+	}
+
+	/**
+	 * Stores normalized settings in request-local caches.
+	 *
+	 * @param array $settings Normalized settings.
+	 * @return array Cached settings.
+	 */
+	private function prime_settings_cache( array $settings ): array {
+		$this->settings_cache            = wp_parse_args( $settings, self::default_settings() );
+		$this->enabled_post_types_cache  = null;
+		$this->enabled_taxonomies_cache  = null;
+		$this->permalink_structure_cache = null;
+
+		return $this->settings_cache;
+	}
+}
+
+PTID_Permalink_Plugin::bootstrap();
+register_activation_hook( __FILE__, array( 'PTID_Permalink_Plugin', 'activate' ) );
+register_deactivation_hook( __FILE__, array( 'PTID_Permalink_Plugin', 'deactivate' ) );
+, $query, 'top' );
+				}
+			}
+
+			foreach ( $taxonomies as $taxonomy ) {
+				$route_slug = preg_quote( $this->get_taxonomy_route_slug( $taxonomy ), '#' );
+				$query      = 'index.php?ptid_taxonomy=' . $taxonomy . '&ptid_term_id=$matches[1]&' . self::REWRITE_MARKER;
+
+				add_rewrite_rule( $prefix_pattern . $route_slug . $current_separator . '([0-9]+)/?$', $query, 'top' );
+
+				if ( $redirect_legacy ) {
+					add_rewrite_rule( $prefix_pattern . $route_slug . $legacy_separator . '([0-9]+)/?$', $query, 'top' );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Removes rewrite rules previously registered by this plugin.
+	 */
+	private function remove_plugin_rewrite_rules(): void {
+		global $wp_rewrite;
+
+		foreach ( array( 'extra_rules_top', 'extra_rules' ) as $rules_property ) {
+			if ( ! isset( $wp_rewrite->{$rules_property} ) || ! is_array( $wp_rewrite->{$rules_property} ) ) {
+				continue;
+			}
+
+			foreach ( $wp_rewrite->{$rules_property} as $regex => $query ) {
+				if ( $this->is_plugin_rewrite_query( $query ) ) {
+					unset( $wp_rewrite->{$rules_property}[ $regex ] );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Builds a signature for the rewrite rules generated by current settings.
+	 *
+	 * @param string $structure  Permalink structure name.
+	 * @param array  $post_types Enabled post type names.
+	 * @param array  $taxonomies Enabled taxonomy names.
+	 * @param bool   $enabled                Whether routing is enabled.
+	 * @param bool   $redirect_legacy        Whether legacy redirects are enabled.
+	 * @return string Rewrite signature.
+	 */
+	private function build_rewrite_signature( string $structure, array $post_types, array $taxonomies, bool $enabled, bool $redirect_legacy = false ): string {
+		$post_routes = array();
+		foreach ( $post_types as $post_type ) {
+			$post_routes[ $post_type ] = $this->get_post_type_route_slug( $post_type );
+		}
+
+		$taxonomy_routes = array();
+		foreach ( $taxonomies as $taxonomy ) {
+			$taxonomy_routes[ $taxonomy ] = $this->get_taxonomy_route_slug( $taxonomy );
+		}
+
+		return (string) wp_json_encode(
+			array(
+				'structure'       => $structure,
+				'enabled'         => $enabled,
+				'redirect_legacy' => $redirect_legacy,
+				'post_routes'     => $post_routes,
+				'taxonomy_routes' => $taxonomy_routes,
+				'path_prefixes'   => $this->get_rewrite_path_prefixes(),
+			)
+		);
+	}
+
+	/**
+	 * Persists the rewrite marker version and current rewrite signature.
+	 */
+	private function persist_rewrite_state(): void {
+		$structure  = $this->get_permalink_structure();
+		$post_types = $this->get_enabled_post_types();
+		$taxonomies = $this->get_enabled_taxonomies();
+		$enabled    = array() !== $post_types || array() !== $taxonomies;
+		$settings   = $this->get_settings();
+
+		update_option( self::REWRITE_MARKER_VERSION_OPTION, self::REWRITE_MARKER_VERSION, true );
+		update_option(
+			self::REWRITE_SIGNATURE_OPTION,
+			$this->build_rewrite_signature( $structure, $post_types, $taxonomies, $enabled, ! empty( $settings['redirect_legacy'] ) ),
+			true
+		);
+	}
+
+	/**
+	 * Determines whether a query belongs to this plugin's rewrite rules.
+	 *
+	 * @param mixed $query Rewrite query value.
+	 * @return bool Whether the query belongs to this plugin.
+	 */
+	private function is_plugin_rewrite_query( $query ): bool {
+		if ( ! is_string( $query ) ) {
+			return false;
+		}
+
+		return false !== strpos( $query, '&' . self::REWRITE_MARKER )
+			&& (
+				0 === strpos( $query, 'index.php?ptid_taxonomy=' )
+				|| 0 === strpos( $query, 'index.php?post_type=' )
+			);
+	}
+
+	/**
+	 * Stores normalized settings in request-local caches.
+	 *
+	 * @param array $settings Normalized settings.
+	 * @return array Cached settings.
+	 */
+	private function prime_settings_cache( array $settings ): array {
+		$this->settings_cache            = wp_parse_args( $settings, self::default_settings() );
+		$this->enabled_post_types_cache  = null;
+		$this->enabled_taxonomies_cache  = null;
+		$this->permalink_structure_cache = null;
+
+		return $this->settings_cache;
+	}
+}
+
+PTID_Permalink_Plugin::bootstrap();
+register_activation_hook( __FILE__, array( 'PTID_Permalink_Plugin', 'activate' ) );
+register_deactivation_hook( __FILE__, array( 'PTID_Permalink_Plugin', 'deactivate' ) );
+, $query, 'top' );
 
 				if ( $redirect_legacy ) {
 					add_rewrite_rule( $prefix_pattern . $route_slug . $legacy_separator . '([0-9]+)/?$', $query, 'top' );
