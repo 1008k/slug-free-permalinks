@@ -194,3 +194,12 @@ msgstr "%legacy_id%タグを使用する前に、移行元の識別子を有効�
 
 msgid "Remove %legacy_id% from the WordPress permalink structure before disabling legacy identifiers."
 msgstr "移行元の識別子を無効にする前に、WordPressのパーマリンク構造から%legacy_id%を削除してください。"
+
+msgid "Regular posts now use WordPress permalinks."
+msgstr "通常投稿をWordPress標準のパーマリンクへ移行しました。"
+
+msgid "WordPress permalinks saved."
+msgstr "WordPressのパーマリンク設定を保存しました。"
+
+msgid "Migrate regular posts to WordPress permalinks? This changes the site-wide permalink structure."
+msgstr "通常投稿をWordPress標準のパーマリンクへ移行しますか？ サイト全体のパーマリンク構造が変更されます。"
