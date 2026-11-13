@@ -773,11 +773,7 @@ $lookup_legacy->setAccessible( true );
 
 ptid_studio_assert_same(
 	true,
-	isset( $GLOBALS['wp_rewrite']->extra_rules_top['^books/archive/([A-Za-z0-9_-]+)/?
-update_option( $settings_option, $settings );
-
-echo "Slug-Free Permalinks Studio smoke tests passed.\n";
-] ),
+	isset( $GLOBALS['wp_rewrite']->extra_rules_top['^books/archive/([A-Za-z0-9_-]+)/?$'] ),
 	'Legacy-enabled CPT rewrite rules must accept string identifiers.'
 );
 ptid_studio_assert_same(
