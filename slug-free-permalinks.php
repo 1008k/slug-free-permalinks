@@ -390,7 +390,7 @@ final class PTID_Permalink_Plugin {
 			if ( '' !== $home_path && 0 === strpos( $permalink_path, $home_path . '/' ) ) {
 				$permalink_path = substr( $permalink_path, strlen( $home_path ) );
 			}
-			if ( trim( $permalink_path, '/' ) !== trim( $wp->request, '/' ) ) {
+			if ( ! $this->matches_native_legacy_path( trim( $permalink_path, '/' ), trim( $wp->request, '/' ), $wp->query_vars ) ) {
 				$post_id = 0;
 			}
 		}
@@ -409,6 +409,50 @@ final class PTID_Permalink_Plugin {
 			$wp->query_vars['post__in']              = array( 0 );
 			$wp->query_vars['ptid_legacy_not_found'] = 1;
 		}
+	}
+
+	/**
+	 * Validates WordPress's recognized single-post endpoint suffixes.
+	 *
+	 * @param string $canonical Canonical post path relative to the site.
+	 * @param string $request   Requested path relative to the site.
+	 * @param array  $vars      Rewrite query variables.
+	 * @return bool Whether this is the post or one of its native endpoints.
+	 */
+	private function matches_native_legacy_path( string $canonical, string $request, array $vars ): bool {
+		if ( $canonical === $request ) {
+			return true;
+		}
+
+		global $wp_rewrite;
+		if ( ! empty( $vars['feed'] ) ) {
+			$feed = (string) $vars['feed'];
+			if ( in_array( $feed, (array) $wp_rewrite->feeds, true ) ) {
+				$feed_base = trim( (string) $wp_rewrite->feed_base, '/' );
+				if ( $request === $canonical . '/' . $feed_base . '/' . $feed
+					|| $request === $canonical . '/' . $feed
+				) {
+					return true;
+				}
+			}
+			if ( 'feed' === $feed && $request === $canonical . '/' . trim( (string) $wp_rewrite->feed_base, '/' ) ) {
+				return true;
+			}
+		}
+
+		if ( ! empty( $vars['embed'] ) && $request === $canonical . '/embed' ) {
+			return true;
+		}
+
+		if ( ! empty( $vars['tb'] ) && $request === $canonical . '/trackback' ) {
+			return true;
+		}
+
+		if ( ! empty( $vars['cpage'] ) && $request === $canonical . '/' . $wp_rewrite->comments_pagination_base . '-' . absint( $vars['cpage'] ) ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -710,7 +754,7 @@ final class PTID_Permalink_Plugin {
 			}
 		}
 
-		return 0 === substr_count( str_replace( $matches[0], '', $structure ), '%' ) % 2;
+		return false === strpos( str_replace( $matches[0], '', $structure ), '%' );
 	}
 
 	/**
