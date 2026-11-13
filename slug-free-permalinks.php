@@ -292,6 +292,43 @@ final class PTID_Permalink_Plugin {
 	}
 
 	/**
+	 * Resolves an old CPT slug only for an explicit legacy redirect.
+	 * Never override an identifier claimed by another post.
+	 *
+	 * @param string $identifier Requested path segment.
+	 * @param string $post_type  CPT name.
+	 * @return int Post ID, or zero when unavailable or ambiguous.
+	 */
+	private function lookup_old_cpt_slug( string $identifier, string $post_type ): int {
+		if ( empty( $this->get_settings()['redirect_legacy'] ) ) {
+			return 0;
+		}
+
+		$post = get_page_by_path( $identifier, OBJECT, $post_type );
+		if ( ! ( $post instanceof WP_Post )
+			|| $identifier !== $post->post_name
+			|| ! in_array( $post->post_status, array( 'publish', 'private' ), true )
+		) {
+			return 0;
+		}
+
+		// A legacy identifier owned by any post must not be redirected as a slug.
+		$owners = get_posts(
+			array(
+				'post_type'        => $post_type,
+				'post_status'      => 'any',
+				'meta_key'         => self::LEGACY_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Scoped to matching CPT legacy routes.
+				'meta_value'       => $identifier, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Needed to avoid redirects across collisions.
+				'posts_per_page'   => 1,
+				'fields'           => 'ids',
+				'suppress_filters' => true,
+			)
+		);
+
+		return empty( $owners ) ? (int) $post->ID : 0;
+	}
+
+	/**
 	 * Resolves legacy identifiers from native post and plugin CPT rewrite rules.
 	 *
 	 * @param WP $wp WordPress request object.
@@ -315,6 +352,10 @@ final class PTID_Permalink_Plugin {
 		$identifier = (string) ( $is_custom ? $wp->query_vars['ptid_identifier'] : $wp->query_vars['ptid_legacy_id'] );
 		$post_id    = $this->lookup_legacy_post( $identifier, $post_type );
 
+		if ( ! $post_id && $is_custom ) {
+			$post_id = $this->lookup_old_cpt_slug( $identifier, $post_type );
+		}
+
 		if ( $post_id && $is_native ) {
 			// Date/category tokens must still agree with WordPress's canonical URL.
 			$permalink_path = (string) wp_parse_url( (string) get_permalink( $post_id ), PHP_URL_PATH );
@@ -329,7 +370,11 @@ final class PTID_Permalink_Plugin {
 
 		// Never let WordPress fall through to a different post on a conflicting route.
 		$wp->query_vars['post_type'] = $post_type;
-		unset( $wp->query_vars['name'], $wp->query_vars['year'], $wp->query_vars['monthnum'], $wp->query_vars['day'], $wp->query_vars['category_name'] );
+		// The canonical path was verified above; stale structural query vars
+		// must not constrain the resolved post (author, taxonomy or date archives).
+		foreach ( array( 'name', 'pagename', 'year', 'monthnum', 'day', 'hour', 'minute', 'second', 'w', 'm', 'category_name', 'cat', 'tag', 'tag_id', 'taxonomy', 'term', 'author', 'author_name', 'attachment', 'attachment_id', 'page_id', 'post_format' ) as $query_var ) {
+			unset( $wp->query_vars[ $query_var ] );
+		}
 		if ( $post_id ) {
 			$wp->query_vars['p'] = $post_id;
 		} else {
