@@ -1035,6 +1035,60 @@ $native_legacy_plugin->resolve_legacy_request( $embed_request );
 ptid_studio_assert_same( $created_post_id, $embed_request->query_vars['p'], 'Embed endpoints must resolve a legacy post.' );
 
 /*
+ * Native multipage posts use /2/ for the page query variable. A structure
+ * containing only %legacy_id% also needs a single-post rewrite rule.
+ */
+$multipage_request             = new WP();
+$multipage_request->request    = 'entry/migration-123.html/2/';
+$multipage_request->query_vars = array(
+	'ptid_legacy_id' => 'migration-123',
+	'page'           => 2,
+);
+$native_legacy_plugin->resolve_legacy_request( $multipage_request );
+ptid_studio_assert_same(
+	$created_post_id,
+	$multipage_request->query_vars['p'],
+	'Second pages of native legacy permalinks must resolve to the original post.'
+);
+ptid_studio_assert_same( 2, $multipage_request->query_vars['page'], 'The multipage content offset must be preserved.' );
+
+$multipage_request->request = 'entry/migration-123.html/3/';
+$native_legacy_plugin->resolve_legacy_request( $multipage_request );
+ptid_studio_assert_same(
+	1,
+	$multipage_request->query_vars['ptid_legacy_not_found'],
+	'Mismatched post pagination suffixes must fail closed.'
+);
+
+$previous_multipage_structure = (string) get_option( 'permalink_structure', '' );
+$GLOBALS['wp_rewrite']->set_permalink_structure( '/entry/%legacy_id%/' );
+$base_legacy_rules = array(
+	'^entry/([^/]+)/?$' => 'index.php?ptid_legacy_id=$matches[1]',
+);
+$pagination_rules = $native_legacy_plugin->add_legacy_post_pagination_rules( $base_legacy_rules );
+ptid_studio_assert_same(
+	'index.php?ptid_legacy_id=$matches[1]&page=$matches[2]',
+	$pagination_rules['^entry/([^/]+)/([0-9]+)/?$'] ?? '',
+	'Legacy-only structures must include single-post pagination rewrite rules.'
+);
+ptid_studio_assert_same(
+	'index.php?ptid_legacy_id=$matches[1]',
+	$pagination_rules['^entry/([^/]+)/?$'],
+	'Generating a pagination rule must preserve the original canonical route.'
+);
+
+$GLOBALS['wp_rewrite']->set_permalink_structure( '/%post_id%/%legacy_id%/' );
+$core_rules = array(
+	'^([0-9]+)/([^/]+)/([0-9]+)/?$' => 'index.php?p=$matches[1]&ptid_legacy_id=$matches[2]&page=$matches[3]',
+);
+ptid_studio_assert_same(
+	$core_rules,
+	$native_legacy_plugin->add_legacy_post_pagination_rules( $core_rules ),
+	'Existing WordPress multipage rules must not be duplicated.'
+);
+$GLOBALS['wp_rewrite']->set_permalink_structure( $previous_multipage_structure );
+
+/*
  * url_to_postid uses rewrite mappings directly, not the parse_request action.
  * Supply deterministic mappings to exercise its public WordPress entrypoint.
  */
