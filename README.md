@@ -34,22 +34,22 @@ If a site already has a large volume of published content and established slug-b
 - Choose slash or hyphen ID URLs for custom post types and taxonomies
 - Optionally redirect legacy slug URLs to the current ID-based permalink
 - Preserve Polylang language URLs using the language home URLs Polylang actually exposes
-- Build native regular-post permalink structures in one editable field using presets and WordPress tags; explicitly migrate legacy ID URLs
-- Optionally use the imported `legacy_id` custom field in post URLs, falling back to the WordPress ID or slug
+- Build native regular-post permalink structures in one editable field using presets and WordPress tags; explicitly migrate legacy slug URLs
+- Optionally use the imported `legacy_slug` custom field in post URLs, falling back to the WordPress ID or slug
 - Flush rewrite rules automatically when settings change
 
 ## Moving from another CMS or blog service
 
-Suppose the original article URL is `/entry/12345.html`, but its WordPress post ID is `987`. If your importer stores `legacy_id = 12345` as an ordinary custom field, you can use `/entry/%legacy_id%.html` as the native WordPress post permalink structure to keep the same path.
+Suppose the original article URL is `/entry/12345.html`, but its WordPress post ID is `987`. If your importer stores `legacy_slug = 12345` as an ordinary custom field, you can use `/entry/%legacy_slug%.html` as the native WordPress post permalink structure to keep the same path.
 
-1. Import the articles and their original IDs or slugs into the standard `legacy_id` post custom field.
-2. Turn on **Use legacy identifiers** in plugin settings. For v1 sites, explicitly migrate regular posts to native WordPress permalinks first.
-3. Use `%legacy_id%` in the regular post structure. Selected custom post types instead use the registered rewrite slug with the imported identifier.
-4. Posts without `legacy_id` use their WordPress post ID (default) or slug (selectable fallback).
+1. Import the articles and their original IDs or slugs into the standard `legacy_slug` post custom field.
+2. Turn on **Use legacy slugs** in plugin settings. For v1 sites, explicitly migrate regular posts to native WordPress permalinks first.
+3. Use `%legacy_slug%` in the regular post structure. Selected custom post types instead use the registered rewrite slug with the imported identifier.
+4. Posts without `legacy_slug` use their WordPress post ID (default) or slug (selectable fallback).
 
 Legacy post URLs also support WordPress feed and embed endpoints, multipage navigation via `<!--nextpage-->`, and resolution through the core `url_to_postid()` API. The native permalink editor rejects unknown tags or a nonempty structure with no permalink tokens.
 
-With legacy identifiers enabled, optional legacy redirects continue to send existing custom post type slug URLs to the canonical URL, unless the requested slug collides with another post's identifier. Ambiguous routes fail closed instead of redirecting to the wrong content.
+With legacy slugs enabled, optional legacy redirects continue to send existing custom post type slug URLs to the canonical URL, unless the requested slug collides with another post's identifier. Ambiguous routes fail closed instead of redirecting to the wrong content.
 
 The plugin does not import, populate, or edit custom fields. Supported identifiers consist of ASCII letters, digits, hyphens, and underscores. When different posts would resolve to the same URL, the route fails closed (404) rather than displaying the wrong post. Keeping the exact old path requires compatible URL structures, matching domains, and collision-free IDs. Back up the site and test redirects and existing URLs before switching.
 
@@ -99,7 +99,7 @@ Yes. The Regular posts section offers an explicit migration for sites still usin
 
 When regular posts are enabled, the settings screen shows the equivalent WordPress Custom Structure for the current ID URL format, such as `/post/%post_id%/` or `/post-%post_id%/`. The displayed value follows the site's current trailing-slash policy. Use the migration button to switch to WordPress's native structure before deactivating the plugin.
 
-Custom post types and taxonomies have their own rewrite settings and need to be checked separately before deactivation. If the regular-post structure contains `%legacy_id%`, deactivation also removes the custom tag and its routing; switch back to native tags or arrange redirects before disabling the plugin.
+Custom post types and taxonomies have their own rewrite settings and need to be checked separately before deactivation. If the regular-post structure contains `%legacy_slug%`, deactivation also removes the custom tag and its routing; switch back to native tags or arrange redirects before disabling the plugin.
 
 ---
 
