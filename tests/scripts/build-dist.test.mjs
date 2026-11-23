@@ -28,6 +28,7 @@ test('buildDist creates only the distributable plugin files', () => {
   }
 
   assert.equal(fs.statSync(path.join(distDir, 'assets')).isDirectory(), true);
+  assert.equal(fs.statSync(path.join(distDir, 'assets', 'admin.css')).isFile(), true);
   assert.equal(fs.statSync(path.join(distDir, 'assets', 'admin.js')).isFile(), true);
   assert.equal(fs.statSync(path.join(distDir, 'languages')).isDirectory(), true);
 });
