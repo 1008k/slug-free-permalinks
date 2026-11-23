@@ -1065,6 +1065,7 @@ $GLOBALS['wp_rewrite']->set_permalink_structure( '/entry/%legacy_id%/' );
 $base_legacy_rules = array(
 	'^entry/([^/]+)/?$' => 'index.php?ptid_legacy_id=$matches[1]',
 );
+
 $pagination_rules = $native_legacy_plugin->add_legacy_post_pagination_rules( $base_legacy_rules );
 ptid_studio_assert_same(
 	'index.php?ptid_legacy_id=$matches[1]&page=$matches[2]',
