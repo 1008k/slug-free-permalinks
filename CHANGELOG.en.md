@@ -5,10 +5,10 @@
 ## [2.0.0]
 
 - Build native WordPress post permalinks using presets and editable tags, with separate custom content settings and legacy migration.
-- Add optional `legacy_id` custom field permalinks for CMS migrations, with ID or slug fallback.
+- Add optional `legacy_slug` custom field permalinks for CMS migrations, with ID or slug fallback.
 - Preserve redirects from legacy CPT slugs and avoid ambiguous identifier collisions.
-- Validate permalink tags and support legacy identifiers in feed, embed, and WordPress URL-to-post lookups.
-- Preserve multipage post navigation (`<!--nextpage-->`) for native legacy identifier permalinks.
+- Validate permalink tags and support legacy slugs in feed, embed, and WordPress URL-to-post lookups.
+- Preserve multipage post navigation (`<!--nextpage-->`) for native legacy slug permalinks.
 - Redirect URLs in the non-selected ID format (slash or hyphen) when legacy redirects are enabled.
 
 ## [1.7.0]
