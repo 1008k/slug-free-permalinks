@@ -486,6 +486,7 @@ final class PTID_Permalink_Plugin {
 				&& preg_match_all( '/\\$matches\\[([0-9]+)\\]/', $query, $indices )
 			) {
 				$next_index = max( array_map( 'intval', $indices[1] ) ) + 1;
+
 				$updated[ $base[1] . '/([0-9]+)/?$' ] = $query . '&page=$matches[' . $next_index . ']';
 			}
 			$updated[ $regex ] = $query;
