@@ -95,7 +95,7 @@ $settings = array(
 	'post_types'      => array( 'post', 'studio_book' ),
 	'taxonomies'      => array( 'category', 'studio_genre' ),
 	'redirect_legacy' => true,
-	'use_legacy_id'   => false,
+	'use_legacy_slug'   => false,
 	'legacy_fallback' => 'id',
 );
 
@@ -111,7 +111,7 @@ ptid_studio_assert_same(
 			'post_types'      => array( 'post' ),
 			'taxonomies'      => array( 'studio_post_route' ),
 			'redirect_legacy' => false,
-			'use_legacy_id'   => false,
+			'use_legacy_slug'   => false,
 			'legacy_fallback' => 'id',
 		)
 	),
@@ -130,7 +130,7 @@ ptid_studio_assert_same(
 			'post_types'      => array( 'studio_book' ),
 			'taxonomies'      => array( 'category', 'studio_genre' ),
 			'redirect_legacy' => true,
-			'use_legacy_id'   => false,
+			'use_legacy_slug'   => false,
 			'legacy_fallback' => 'id',
 		)
 	),
@@ -434,7 +434,7 @@ $legacy_settings = array(
 	'post_types'      => 'not-an-array',
 	'taxonomies'      => array( 'category', 'category' ),
 	'redirect_legacy' => false,
-	'use_legacy_id'   => false,
+	'use_legacy_slug'   => false,
 	'legacy_fallback' => 'id',
 );
 update_option( $settings_option, $legacy_settings );
@@ -458,7 +458,7 @@ ptid_studio_assert_same(
 		'post_types'      => array(),
 		'taxonomies'      => array( 'category' ),
 		'redirect_legacy' => false,
-		'use_legacy_id'   => false,
+		'use_legacy_slug'   => false,
 		'legacy_fallback' => 'id',
 	),
 	get_option( $settings_option ),
@@ -470,7 +470,7 @@ $conflicting_settings = array(
 	'post_types'      => array( 'post' ),
 	'taxonomies'      => array( 'studio_post_route' ),
 	'redirect_legacy' => false,
-	'use_legacy_id'   => false,
+	'use_legacy_slug'   => false,
 	'legacy_fallback' => 'id',
 );
 update_option( $settings_option, $conflicting_settings );
@@ -485,7 +485,7 @@ ptid_studio_assert_same(
 		'post_types'      => array(),
 		'taxonomies'      => array(),
 		'redirect_legacy' => false,
-		'use_legacy_id'   => false,
+		'use_legacy_slug'   => false,
 		'legacy_fallback' => 'id',
 	),
 	get_option( $settings_option ),
@@ -512,7 +512,7 @@ $invalid_settings = array(
 	'post_types'      => array( 'post', 'page', 'not_registered' ),
 	'taxonomies'      => array( 'category', 'post_format', 'not_registered' ),
 	'redirect_legacy' => false,
-	'use_legacy_id'   => false,
+	'use_legacy_slug'   => false,
 	'legacy_fallback' => 'id',
 );
 update_option( $settings_option, $invalid_settings );
@@ -525,7 +525,7 @@ ptid_studio_assert_same(
 		'post_types'      => array( 'post' ),
 		'taxonomies'      => array( 'category' ),
 		'redirect_legacy' => false,
-		'use_legacy_id'   => false,
+		'use_legacy_slug'   => false,
 		'legacy_fallback' => 'id',
 	),
 	get_option( $settings_option ),
@@ -546,7 +546,7 @@ $alternate_settings = array(
 	'post_types'      => array( 'post' ),
 	'taxonomies'      => array( 'category' ),
 	'redirect_legacy' => true,
-	'use_legacy_id'   => false,
+	'use_legacy_slug'   => false,
 	'legacy_fallback' => 'id',
 );
 update_option( $settings_option, $alternate_settings );
@@ -616,7 +616,7 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 		'post_types'      => array( 'post', 'studio_book' ),
 		'taxonomies'      => array( 'category', 'studio_genre' ),
 		'redirect_legacy' => false,
-		'use_legacy_id'   => false,
+		'use_legacy_slug'   => false,
 		'legacy_fallback' => 'id',
 	);
 	update_option( $settings_option, $migration_settings );
@@ -719,7 +719,7 @@ foreach ( array( 'slash', 'hyphen' ) as $format ) {
 			'post_types'      => array( 'post', 'studio_book' ),
 			'taxonomies'      => array( 'category', 'studio_genre' ),
 			'redirect_legacy' => false,
-			'use_legacy_id'   => false,
+			'use_legacy_slug'   => false,
 			'legacy_fallback' => 'id',
 		)
 	);
@@ -784,7 +784,7 @@ $legacy_settings = array(
 	'post_types'      => array( 'studio_book' ),
 	'taxonomies'      => array( 'category' ),
 	'redirect_legacy' => true,
-	'use_legacy_id'   => true,
+	'use_legacy_slug'   => true,
 	'legacy_fallback' => 'id',
 );
 update_option( $settings_option, $legacy_settings );
@@ -844,21 +844,21 @@ ptid_studio_assert_same(
 	'A fallback WordPress post ID must resolve to the same CPT.'
 );
 
-update_post_meta( $custom_post_id, 'legacy_id', 'old-book-45' );
+update_post_meta( $custom_post_id, 'legacy_slug', 'old-book-45' );
 ptid_studio_assert_same(
 	home_url( '/books/archive/old-book-45/' ),
 	$legacy_plugin->filter_permalink( home_url( '/books/archive/book/' ), $custom_post ),
-	'Existing legacy_id metadata must determine the public CPT URL.'
+	'Existing legacy_slug metadata must determine the public CPT URL.'
 );
 ptid_studio_assert_same(
 	$custom_post_id,
 	$lookup_legacy->invoke( $legacy_plugin, 'old-book-45', 'studio_book' ),
-	'Legacy ID requests must resolve to the original CPT.'
+	'Legacy slug requests must resolve to the original CPT.'
 );
 ptid_studio_assert_same(
 	0,
 	$lookup_legacy->invoke( $legacy_plugin, (string) $custom_post_id, 'studio_book' ),
-	'A post ID must not remain an alias when the same post uses a legacy ID.'
+	'A post ID must not remain an alias when the same post uses a legacy slug.'
 );
 
 $legacy_second_id = wp_insert_post(
@@ -873,20 +873,20 @@ if ( is_wp_error( $legacy_second_id ) ) {
 	fwrite( STDERR, 'Could not create the legacy collision book.' . "\\n" );
 	exit( 1 );
 }
-update_post_meta( $legacy_second_id, 'legacy_id', 'old-book-45' );
+update_post_meta( $legacy_second_id, 'legacy_slug', 'old-book-45' );
 ptid_studio_assert_same(
 	0,
 	$lookup_old_slug->invoke( $legacy_plugin, 'old-book-45', 'studio_book' ),
-	'Legacy identifier claims must not be reinterpreted as an old slug.'
+	'Legacy slug claims must not be reinterpreted as an old slug.'
 );
 
 ptid_studio_assert_same(
 	0,
 	$lookup_legacy->invoke( $legacy_plugin, 'old-book-45', 'studio_book' ),
-	'Duplicate legacy IDs must not resolve to an arbitrary post.'
+	'Duplicate legacy slugs must not resolve to an arbitrary post.'
 );
-// A legacy ID must never take over another CPT's original slug.
-update_post_meta( $legacy_second_id, 'legacy_id', $custom_post->post_name );
+// A legacy slug must never take over another CPT's original slug.
+update_post_meta( $legacy_second_id, 'legacy_slug', $custom_post->post_name );
 $slug_collision_request             = new WP();
 $slug_collision_request->request    = 'books/archive/' . $custom_post->post_name;
 $slug_collision_request->query_vars = array(
@@ -898,16 +898,16 @@ $legacy_plugin->resolve_legacy_request( $slug_collision_request );
 ptid_studio_assert_same(
 	array( 0 ),
 	$slug_collision_request->query_vars['post__in'],
-	'A legacy ID overlapping another CPT slug must fail closed.'
+	'A legacy slug overlapping another CPT slug must fail closed.'
 );
-update_post_meta( $legacy_second_id, 'legacy_id', (string) $custom_post_id );
-delete_post_meta( $custom_post_id, 'legacy_id' );
+update_post_meta( $legacy_second_id, 'legacy_slug', (string) $custom_post_id );
+delete_post_meta( $custom_post_id, 'legacy_slug' );
 ptid_studio_assert_same(
 	0,
 	$lookup_legacy->invoke( $legacy_plugin, (string) $custom_post_id, 'studio_book' ),
-	'A legacy ID colliding with a different post ID must fail closed.'
+	'A legacy slug colliding with a different post ID must fail closed.'
 );
-delete_post_meta( $legacy_second_id, 'legacy_id' );
+delete_post_meta( $legacy_second_id, 'legacy_slug' );
 
 $legacy_slug_settings                    = $legacy_settings;
 $legacy_slug_settings['legacy_fallback'] = 'slug';
@@ -924,27 +924,27 @@ ptid_studio_assert_same(
 	'Post slug must be used when it is the selected fallback.'
 );
 
-$GLOBALS['wp_rewrite']->set_permalink_structure( '/entry/%legacy_id%.html' );
+$GLOBALS['wp_rewrite']->set_permalink_structure( '/entry/%legacy_slug%.html' );
 update_option( $settings_option, $legacy_settings );
 $native_legacy_plugin = new PTID_Permalink_Plugin();
 // Earlier tests changed options within one process; refresh the permalink hook.
 remove_all_filters( 'post_link' );
 add_filter( 'post_link', array( $native_legacy_plugin, 'filter_permalink' ), 10, 2 );
-update_post_meta( $created_post_id, 'legacy_id', 'migration-123' );
+update_post_meta( $created_post_id, 'legacy_slug', 'migration-123' );
 ptid_studio_assert_same(
 	home_url( '/entry/migration-123.html' ),
-	$native_legacy_plugin->filter_permalink( home_url( '/entry/%legacy_id%.html' ), $created_post ),
+	$native_legacy_plugin->filter_permalink( home_url( '/entry/%legacy_slug%.html' ), $created_post ),
 	'Native WordPress custom tags must be replaced using the imported identifier.'
 );
 ptid_studio_assert_same(
 	$created_post_id,
 	$lookup_legacy->invoke( $native_legacy_plugin, 'migration-123', 'post' ),
-	'Native post legacy IDs must resolve using the same lookup logic.'
+	'Native post legacy slugs must resolve using the same lookup logic.'
 );
 
 $native_request                            = new WP();
 $native_request->request                   = 'entry/migration-123.html';
-$native_request->query_vars                = array( 'ptid_legacy_id' => 'migration-123' );
+$native_request->query_vars                = array( 'ptid_legacy_slug' => 'migration-123' );
 $native_request->query_vars['author_name'] = 'an-old-author';
 $native_request->query_vars['tag']         = 'obsolete-tag';
 $native_request->query_vars['hour']        = 4;
@@ -962,7 +962,7 @@ ptid_studio_assert_same(
 
 $wrong_path_request             = new WP();
 $wrong_path_request->request    = 'other/migration-123.html';
-$wrong_path_request->query_vars = array( 'ptid_legacy_id' => 'migration-123' );
+$wrong_path_request->query_vars = array( 'ptid_legacy_slug' => 'migration-123' );
 $native_legacy_plugin->resolve_legacy_request( $wrong_path_request );
 ptid_studio_assert_same(
 	array( 0 ),
@@ -984,7 +984,7 @@ ptid_studio_assert_same(
 ptid_studio_assert_same(
 	true,
 	$missing_query->is_404(),
-	'Missing legacy identifiers must return an explicit 404 rather than HTTP 200.'
+	'Missing legacy slugs must return an explicit 404 rather than HTTP 200.'
 );
 
 
@@ -1007,7 +1007,7 @@ ptid_studio_assert_same(
  */
 $validate_native = new ReflectionMethod( PTID_Permalink_Plugin::class, 'is_valid_native_post_structure' );
 $validate_native->setAccessible( true );
-ptid_studio_assert_same( true, $validate_native->invoke( $native_legacy_plugin, '/entry/%legacy_id%.html' ), 'Valid legacy tag must be permitted when enabled.' );
+ptid_studio_assert_same( true, $validate_native->invoke( $native_legacy_plugin, '/entry/%legacy_slug%.html' ), 'Valid legacy tag must be permitted when enabled.' );
 ptid_studio_assert_same( true, $validate_native->invoke( $native_legacy_plugin, '/%year%/%post_id%/' ), 'Native WordPress permalink tags must be supported.' );
 ptid_studio_assert_same( false, $validate_native->invoke( $native_legacy_plugin, '/articles/' ), 'Static permalink structures must be rejected.' );
 ptid_studio_assert_same( false, $validate_native->invoke( $native_legacy_plugin, '/entry/%legacyid%/' ), 'Unknown permalink tags must be rejected.' );
@@ -1015,7 +1015,7 @@ ptid_studio_assert_same( false, $validate_native->invoke( $native_legacy_plugin,
 $feed_request             = new WP();
 $feed_request->request    = 'entry/migration-123.html/feed/';
 $feed_request->query_vars = array(
-	'ptid_legacy_id' => 'migration-123',
+	'ptid_legacy_slug' => 'migration-123',
 	'feed'           => 'rss2',
 );
 $native_legacy_plugin->resolve_legacy_request( $feed_request );
@@ -1028,7 +1028,7 @@ ptid_studio_assert_same( $created_post_id, $feed_request->query_vars['p'], 'Expl
 $embed_request             = new WP();
 $embed_request->request    = 'entry/migration-123.html/embed/';
 $embed_request->query_vars = array(
-	'ptid_legacy_id' => 'migration-123',
+	'ptid_legacy_slug' => 'migration-123',
 	'embed'          => 'true',
 );
 $native_legacy_plugin->resolve_legacy_request( $embed_request );
@@ -1036,12 +1036,12 @@ ptid_studio_assert_same( $created_post_id, $embed_request->query_vars['p'], 'Emb
 
 /*
  * Native multipage posts use /2/ for the page query variable. A structure
- * containing only %legacy_id% also needs a single-post rewrite rule.
+ * containing only %legacy_slug% also needs a single-post rewrite rule.
  */
 $multipage_request             = new WP();
 $multipage_request->request    = 'entry/migration-123.html/2/';
 $multipage_request->query_vars = array(
-	'ptid_legacy_id' => 'migration-123',
+	'ptid_legacy_slug' => 'migration-123',
 	'page'           => 2,
 );
 $native_legacy_plugin->resolve_legacy_request( $multipage_request );
@@ -1061,26 +1061,26 @@ ptid_studio_assert_same(
 );
 
 $previous_multipage_structure = (string) get_option( 'permalink_structure', '' );
-$GLOBALS['wp_rewrite']->set_permalink_structure( '/entry/%legacy_id%/' );
+$GLOBALS['wp_rewrite']->set_permalink_structure( '/entry/%legacy_slug%/' );
 $base_legacy_rules = array(
-	'^entry/([^/]+)/?$' => 'index.php?ptid_legacy_id=$matches[1]',
+	'^entry/([^/]+)/?$' => 'index.php?ptid_legacy_slug=$matches[1]',
 );
 
 $pagination_rules = $native_legacy_plugin->add_legacy_post_pagination_rules( $base_legacy_rules );
 ptid_studio_assert_same(
-	'index.php?ptid_legacy_id=$matches[1]&page=$matches[2]',
+	'index.php?ptid_legacy_slug=$matches[1]&page=$matches[2]',
 	$pagination_rules['^entry/([^/]+)/([0-9]+)/?$'] ?? '',
 	'Legacy-only structures must include single-post pagination rewrite rules.'
 );
 ptid_studio_assert_same(
-	'index.php?ptid_legacy_id=$matches[1]',
+	'index.php?ptid_legacy_slug=$matches[1]',
 	$pagination_rules['^entry/([^/]+)/?$'],
 	'Generating a pagination rule must preserve the original canonical route.'
 );
 
-$GLOBALS['wp_rewrite']->set_permalink_structure( '/%post_id%/%legacy_id%/' );
+$GLOBALS['wp_rewrite']->set_permalink_structure( '/%post_id%/%legacy_slug%/' );
 $core_rules = array(
-	'^([0-9]+)/([^/]+)/([0-9]+)/?$' => 'index.php?p=$matches[1]&ptid_legacy_id=$matches[2]&page=$matches[3]',
+	'^([0-9]+)/([^/]+)/([0-9]+)/?$' => 'index.php?p=$matches[1]&ptid_legacy_slug=$matches[2]&page=$matches[3]',
 );
 ptid_studio_assert_same(
 	$core_rules,
@@ -1098,7 +1098,7 @@ update_option(
 	'rewrite_rules',
 	array(
 		'^books/archive/([A-Za-z0-9_-]+)/' => 'index.php?post_type=studio_book&ptid_identifier=$matches[1]&ptid_route=1',
-		'^entry/([^/]+)\\.html'            => 'index.php?ptid_legacy_id=$matches[1]',
+		'^entry/([^/]+)\\.html'            => 'index.php?ptid_legacy_slug=$matches[1]',
 	)
 );
 add_filter( 'url_to_postid', array( $native_legacy_plugin, 'filter_url_to_postid' ), 1 );
@@ -1108,9 +1108,9 @@ add_filter( 'post_type_link', array( $native_legacy_plugin, 'filter_permalink' )
 ptid_studio_assert_same(
 	$created_post_id,
 	url_to_postid( home_url( '/entry/migration-123.html' ) ),
-	'WordPress url_to_postid must resolve regular posts using legacy identifiers.'
+	'WordPress url_to_postid must resolve regular posts using legacy slugs.'
 );
-update_post_meta( $custom_post_id, 'legacy_id', 'old-book-45' );
+update_post_meta( $custom_post_id, 'legacy_slug', 'old-book-45' );
 ptid_studio_assert_same(
 	$custom_post_id,
 	url_to_postid( home_url( '/books/archive/old-book-45/' ) ),
@@ -1119,7 +1119,7 @@ ptid_studio_assert_same(
 ptid_studio_assert_same(
 	0,
 	url_to_postid( home_url( '/books/archive/not-an-id/' ) ),
-	'Unknown legacy identifiers must remain unresolved.'
+	'Unknown legacy slugs must remain unresolved.'
 );
 ptid_studio_assert_same(
 	0,
@@ -1129,9 +1129,9 @@ ptid_studio_assert_same(
 remove_filter( 'url_to_postid', array( $native_legacy_plugin, 'filter_url_to_postid' ), 1 );
 update_option( 'rewrite_rules', $previous_lookup_rules );
 
-delete_post_meta( $created_post_id, 'legacy_id' );
-delete_post_meta( $custom_post_id, 'legacy_id' );
-delete_post_meta( $legacy_second_id, 'legacy_id' );
+delete_post_meta( $created_post_id, 'legacy_slug' );
+delete_post_meta( $custom_post_id, 'legacy_slug' );
+delete_post_meta( $legacy_second_id, 'legacy_slug' );
 wp_delete_post( $legacy_second_id, true );
 
 delete_option( 'ptid_rewrite_hard_flush_pending' );
