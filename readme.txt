@@ -38,14 +38,14 @@ What you can configure:
 * Optionally redirect legacy slug URLs to the current ID-based permalink when WordPress can resolve the request
 * Preserve Polylang language URLs using the language home URLs Polylang actually exposes
 * Build WordPress-native post permalinks with presets, insertable tags, and one editable structure field; explicitly migrate legacy post ID URLs
-* Optionally use the `legacy_id` post custom field in permalinks, with WordPress post ID or slug fallback
+* Optionally use the `legacy_slug` post custom field in permalinks, with WordPress post ID or slug fallback
 * Flush rewrite rules automatically when settings change
 
 == Migrating from another CMS ==
 
-If a former blog service used `/entry/12345.html` but the imported WordPress post has ID `987`, store `legacy_id = 12345` as an ordinary custom field. Enable **Use legacy identifiers**, then enter `/entry/%legacy_id%.html` as the regular-post permalink structure. The public URL can retain its old path. Selected custom post types can also use the imported identifier in their registered rewrite-slug routes.
+If a former blog service used `/entry/12345.html` but the imported WordPress post has ID `987`, store `legacy_slug = 12345` as an ordinary custom field. Enable **Use legacy slugs**, then enter `/entry/%legacy_slug%.html` as the regular-post permalink structure. The public URL can retain its old path. Selected custom post types can also use the imported identifier in their registered rewrite-slug routes.
 
-The plugin reads existing custom fields; it does not create or edit them. Without a `legacy_id`, posts use their WordPress ID or slug according to the fallback setting. URLs using the custom `%legacy_id%` tag require the plugin to remain active; they are not WordPress-native URLs after deactivation. Identifiers support ASCII letters, digits, hyphens, and underscores. Ambiguous identifiers are not routed to a potentially wrong post. Verify old paths and backlinks before migrating.
+The plugin reads existing custom fields; it does not create or edit them. Without a `legacy_slug`, posts use their WordPress ID or slug according to the fallback setting. URLs using the custom `%legacy_slug%` tag require the plugin to remain active; they are not WordPress-native URLs after deactivation. Identifiers support ASCII letters, digits, hyphens, and underscores. Ambiguous identifiers are not routed to a potentially wrong post. Verify old paths and backlinks before migrating.
 
 == A focused, predictable change ==
 
